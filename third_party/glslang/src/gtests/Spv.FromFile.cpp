@@ -376,6 +376,12 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.coopmatKHR_Error.comp",
         "spv.coopmatKHR_constructor.comp",
         "spv.coopmatKHR_constructorError.comp",
+        "spv.coopvec.comp",
+        "spv.coopvec2.comp",
+        "spv.coopvecloadstore.comp",
+        "spv.coopvec_Error.comp",
+        "spv.coopvecTraining.comp",
+        "spv.coopvecTraining_Error.comp",
         "spv.dataOut.frag",
         "spv.dataOutIndirect.frag",
         "spv.dataOutIndirect.vert",
@@ -418,6 +424,8 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.GeometryShaderPassthrough.geom",
         "spv.funcall.array.frag",
         "spv.load.bool.array.interface.block.frag",
+        "spv.int_dot.frag",
+        "spv.int_dot_Error.frag",
         "spv.interpOps.frag",
         "spv.int64.frag",
         "spv.intcoopmat.comp",
@@ -559,6 +567,9 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.atomicRvalue.error.vert",
         "spv.sampledImageBlock.frag",
         "spv.multiple.var.same.const.frag",
+        "spv.textureoffset_non_const.vert",
+        "spv.sparsetextureoffset_non_const.vert",
+        "spv.sparsetextureoffset_non_const_fail.vert",
     })),
     FileNameAsCustomTestSuffix
 );
@@ -730,6 +741,14 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.nv.dmm-allops.rahit",
         "spv.nv.dmm-allops.mesh",
         "spv.nv.dmm-allops.comp",
+
+        // SPV_NV_cluster_acceleration_structure
+        "spv.nv.cluster-allops.rgen",
+        "spv.nv.cluster-allops.rchit",
+        "spv.nv.cluster-allops.rmiss",
+        "spv.nv.cluster-allops.rahit",
+        "spv.nv.cluster-allops.frag",
+
     })),
     FileNameAsCustomTestSuffix
 );

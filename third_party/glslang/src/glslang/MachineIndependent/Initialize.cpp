@@ -2082,6 +2082,143 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "\n");
     }
 
+    // GL_EXT_integer_dot_product
+    if ((profile == EEsProfile && version >= 300) ||
+        (profile != EEsProfile && version >= 450)) {
+        commonBuiltins.append(
+
+            "uint dotEXT(uvec2 a, uvec2 b);"
+            "int dotEXT(ivec2 a, ivec2 b);"
+            "int dotEXT(ivec2 a, uvec2 b);"
+            "int dotEXT(uvec2 a, ivec2 b);"
+
+            "uint dotEXT(uvec3 a, uvec3 b);"
+            "int dotEXT(ivec3 a, ivec3 b);"
+            "int dotEXT(ivec3 a, uvec3 b);"
+            "int dotEXT(uvec3 a, ivec3 b);"
+
+            "uint dotEXT(uvec4 a, uvec4 b);"
+            "int dotEXT(ivec4 a, ivec4 b);"
+            "int dotEXT(ivec4 a, uvec4 b);"
+            "int dotEXT(uvec4 a, ivec4 b);"
+
+            "uint dotPacked4x8EXT(uint a, uint b);"
+            "int dotPacked4x8EXT(int a, uint b);"
+            "int dotPacked4x8EXT(uint a, int b);"
+            "int dotPacked4x8EXT(int a, int b);"
+
+            "uint dotEXT(u8vec2 a, u8vec2 b);"
+            "int dotEXT(i8vec2 a, u8vec2 b);"
+            "int dotEXT(u8vec2 a, i8vec2 b);"
+            "int dotEXT(i8vec2 a, i8vec2 b);"
+
+            "uint dotEXT(u8vec3 a, u8vec3 b);"
+            "int dotEXT(i8vec3 a, u8vec3 b);"
+            "int dotEXT(u8vec3 a, i8vec3 b);"
+            "int dotEXT(i8vec3 a, i8vec3 b);"
+
+            "uint dotEXT(u8vec4 a, u8vec4 b);"
+            "int dotEXT(i8vec4 a, u8vec4 b);"
+            "int dotEXT(u8vec4 a, i8vec4 b);"
+            "int dotEXT(i8vec4 a, i8vec4 b);"
+
+            "uint dotEXT(u16vec2 a, u16vec2 b);"
+            "int dotEXT(i16vec2 a, u16vec2 b);"
+            "int dotEXT(u16vec2 a, i16vec2 b);"
+            "int dotEXT(i16vec2 a, i16vec2 b);"
+
+            "uint dotEXT(u16vec3 a, u16vec3 b);"
+            "int dotEXT(i16vec3 a, u16vec3 b);"
+            "int dotEXT(u16vec3 a, i16vec3 b);"
+            "int dotEXT(i16vec3 a, i16vec3 b);"
+
+            "uint dotEXT(u16vec4 a, u16vec4 b);"
+            "int dotEXT(i16vec4 a, u16vec4 b);"
+            "int dotEXT(u16vec4 a, i16vec4 b);"
+            "int dotEXT(i16vec4 a, i16vec4 b);"
+
+            "uint64_t dotEXT(u64vec2 a, u64vec2 b);"
+            "int64_t dotEXT(i64vec2 a, u64vec2 b);"
+            "int64_t dotEXT(u64vec2 a, i64vec2 b);"
+            "int64_t dotEXT(i64vec2 a, i64vec2 b);"
+
+            "uint64_t dotEXT(u64vec3 a, u64vec3 b);"
+            "int64_t dotEXT(i64vec3 a, u64vec3 b);"
+            "int64_t dotEXT(u64vec3 a, i64vec3 b);"
+            "int64_t dotEXT(i64vec3 a, i64vec3 b);"
+
+            "uint64_t dotEXT(u64vec4 a, u64vec4 b);"
+            "int64_t dotEXT(i64vec4 a, u64vec4 b);"
+            "int64_t dotEXT(u64vec4 a, i64vec4 b);"
+            "int64_t dotEXT(i64vec4 a, i64vec4 b);"
+
+            "uint dotAccSatEXT(uvec2 a, uvec2 b, uint c);"
+            "int dotAccSatEXT(ivec2 a, uvec2 b, int c);"
+            "int dotAccSatEXT(uvec2 a, ivec2 b, int c);"
+            "int dotAccSatEXT(ivec2 a, ivec2 b, int c);"
+
+            "uint dotAccSatEXT(uvec3 a, uvec3 b, uint c);"
+            "int dotAccSatEXT(ivec3 a, uvec3 b, int c);"
+            "int dotAccSatEXT(uvec3 a, ivec3 b, int c);"
+            "int dotAccSatEXT(ivec3 a, ivec3 b, int c);"
+
+            "uint dotAccSatEXT(uvec4 a, uvec4 b, uint c);"
+            "int dotAccSatEXT(ivec4 a, uvec4 b, int c);"
+            "int dotAccSatEXT(uvec4 a, ivec4 b, int c);"
+            "int dotAccSatEXT(ivec4 a, ivec4 b, int c);"
+
+            "uint dotPacked4x8AccSatEXT(uint a, uint b, uint c);"
+            "int dotPacked4x8AccSatEXT(int a, uint b, int c);"
+            "int dotPacked4x8AccSatEXT(uint a, int b, int c);"
+            "int dotPacked4x8AccSatEXT(int a, int b, int c);"
+
+            "uint dotAccSatEXT(u8vec2 a, u8vec2 b, uint c);"
+            "int dotAccSatEXT(i8vec2 a, u8vec2 b, int c);"
+            "int dotAccSatEXT(u8vec2 a, i8vec2 b, int c);"
+            "int dotAccSatEXT(i8vec2 a, i8vec2 b, int c);"
+
+            "uint dotAccSatEXT(u8vec3 a, u8vec3 b, uint c);"
+            "int dotAccSatEXT(i8vec3 a, u8vec3 b, int c);"
+            "int dotAccSatEXT(u8vec3 a, i8vec3 b, int c);"
+            "int dotAccSatEXT(i8vec3 a, i8vec3 b, int c);"
+
+            "uint dotAccSatEXT(u8vec4 a, u8vec4 b, uint c);"
+            "int dotAccSatEXT(i8vec4 a, u8vec4 b, int c);"
+            "int dotAccSatEXT(u8vec4 a, i8vec4 b, int c);"
+            "int dotAccSatEXT(i8vec4 a, i8vec4 b, int c);"
+
+            "uint dotAccSatEXT(u16vec2 a, u16vec2 b, uint c);"
+            "int dotAccSatEXT(i16vec2 a, u16vec2 b, int c);"
+            "int dotAccSatEXT(u16vec2 a, i16vec2 b, int c);"
+            "int dotAccSatEXT(i16vec2 a, i16vec2 b, int c);"
+
+            "uint dotAccSatEXT(u16vec3 a, u16vec3 b, uint c);"
+            "int dotAccSatEXT(i16vec3 a, u16vec3 b, int c);"
+            "int dotAccSatEXT(u16vec3 a, i16vec3 b, int c);"
+            "int dotAccSatEXT(i16vec3 a, i16vec3 b, int c);"
+
+            "uint dotAccSatEXT(u16vec4 a, u16vec4 b, uint c);"
+            "int dotAccSatEXT(i16vec4 a, u16vec4 b, int c);"
+            "int dotAccSatEXT(u16vec4 a, i16vec4 b, int c);"
+            "int dotAccSatEXT(i16vec4 a, i16vec4 b, int c);"
+
+            "uint64_t dotAccSatEXT(u64vec2 a, u64vec2 b, uint64_t c);"
+            "int64_t dotAccSatEXT(i64vec2 a, u64vec2 b, int64_t c);"
+            "int64_t dotAccSatEXT(u64vec2 a, i64vec2 b, int64_t c);"
+            "int64_t dotAccSatEXT(i64vec2 a, i64vec2 b, int64_t c);"
+
+            "uint64_t dotAccSatEXT(u64vec3 a, u64vec3 b, uint64_t c);"
+            "int64_t dotAccSatEXT(i64vec3 a, u64vec3 b, int64_t c);"
+            "int64_t dotAccSatEXT(u64vec3 a, i64vec3 b, int64_t c);"
+            "int64_t dotAccSatEXT(i64vec3 a, i64vec3 b, int64_t c);"
+
+            "uint64_t dotAccSatEXT(u64vec4 a, u64vec4 b, uint64_t c);"
+            "int64_t dotAccSatEXT(i64vec4 a, u64vec4 b, int64_t c);"
+            "int64_t dotAccSatEXT(u64vec4 a, i64vec4 b, int64_t c);"
+            "int64_t dotAccSatEXT(i64vec4 a, i64vec4 b, int64_t c);"
+            "\n");
+    }
+
     // GL_KHR_shader_subgroup
     if ((profile == EEsProfile && version >= 310) ||
         (profile != EEsProfile && version >= 140)) {
@@ -4600,6 +4737,161 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         );
     }
 
+    if (profile != EEsProfile && version >= 450) {
+        const char *basicTypes[] = {
+            "int8_t",
+            "int16_t",
+            "int32_t",
+            "int64_t",
+            "uint8_t",
+            "uint16_t",
+            "uint32_t",
+            "uint64_t",
+            "float16_t",
+            "float32_t",
+            "float64_t",
+        };
+        for (uint32_t i = 0; i < sizeof(basicTypes)/sizeof(basicTypes[0]); ++i) {
+            std::string func = std::string("void coopVecMatMulNV(out coopvecNV result, ") +
+                               std::string("coopvecNV v, ") +
+                               std::string("int inputInterpretation, ") +
+                               std::string(basicTypes[i]) + std::string("[] matrix, ") +
+                               std::string("uint matrixOffset, ") +
+                               std::string("int matrixInterpretation, ") +
+                               std::string("uint M, ") +
+                               std::string("uint K, ") +
+                               std::string("int matrixLayout, ") +
+                               std::string("bool transpose, ") +
+                               std::string("uint matrixStride);\n");
+            commonBuiltins.append(func.c_str());
+
+            for (uint32_t j = 0; j < sizeof(basicTypes)/sizeof(basicTypes[0]); ++j) {
+                func = std::string("void coopVecMatMulAddNV(out coopvecNV result, ") +
+                       std::string("coopvecNV v, ") +
+                       std::string("int inputInterpretation, ") +
+                       std::string(basicTypes[i]) + std::string("[] matrix, ") +
+                       std::string("uint matrixOffset, ") +
+                       std::string("int matrixInterpretation, ") +
+                       std::string(basicTypes[j]) + std::string("[] bias, ") +
+                       std::string("uint biasOffset, ") +
+                       std::string("int biasInterpretation, ") +
+                       std::string("uint M, ") +
+                       std::string("uint K, ") +
+                       std::string("int matrixLayout, ") +
+                       std::string("bool transpose, ") +
+                       std::string("uint matrixStride);\n");
+                commonBuiltins.append(func.c_str());
+            }
+
+            func = std::string("void coopVecOuterProductAccumulateNV(coopvecNV v1, coopvecNV v2, ") +
+                   std::string(basicTypes[i]) +
+                   std::string("[] buf, uint offset, uint stride, int matrixLayout, int matrixInterpretation);\n");
+            commonBuiltins.append(func.c_str());
+            
+            func = std::string("void coopVecReduceSumAccumulateNV(coopvecNV v, ") +
+                   std::string(basicTypes[i]) +
+                   std::string("[] buf, uint offset);\n");
+            commonBuiltins.append(func.c_str());
+        }
+
+        std::string cooperativeVectorFuncs =
+            "coopvecNV fma(coopvecNV, coopvecNV, coopvecNV);\n"
+            "coopvecNV min(coopvecNV, coopvecNV);\n"
+            "coopvecNV max(coopvecNV, coopvecNV);\n"
+            "coopvecNV step(coopvecNV, coopvecNV);\n"
+            "coopvecNV exp(coopvecNV);\n"            
+            "coopvecNV log(coopvecNV);\n"            
+            "coopvecNV tanh(coopvecNV);\n"            
+            "coopvecNV atan(coopvecNV);\n"            
+            "coopvecNV clamp(coopvecNV, coopvecNV, coopvecNV);\n"
+            "\n"
+            ;
+
+        commonBuiltins.append(cooperativeVectorFuncs.c_str());
+
+        const char *scalarAndVectorTypes[] = {
+            "int8_t",
+            "int16_t",
+            "int32_t",
+            "int64_t",
+            "uint8_t",
+            "uint16_t",
+            "uint32_t",
+            "uint64_t",
+            "float16_t",
+            "float32_t",
+            "float64_t",
+            "i8vec2",
+            "i16vec2",
+            "i32vec2",
+            "i64vec2",
+            "u8vec2",
+            "u16vec2",
+            "u32vec2",
+            "u64vec2",
+            "f16vec2",
+            "f32vec2",
+            "f64vec2",
+            "i8vec3",
+            "i16vec3",
+            "i32vec3",
+            "i64vec3",
+            "u8vec3",
+            "u16vec3",
+            "u32vec3",
+            "u64vec3",
+            "f16vec3",
+            "f32vec3",
+            "f64vec3",
+            "i8vec4",
+            "i16vec4",
+            "i32vec4",
+            "i64vec4",
+            "u8vec4",
+            "u16vec4",
+            "u32vec4",
+            "u64vec4",
+            "f16vec4",
+            "f32vec4",
+            "f64vec4",
+        };
+        for (uint32_t i = 0; i < sizeof(scalarAndVectorTypes)/sizeof(scalarAndVectorTypes[0]); ++i) {
+            std::string load = std::string("void coopVecLoadNV(out coopvecNV v, volatile coherent ") +
+                               std::string(scalarAndVectorTypes[i]) + std::string("[] buf, uint offset);");
+            std::string store = std::string("void coopVecStoreNV(coopvecNV v, volatile coherent ") +
+                               std::string(scalarAndVectorTypes[i]) + std::string("[] buf, uint offset);");
+            commonBuiltins.append(load.c_str());
+            commonBuiltins.append(store.c_str());
+        }
+
+        commonBuiltins.append(
+            "const int gl_CooperativeVectorMatrixLayoutRowMajorNV = 0;\n"
+            "const int gl_CooperativeVectorMatrixLayoutColumnMajorNV = 1;\n"
+            "const int gl_CooperativeVectorMatrixLayoutInferencingOptimalNV = 2;\n"
+            "const int gl_CooperativeVectorMatrixLayoutTrainingOptimalNV = 3;\n"
+            "\n"
+            );
+
+        commonBuiltins.append(
+            "const int gl_ComponentTypeFloat16NV                = 0;\n"
+            "const int gl_ComponentTypeFloat32NV                = 1;\n"
+            "const int gl_ComponentTypeFloat64NV                = 2;\n"
+            "const int gl_ComponentTypeSignedInt8NV             = 3;\n"
+            "const int gl_ComponentTypeSignedInt16NV            = 4;\n"
+            "const int gl_ComponentTypeSignedInt32NV            = 5;\n"
+            "const int gl_ComponentTypeSignedInt64NV            = 6;\n"
+            "const int gl_ComponentTypeUnsignedInt8NV           = 7;\n"
+            "const int gl_ComponentTypeUnsignedInt16NV          = 8;\n"
+            "const int gl_ComponentTypeUnsignedInt32NV          = 9;\n"
+            "const int gl_ComponentTypeUnsignedInt64NV          = 10;\n"
+            "const int gl_ComponentTypeSignedInt8PackedNV       = 1000491000;\n"
+            "const int gl_ComponentTypeUnsignedInt8PackedNV     = 1000491001;\n"
+            "const int gl_ComponentTypeFloatE4M3NV              = 1000491002;\n"
+            "const int gl_ComponentTypeFloatE5M2NV              = 1000491003;\n"
+            "\n"
+            );
+    }
+
     //============================================================================
     //
     // Prototypes for built-in functions seen by fragment shaders only.
@@ -4797,6 +5089,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "mat4x3 rayQueryGetIntersectionObjectToWorldEXT(rayQueryEXT, bool);"
             "mat4x3 rayQueryGetIntersectionWorldToObjectEXT(rayQueryEXT, bool);"
             "void rayQueryGetIntersectionTriangleVertexPositionsEXT(rayQueryEXT, bool, out vec3[3]);"
+            "int rayQueryGetIntersectionClusterIdNV(rayQueryEXT, bool);"
             "\n");
 
         stageBuiltins[EShLangRayGen].append(
@@ -4835,6 +5128,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "float hitObjectGetCurrentTimeNV(hitObjectNV);"
             "uint hitObjectGetShaderBindingTableRecordIndexNV(hitObjectNV);"
             "uvec2 hitObjectGetShaderRecordBufferHandleNV(hitObjectNV);"
+            "int hitObjectGetClusterIdNV(hitObjectNV);"
             "void reorderThreadNV(uint, uint);"
             "void reorderThreadNV(hitObjectNV);"
             "void reorderThreadNV(hitObjectNV, uint, uint);"
@@ -4885,6 +5179,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "float hitObjectGetCurrentTimeNV(hitObjectNV);"
             "uint hitObjectGetShaderBindingTableRecordIndexNV(hitObjectNV);"
             "uvec2 hitObjectGetShaderRecordBufferHandleNV(hitObjectNV);"
+            "int hitObjectGetClusterIdNV(hitObjectNV);"
             "\n");
         stageBuiltins[EShLangMiss].append(
             "void traceNV(accelerationStructureNV,uint,uint,uint,uint,uint,vec3,float,vec3,float,int);"
@@ -4922,6 +5217,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "float hitObjectGetCurrentTimeNV(hitObjectNV);"
             "uint hitObjectGetShaderBindingTableRecordIndexNV(hitObjectNV);"
             "uvec2 hitObjectGetShaderRecordBufferHandleNV(hitObjectNV);"
+            "int hitObjectGetClusterIdNV(hitObjectNV);"
             "\n");
         stageBuiltins[EShLangCallable].append(
             "void executeCallableNV(uint, int);"
@@ -6156,6 +6452,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "const uint gl_HitKindBackFacingTriangleEXT = 255U;"
             "in    uint gl_HitKindFrontFacingMicroTriangleNV;"
             "in    uint gl_HitKindBackFacingMicroTriangleNV;"
+            "const int  gl_ClusterIDNoneNV = -1;"
             "\n";
 
         const char *constRayQueryIntersection =
@@ -6246,6 +6543,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "in    vec3   gl_HitTriangleVertexPositionsEXT[3];"
             "in    vec3   gl_HitMicroTriangleVertexPositionsNV[3];"
             "in    vec2   gl_HitMicroTriangleVertexBarycentricsNV[3];"
+            "in    int    gl_ClusterIDNV;"
             "\n";
 
         const char *missDecls =
@@ -8434,6 +8732,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.setFunctionExtensions("rayQueryGetWorldRayOriginEXT",                                     1, &E_GL_EXT_ray_query);
             symbolTable.setFunctionExtensions("rayQueryGetWorldRayDirectionEXT",                                  1, &E_GL_EXT_ray_query);
             symbolTable.setFunctionExtensions("rayQueryGetIntersectionTriangleVertexPositionsEXT",                1, &E_GL_EXT_ray_tracing_position_fetch);
+            symbolTable.setFunctionExtensions("rayQueryGetIntersectionClusterIdNV",                               1, &E_GL_NV_cluster_acceleration_structure);
             symbolTable.setVariableExtensions("gl_RayFlagsSkipAABBEXT",                         1, &E_GL_EXT_ray_flags_primitive_culling);
             symbolTable.setVariableExtensions("gl_RayFlagsSkipTrianglesEXT",                    1, &E_GL_EXT_ray_flags_primitive_culling);
             symbolTable.setVariableExtensions("gl_RayFlagsForceOpacityMicromap2StateEXT",                  1, &E_GL_EXT_opacity_micromap);
@@ -9120,6 +9419,13 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.setFunctionExtensions("setTensorViewClipNV",            1, &E_GL_NV_cooperative_matrix2);
         }
 
+        {
+            symbolTable.setFunctionExtensions("coopVecMatMulNV",                    1, &E_GL_NV_cooperative_vector);
+            symbolTable.setFunctionExtensions("coopVecMatMulAddNV",                 1, &E_GL_NV_cooperative_vector);
+            symbolTable.setFunctionExtensions("coopVecOuterProductAccumulateNV",    1, &E_GL_NV_cooperative_vector);
+            symbolTable.setFunctionExtensions("coopVecReduceSumAccumulateNV",       1, &E_GL_NV_cooperative_vector);
+        }
+
         if ((profile != EEsProfile && version >= 450) || (profile == EEsProfile && version >= 320)) {
             symbolTable.setFunctionExtensions("dFdx",                   1, &E_GL_NV_compute_shader_derivatives);
             symbolTable.setFunctionExtensions("dFdy",                   1, &E_GL_NV_compute_shader_derivatives);
@@ -9143,6 +9449,15 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
         if ((profile != EEsProfile && version >= 460)) {
             symbolTable.setFunctionExtensions("fetchMicroTriangleVertexPositionNV", 1, &E_GL_NV_displacement_micromap);
             symbolTable.setFunctionExtensions("fetchMicroTriangleVertexBarycentricNV", 1, &E_GL_NV_displacement_micromap);
+        }
+
+        // GL_EXT_integer_dot_product
+        if ((profile == EEsProfile && version >= 300) ||
+            (profile != EEsProfile && version >= 450)) {
+            symbolTable.setFunctionExtensions("dotEXT", 1, &E_GL_EXT_integer_dot_product);
+            symbolTable.setFunctionExtensions("dotPacked4x8EXT", 1, &E_GL_EXT_integer_dot_product);
+            symbolTable.setFunctionExtensions("dotAccSatEXT", 1, &E_GL_EXT_integer_dot_product);
+            symbolTable.setFunctionExtensions("dotPacked4x8AccSatEXT", 1, &E_GL_EXT_integer_dot_product);
         }
         break;
 
@@ -9192,6 +9507,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.setVariableExtensions("gl_HitTriangleVertexPositionsEXT", 1, &E_GL_EXT_ray_tracing_position_fetch);
             symbolTable.setVariableExtensions("gl_HitMicroTriangleVertexPositionsNV", 1, &E_GL_NV_displacement_micromap);
             symbolTable.setVariableExtensions("gl_HitMicroTriangleVertexBarycentricsNV", 1, &E_GL_NV_displacement_micromap);
+            symbolTable.setVariableExtensions("gl_ClusterIDNV", 1, &E_GL_NV_cluster_acceleration_structure);
 
             symbolTable.setVariableExtensions("gl_DeviceIndex", 1, &E_GL_EXT_device_group);
 
@@ -9236,6 +9552,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.setFunctionExtensions("hitObjectGetCurrentTimeNV", 1, &E_GL_NV_shader_invocation_reorder);
             symbolTable.setFunctionExtensions("hitObjectGetShaderBindingTableRecordIndexNV", 1, &E_GL_NV_shader_invocation_reorder);
             symbolTable.setFunctionExtensions("hitObjectGetShaderRecordBufferHandleNV", 1, &E_GL_NV_shader_invocation_reorder);
+            symbolTable.setFunctionExtensions("hitObjectGetClusterIdNV", 1, &E_GL_NV_cluster_acceleration_structure);
             symbolTable.setFunctionExtensions("reorderThreadNV", 1, &E_GL_NV_shader_invocation_reorder);
             symbolTable.setFunctionExtensions("fetchMicroTriangleVertexPositionNV", 1, &E_GL_NV_displacement_micromap);
             symbolTable.setFunctionExtensions("fetchMicroTriangleVertexBarycentricNV", 1, &E_GL_NV_displacement_micromap);
@@ -9280,6 +9597,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             BuiltInVariable("gl_HitMicroTriangleVertexBarycentricsNV", EbvMicroTriangleBaryNV, symbolTable);
             BuiltInVariable("gl_HitKindFrontFacingMicroTriangleNV", EbvHitKindFrontFacingMicroTriangleNV, symbolTable);
             BuiltInVariable("gl_HitKindBackFacingMicroTriangleNV", EbvHitKindBackFacingMicroTriangleNV, symbolTable);
+            BuiltInVariable("gl_ClusterIDNV",            EbvClusterIDNV,         symbolTable);
 
             // gl_HitT variables are aliases of their gl_RayTmax counterparts.
             RetargetVariable("gl_HitTNV",                "gl_RayTmaxNV",        symbolTable);
@@ -10082,6 +10400,15 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.relateToOperator("fragmentFetchAMD",                    EOpFragmentFetch);
         }
 
+        // GL_EXT_integer_dot_product
+        if ((profile == EEsProfile && version >= 300) ||
+            (profile != EEsProfile && version >= 450)) {
+            symbolTable.relateToOperator("dotEXT", EOpDot);
+            symbolTable.relateToOperator("dotPacked4x8EXT", EOpDotPackedEXT);
+            symbolTable.relateToOperator("dotAccSatEXT", EOpDotAccSatEXT);
+            symbolTable.relateToOperator("dotPacked4x8AccSatEXT", EOpDotPackedAccSatEXT);
+        }
+
         // GL_KHR_shader_subgroup
         if ((profile == EEsProfile && version >= 310) ||
             (profile != EEsProfile && version >= 140)) {
@@ -10201,6 +10528,13 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.relateToOperator("texture2DArrayLod", EOpTextureLod);
             symbolTable.relateToOperator("shadow1DArrayLod", EOpTextureLod);
         }
+
+        symbolTable.relateToOperator("coopVecMatMulNV",              EOpCooperativeVectorMatMulNV);
+        symbolTable.relateToOperator("coopVecMatMulAddNV",           EOpCooperativeVectorMatMulAddNV);
+        symbolTable.relateToOperator("coopVecLoadNV",                EOpCooperativeVectorLoadNV);
+        symbolTable.relateToOperator("coopVecStoreNV",               EOpCooperativeVectorStoreNV);
+        symbolTable.relateToOperator("coopVecOuterProductAccumulateNV", EOpCooperativeVectorOuterProductAccumulateNV);
+        symbolTable.relateToOperator("coopVecReduceSumAccumulateNV",    EOpCooperativeVectorReduceSumAccumulateNV);
     }
 
     switch(language) {
@@ -10253,6 +10587,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.relateToOperator("rayQueryGetIntersectionObjectToWorldEXT",                           EOpRayQueryGetIntersectionObjectToWorld);
             symbolTable.relateToOperator("rayQueryGetIntersectionWorldToObjectEXT",                           EOpRayQueryGetIntersectionWorldToObject);
             symbolTable.relateToOperator("rayQueryGetIntersectionTriangleVertexPositionsEXT",                 EOpRayQueryGetIntersectionTriangleVertexPositionsEXT);
+            symbolTable.relateToOperator("rayQueryGetIntersectionClusterIdNV",                                EOpRayQueryGetIntersectionClusterIdNV);
         }
 
         symbolTable.relateToOperator("interpolateAtCentroid", EOpInterpolateAtCentroid);
@@ -10363,6 +10698,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.relateToOperator("hitObjectGetCurrentTimeNV", EOpHitObjectGetCurrentTimeNV);
             symbolTable.relateToOperator("hitObjectGetShaderBindingTableRecordIndexNV", EOpHitObjectGetShaderBindingTableRecordIndexNV);
             symbolTable.relateToOperator("hitObjectGetShaderRecordBufferHandleNV", EOpHitObjectGetShaderRecordBufferHandleNV);
+            symbolTable.relateToOperator("hitObjectGetClusterIdNV", EOpHitObjectGetClusterIdNV);
             symbolTable.relateToOperator("reorderThreadNV", EOpReorderThreadNV);
         }
         break;

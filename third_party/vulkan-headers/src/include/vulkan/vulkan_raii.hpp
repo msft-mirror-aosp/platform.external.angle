@@ -1,4 +1,4 @@
-// Copyright 2015-2024 The Khronos Group Inc.
+// Copyright 2015-2025 The Khronos Group Inc.
 //
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
@@ -375,6 +375,10 @@ namespace VULKAN_HPP_NAMESPACE
           vkGetPhysicalDeviceOpticalFlowImageFormatsNV =
             PFN_vkGetPhysicalDeviceOpticalFlowImageFormatsNV( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceOpticalFlowImageFormatsNV" ) );
 
+          //=== VK_NV_cooperative_vector ===
+          vkGetPhysicalDeviceCooperativeVectorPropertiesNV =
+            PFN_vkGetPhysicalDeviceCooperativeVectorPropertiesNV( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceCooperativeVectorPropertiesNV" ) );
+
           //=== VK_KHR_cooperative_matrix ===
           vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR =
             PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR" ) );
@@ -657,6 +661,9 @@ namespace VULKAN_HPP_NAMESPACE
 
         //=== VK_NV_optical_flow ===
         PFN_vkGetPhysicalDeviceOpticalFlowImageFormatsNV vkGetPhysicalDeviceOpticalFlowImageFormatsNV = 0;
+
+        //=== VK_NV_cooperative_vector ===
+        PFN_vkGetPhysicalDeviceCooperativeVectorPropertiesNV vkGetPhysicalDeviceCooperativeVectorPropertiesNV = 0;
 
         //=== VK_KHR_cooperative_matrix ===
         PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR = 0;
@@ -1758,6 +1765,11 @@ namespace VULKAN_HPP_NAMESPACE
           vkGetDynamicRenderingTilePropertiesQCOM =
             PFN_vkGetDynamicRenderingTilePropertiesQCOM( vkGetDeviceProcAddr( device, "vkGetDynamicRenderingTilePropertiesQCOM" ) );
 
+          //=== VK_NV_cooperative_vector ===
+          vkConvertCooperativeVectorMatrixNV = PFN_vkConvertCooperativeVectorMatrixNV( vkGetDeviceProcAddr( device, "vkConvertCooperativeVectorMatrixNV" ) );
+          vkCmdConvertCooperativeVectorMatrixNV =
+            PFN_vkCmdConvertCooperativeVectorMatrixNV( vkGetDeviceProcAddr( device, "vkCmdConvertCooperativeVectorMatrixNV" ) );
+
           //=== VK_NV_low_latency2 ===
           vkSetLatencySleepModeNV  = PFN_vkSetLatencySleepModeNV( vkGetDeviceProcAddr( device, "vkSetLatencySleepModeNV" ) );
           vkLatencySleepNV         = PFN_vkLatencySleepNV( vkGetDeviceProcAddr( device, "vkLatencySleepNV" ) );
@@ -1800,6 +1812,18 @@ namespace VULKAN_HPP_NAMESPACE
           vkCmdBindDescriptorBufferEmbeddedSamplers2EXT =
             PFN_vkCmdBindDescriptorBufferEmbeddedSamplers2EXT( vkGetDeviceProcAddr( device, "vkCmdBindDescriptorBufferEmbeddedSamplers2EXT" ) );
 
+          //=== VK_NV_cluster_acceleration_structure ===
+          vkGetClusterAccelerationStructureBuildSizesNV =
+            PFN_vkGetClusterAccelerationStructureBuildSizesNV( vkGetDeviceProcAddr( device, "vkGetClusterAccelerationStructureBuildSizesNV" ) );
+          vkCmdBuildClusterAccelerationStructureIndirectNV =
+            PFN_vkCmdBuildClusterAccelerationStructureIndirectNV( vkGetDeviceProcAddr( device, "vkCmdBuildClusterAccelerationStructureIndirectNV" ) );
+
+          //=== VK_NV_partitioned_acceleration_structure ===
+          vkGetPartitionedAccelerationStructuresBuildSizesNV =
+            PFN_vkGetPartitionedAccelerationStructuresBuildSizesNV( vkGetDeviceProcAddr( device, "vkGetPartitionedAccelerationStructuresBuildSizesNV" ) );
+          vkCmdBuildPartitionedAccelerationStructuresNV =
+            PFN_vkCmdBuildPartitionedAccelerationStructuresNV( vkGetDeviceProcAddr( device, "vkCmdBuildPartitionedAccelerationStructuresNV" ) );
+
           //=== VK_EXT_device_generated_commands ===
           vkGetGeneratedCommandsMemoryRequirementsEXT =
             PFN_vkGetGeneratedCommandsMemoryRequirementsEXT( vkGetDeviceProcAddr( device, "vkGetGeneratedCommandsMemoryRequirementsEXT" ) );
@@ -1813,6 +1837,12 @@ namespace VULKAN_HPP_NAMESPACE
             PFN_vkUpdateIndirectExecutionSetPipelineEXT( vkGetDeviceProcAddr( device, "vkUpdateIndirectExecutionSetPipelineEXT" ) );
           vkUpdateIndirectExecutionSetShaderEXT =
             PFN_vkUpdateIndirectExecutionSetShaderEXT( vkGetDeviceProcAddr( device, "vkUpdateIndirectExecutionSetShaderEXT" ) );
+
+#  if defined( VK_USE_PLATFORM_METAL_EXT )
+          //=== VK_EXT_external_memory_metal ===
+          vkGetMemoryMetalHandleEXT           = PFN_vkGetMemoryMetalHandleEXT( vkGetDeviceProcAddr( device, "vkGetMemoryMetalHandleEXT" ) );
+          vkGetMemoryMetalHandlePropertiesEXT = PFN_vkGetMemoryMetalHandlePropertiesEXT( vkGetDeviceProcAddr( device, "vkGetMemoryMetalHandlePropertiesEXT" ) );
+#  endif /*VK_USE_PLATFORM_METAL_EXT*/
         }
 
       public:
@@ -2698,6 +2728,10 @@ namespace VULKAN_HPP_NAMESPACE
         PFN_vkGetFramebufferTilePropertiesQCOM      vkGetFramebufferTilePropertiesQCOM      = 0;
         PFN_vkGetDynamicRenderingTilePropertiesQCOM vkGetDynamicRenderingTilePropertiesQCOM = 0;
 
+        //=== VK_NV_cooperative_vector ===
+        PFN_vkConvertCooperativeVectorMatrixNV    vkConvertCooperativeVectorMatrixNV    = 0;
+        PFN_vkCmdConvertCooperativeVectorMatrixNV vkCmdConvertCooperativeVectorMatrixNV = 0;
+
         //=== VK_NV_low_latency2 ===
         PFN_vkSetLatencySleepModeNV  vkSetLatencySleepModeNV  = 0;
         PFN_vkLatencySleepNV         vkLatencySleepNV         = 0;
@@ -2729,6 +2763,14 @@ namespace VULKAN_HPP_NAMESPACE
         PFN_vkCmdSetDescriptorBufferOffsets2EXT           vkCmdSetDescriptorBufferOffsets2EXT           = 0;
         PFN_vkCmdBindDescriptorBufferEmbeddedSamplers2EXT vkCmdBindDescriptorBufferEmbeddedSamplers2EXT = 0;
 
+        //=== VK_NV_cluster_acceleration_structure ===
+        PFN_vkGetClusterAccelerationStructureBuildSizesNV    vkGetClusterAccelerationStructureBuildSizesNV    = 0;
+        PFN_vkCmdBuildClusterAccelerationStructureIndirectNV vkCmdBuildClusterAccelerationStructureIndirectNV = 0;
+
+        //=== VK_NV_partitioned_acceleration_structure ===
+        PFN_vkGetPartitionedAccelerationStructuresBuildSizesNV vkGetPartitionedAccelerationStructuresBuildSizesNV = 0;
+        PFN_vkCmdBuildPartitionedAccelerationStructuresNV      vkCmdBuildPartitionedAccelerationStructuresNV      = 0;
+
         //=== VK_EXT_device_generated_commands ===
         PFN_vkGetGeneratedCommandsMemoryRequirementsEXT vkGetGeneratedCommandsMemoryRequirementsEXT = 0;
         PFN_vkCmdPreprocessGeneratedCommandsEXT         vkCmdPreprocessGeneratedCommandsEXT         = 0;
@@ -2739,6 +2781,15 @@ namespace VULKAN_HPP_NAMESPACE
         PFN_vkDestroyIndirectExecutionSetEXT            vkDestroyIndirectExecutionSetEXT            = 0;
         PFN_vkUpdateIndirectExecutionSetPipelineEXT     vkUpdateIndirectExecutionSetPipelineEXT     = 0;
         PFN_vkUpdateIndirectExecutionSetShaderEXT       vkUpdateIndirectExecutionSetShaderEXT       = 0;
+
+#  if defined( VK_USE_PLATFORM_METAL_EXT )
+        //=== VK_EXT_external_memory_metal ===
+        PFN_vkGetMemoryMetalHandleEXT           vkGetMemoryMetalHandleEXT           = 0;
+        PFN_vkGetMemoryMetalHandlePropertiesEXT vkGetMemoryMetalHandlePropertiesEXT = 0;
+#  else
+        PFN_dummy vkGetMemoryMetalHandleEXT_placeholder                         = 0;
+        PFN_dummy vkGetMemoryMetalHandlePropertiesEXT_placeholder               = 0;
+#  endif /*VK_USE_PLATFORM_METAL_EXT*/
       };
 
     }  // namespace detail
@@ -3044,7 +3095,7 @@ namespace VULKAN_HPP_NAMESPACE
         std::vector<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::PhysicalDevice>>::Type
         enumeratePhysicalDevices() const;
 
-      VULKAN_HPP_NODISCARD PFN_vkVoidFunction getProcAddr( const std::string & name ) const VULKAN_HPP_NOEXCEPT;
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::PFN_VoidFunction getProcAddr( const std::string & name ) const VULKAN_HPP_NOEXCEPT;
 
       //=== VK_VERSION_1_1 ===
 
@@ -3117,7 +3168,7 @@ namespace VULKAN_HPP_NAMESPACE
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
       void debugReportMessageEXT( VULKAN_HPP_NAMESPACE::DebugReportFlagsEXT      flags,
-                                  VULKAN_HPP_NAMESPACE::DebugReportObjectTypeEXT objectType_,
+                                  VULKAN_HPP_NAMESPACE::DebugReportObjectTypeEXT objectType,
                                   uint64_t                                       object,
                                   size_t                                         location,
                                   int32_t                                        messageCode,
@@ -3667,6 +3718,10 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::OpticalFlowImageFormatPropertiesNV>
                            getOpticalFlowImageFormatsNV( const VULKAN_HPP_NAMESPACE::OpticalFlowImageFormatInfoNV & opticalFlowImageFormatInfo ) const;
 
+      //=== VK_NV_cooperative_vector ===
+
+      VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::CooperativeVectorPropertiesNV> getCooperativeVectorPropertiesNV() const;
+
       //=== VK_KHR_cooperative_matrix ===
 
       VULKAN_HPP_NODISCARD std::vector<VULKAN_HPP_NAMESPACE::CooperativeMatrixPropertiesKHR> getCooperativeMatrixPropertiesKHR() const;
@@ -3818,7 +3873,7 @@ namespace VULKAN_HPP_NAMESPACE
 
       //=== VK_VERSION_1_0 ===
 
-      VULKAN_HPP_NODISCARD PFN_vkVoidFunction getProcAddr( const std::string & name ) const VULKAN_HPP_NOEXCEPT;
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::PFN_VoidFunction getProcAddr( const std::string & name ) const VULKAN_HPP_NOEXCEPT;
 
       VULKAN_HPP_NODISCARD
         VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::detail::CreateReturnType<VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::Queue>::Type
@@ -4059,12 +4114,12 @@ namespace VULKAN_HPP_NAMESPACE
                                VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
 
-      void setPrivateData( VULKAN_HPP_NAMESPACE::ObjectType      objectType_,
+      void setPrivateData( VULKAN_HPP_NAMESPACE::ObjectType      objectType,
                            uint64_t                              objectHandle,
                            VULKAN_HPP_NAMESPACE::PrivateDataSlot privateDataSlot,
                            uint64_t                              data ) const;
 
-      VULKAN_HPP_NODISCARD uint64_t getPrivateData( VULKAN_HPP_NAMESPACE::ObjectType      objectType_,
+      VULKAN_HPP_NODISCARD uint64_t getPrivateData( VULKAN_HPP_NAMESPACE::ObjectType      objectType,
                                                     uint64_t                              objectHandle,
                                                     VULKAN_HPP_NAMESPACE::PrivateDataSlot privateDataSlot ) const VULKAN_HPP_NOEXCEPT;
 
@@ -4585,12 +4640,12 @@ namespace VULKAN_HPP_NAMESPACE
                                       Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator
                                         VULKAN_HPP_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 
-      void setPrivateDataEXT( VULKAN_HPP_NAMESPACE::ObjectType      objectType_,
+      void setPrivateDataEXT( VULKAN_HPP_NAMESPACE::ObjectType      objectType,
                               uint64_t                              objectHandle,
                               VULKAN_HPP_NAMESPACE::PrivateDataSlot privateDataSlot,
                               uint64_t                              data ) const;
 
-      VULKAN_HPP_NODISCARD uint64_t getPrivateDataEXT( VULKAN_HPP_NAMESPACE::ObjectType      objectType_,
+      VULKAN_HPP_NODISCARD uint64_t getPrivateDataEXT( VULKAN_HPP_NAMESPACE::ObjectType      objectType,
                                                        uint64_t                              objectHandle,
                                                        VULKAN_HPP_NAMESPACE::PrivateDataSlot privateDataSlot ) const VULKAN_HPP_NOEXCEPT;
 
@@ -4834,6 +4889,11 @@ namespace VULKAN_HPP_NAMESPACE
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::TilePropertiesQCOM
                            getDynamicRenderingTilePropertiesQCOM( const VULKAN_HPP_NAMESPACE::RenderingInfo & renderingInfo ) const VULKAN_HPP_NOEXCEPT;
 
+      //=== VK_NV_cooperative_vector ===
+
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::Result
+                           convertCooperativeVectorMatrixNV( const VULKAN_HPP_NAMESPACE::ConvertCooperativeVectorMatrixInfoNV & info ) const;
+
 #  if defined( VK_USE_PLATFORM_SCREEN_QNX )
       //=== VK_QNX_external_memory_screen_buffer ===
 
@@ -4850,6 +4910,16 @@ namespace VULKAN_HPP_NAMESPACE
 
       VULKAN_HPP_NODISCARD std::pair<uint64_t, uint64_t>
                            getCalibratedTimestampKHR( const VULKAN_HPP_NAMESPACE::CalibratedTimestampInfoKHR & timestampInfo ) const;
+
+      //=== VK_NV_cluster_acceleration_structure ===
+
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::AccelerationStructureBuildSizesInfoKHR
+        getClusterAccelerationStructureBuildSizesNV( const VULKAN_HPP_NAMESPACE::ClusterAccelerationStructureInputInfoNV & info ) const VULKAN_HPP_NOEXCEPT;
+
+      //=== VK_NV_partitioned_acceleration_structure ===
+
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::AccelerationStructureBuildSizesInfoKHR getPartitionedAccelerationStructuresBuildSizesNV(
+        const VULKAN_HPP_NAMESPACE::PartitionedAccelerationStructureInstancesInputNV & info ) const VULKAN_HPP_NOEXCEPT;
 
       //=== VK_EXT_device_generated_commands ===
 
@@ -4871,6 +4941,16 @@ namespace VULKAN_HPP_NAMESPACE
         createIndirectExecutionSetEXT( VULKAN_HPP_NAMESPACE::IndirectExecutionSetCreateInfoEXT const &                 createInfo,
                                        VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator = nullptr ) const
         VULKAN_HPP_RAII_CREATE_NOEXCEPT;
+
+#  if defined( VK_USE_PLATFORM_METAL_EXT )
+      //=== VK_EXT_external_memory_metal ===
+
+      VULKAN_HPP_NODISCARD void * getMemoryMetalHandleEXT( const VULKAN_HPP_NAMESPACE::MemoryGetMetalHandleInfoEXT & getMetalHandleInfo ) const;
+
+      template <typename HandleType>
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::MemoryMetalHandlePropertiesEXT
+        getMemoryMetalHandlePropertiesEXT( VULKAN_HPP_NAMESPACE::ExternalMemoryHandleTypeFlagBits handleType, HandleType const & handle ) const;
+#  endif /*VK_USE_PLATFORM_METAL_EXT*/
 
     private:
       VULKAN_HPP_NAMESPACE::Device                                                               m_device    = {};
@@ -6730,6 +6810,11 @@ namespace VULKAN_HPP_NAMESPACE
                                   Optional<const VULKAN_HPP_NAMESPACE::DepthClampRangeEXT> depthClampRange
                                     VULKAN_HPP_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 
+      //=== VK_NV_cooperative_vector ===
+
+      void convertCooperativeVectorMatrixNV(
+        VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::ConvertCooperativeVectorMatrixInfoNV> const & infos ) const VULKAN_HPP_NOEXCEPT;
+
       //=== VK_EXT_attachment_feedback_loop_dynamic_state ===
 
       void setAttachmentFeedbackLoopEnableEXT( VULKAN_HPP_NAMESPACE::ImageAspectFlags aspectMask VULKAN_HPP_DEFAULT_ARGUMENT_ASSIGNMENT ) const
@@ -6755,6 +6840,16 @@ namespace VULKAN_HPP_NAMESPACE
 
       void bindDescriptorBufferEmbeddedSamplers2EXT(
         const VULKAN_HPP_NAMESPACE::BindDescriptorBufferEmbeddedSamplersInfoEXT & bindDescriptorBufferEmbeddedSamplersInfo ) const VULKAN_HPP_NOEXCEPT;
+
+      //=== VK_NV_cluster_acceleration_structure ===
+
+      void buildClusterAccelerationStructureIndirectNV( const VULKAN_HPP_NAMESPACE::ClusterAccelerationStructureCommandsInfoNV & commandInfos ) const
+        VULKAN_HPP_NOEXCEPT;
+
+      //=== VK_NV_partitioned_acceleration_structure ===
+
+      void buildPartitionedAccelerationStructuresNV( const VULKAN_HPP_NAMESPACE::BuildPartitionedAccelerationStructureInfoNV & buildInfo ) const
+        VULKAN_HPP_NOEXCEPT;
 
       //=== VK_EXT_device_generated_commands ===
 
@@ -13176,7 +13271,7 @@ namespace VULKAN_HPP_NAMESPACE
       return memoryProperties;
     }
 
-    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE PFN_vkVoidFunction Instance::getProcAddr( const std::string & name ) const VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::PFN_VoidFunction Instance::getProcAddr( const std::string & name ) const VULKAN_HPP_NOEXCEPT
     {
       VULKAN_HPP_ASSERT( getDispatcher()->vkGetInstanceProcAddr && "Function <vkGetInstanceProcAddr> requires <VK_VERSION_1_0>" );
 
@@ -13185,7 +13280,7 @@ namespace VULKAN_HPP_NAMESPACE
       return result;
     }
 
-    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE PFN_vkVoidFunction Device::getProcAddr( const std::string & name ) const VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::PFN_VoidFunction Device::getProcAddr( const std::string & name ) const VULKAN_HPP_NOEXCEPT
     {
       VULKAN_HPP_ASSERT( getDispatcher()->vkGetDeviceProcAddr && "Function <vkGetDeviceProcAddr> requires <VK_VERSION_1_0>" );
 
@@ -14154,9 +14249,6 @@ namespace VULKAN_HPP_NAMESPACE
                                     VULKAN_HPP_NAMESPACE::Optional<const VULKAN_HPP_NAMESPACE::AllocationCallbacks> allocator ) const
       VULKAN_HPP_RAII_CREATE_NOEXCEPT
     {
-      VULKAN_HPP_ASSERT(
-        createInfo.flags & vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet &&
-        "createInfo.flags need to have vk::DescriptorPoolCreateFlagBits::eFreeDesriptors set in order to allow destruction of VULKAN_HPP_NAMESPACE::VULKAN_HPP_RAII_NAMESPACE::DescriptorSet which requires to return individual allocations to the pool" );
       VULKAN_HPP_NAMESPACE::DescriptorPool descriptorPool;
       VULKAN_HPP_NAMESPACE::Result         result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkCreateDescriptorPool(
         static_cast<VkDevice>( m_device ),
@@ -24258,6 +24350,62 @@ namespace VULKAN_HPP_NAMESPACE
       return properties;
     }
 
+    //=== VK_NV_cooperative_vector ===
+
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE std::vector<VULKAN_HPP_NAMESPACE::CooperativeVectorPropertiesNV>
+                                           PhysicalDevice::getCooperativeVectorPropertiesNV() const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetPhysicalDeviceCooperativeVectorPropertiesNV &&
+                         "Function <vkGetPhysicalDeviceCooperativeVectorPropertiesNV> requires <VK_NV_cooperative_vector>" );
+
+      std::vector<VULKAN_HPP_NAMESPACE::CooperativeVectorPropertiesNV> properties;
+      uint32_t                                                         propertyCount;
+      VULKAN_HPP_NAMESPACE::Result                                     result;
+      do
+      {
+        result = static_cast<VULKAN_HPP_NAMESPACE::Result>(
+          getDispatcher()->vkGetPhysicalDeviceCooperativeVectorPropertiesNV( static_cast<VkPhysicalDevice>( m_physicalDevice ), &propertyCount, nullptr ) );
+        if ( ( result == VULKAN_HPP_NAMESPACE::Result::eSuccess ) && propertyCount )
+        {
+          properties.resize( propertyCount );
+          result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkGetPhysicalDeviceCooperativeVectorPropertiesNV(
+            static_cast<VkPhysicalDevice>( m_physicalDevice ), &propertyCount, reinterpret_cast<VkCooperativeVectorPropertiesNV *>( properties.data() ) ) );
+        }
+      } while ( result == VULKAN_HPP_NAMESPACE::Result::eIncomplete );
+      VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::PhysicalDevice::getCooperativeVectorPropertiesNV" );
+      VULKAN_HPP_ASSERT( propertyCount <= properties.size() );
+      if ( propertyCount < properties.size() )
+      {
+        properties.resize( propertyCount );
+      }
+      return properties;
+    }
+
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::Result
+      Device::convertCooperativeVectorMatrixNV( const VULKAN_HPP_NAMESPACE::ConvertCooperativeVectorMatrixInfoNV & info ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkConvertCooperativeVectorMatrixNV &&
+                         "Function <vkConvertCooperativeVectorMatrixNV> requires <VK_NV_cooperative_vector>" );
+
+      VULKAN_HPP_NAMESPACE::Result result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkConvertCooperativeVectorMatrixNV(
+        static_cast<VkDevice>( m_device ), reinterpret_cast<const VkConvertCooperativeVectorMatrixInfoNV *>( &info ) ) );
+      VULKAN_HPP_NAMESPACE::detail::resultCheck( result,
+                                                 VULKAN_HPP_NAMESPACE_STRING "::Device::convertCooperativeVectorMatrixNV",
+                                                 { VULKAN_HPP_NAMESPACE::Result::eSuccess, VULKAN_HPP_NAMESPACE::Result::eIncomplete } );
+
+      return static_cast<VULKAN_HPP_NAMESPACE::Result>( result );
+    }
+
+    VULKAN_HPP_INLINE void CommandBuffer::convertCooperativeVectorMatrixNV(
+      VULKAN_HPP_NAMESPACE::ArrayProxy<const VULKAN_HPP_NAMESPACE::ConvertCooperativeVectorMatrixInfoNV> const & infos ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdConvertCooperativeVectorMatrixNV &&
+                         "Function <vkCmdConvertCooperativeVectorMatrixNV> requires <VK_NV_cooperative_vector>" );
+
+      getDispatcher()->vkCmdConvertCooperativeVectorMatrixNV(
+        static_cast<VkCommandBuffer>( m_commandBuffer ), infos.size(), reinterpret_cast<const VkConvertCooperativeVectorMatrixInfoNV *>( infos.data() ) );
+    }
+
     //=== VK_NV_low_latency2 ===
 
     VULKAN_HPP_INLINE void SwapchainKHR::setLatencySleepModeNV( const VULKAN_HPP_NAMESPACE::LatencySleepModeInfoNV & sleepModeInfo ) const
@@ -24523,6 +24671,60 @@ namespace VULKAN_HPP_NAMESPACE
         reinterpret_cast<const VkBindDescriptorBufferEmbeddedSamplersInfoEXT *>( &bindDescriptorBufferEmbeddedSamplersInfo ) );
     }
 
+    //=== VK_NV_cluster_acceleration_structure ===
+
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::AccelerationStructureBuildSizesInfoKHR Device::getClusterAccelerationStructureBuildSizesNV(
+      const VULKAN_HPP_NAMESPACE::ClusterAccelerationStructureInputInfoNV & info ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetClusterAccelerationStructureBuildSizesNV &&
+                         "Function <vkGetClusterAccelerationStructureBuildSizesNV> requires <VK_NV_cluster_acceleration_structure>" );
+
+      VULKAN_HPP_NAMESPACE::AccelerationStructureBuildSizesInfoKHR sizeInfo;
+      getDispatcher()->vkGetClusterAccelerationStructureBuildSizesNV( static_cast<VkDevice>( m_device ),
+                                                                      reinterpret_cast<const VkClusterAccelerationStructureInputInfoNV *>( &info ),
+                                                                      reinterpret_cast<VkAccelerationStructureBuildSizesInfoKHR *>( &sizeInfo ) );
+
+      return sizeInfo;
+    }
+
+    VULKAN_HPP_INLINE void CommandBuffer::buildClusterAccelerationStructureIndirectNV(
+      const VULKAN_HPP_NAMESPACE::ClusterAccelerationStructureCommandsInfoNV & commandInfos ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdBuildClusterAccelerationStructureIndirectNV &&
+                         "Function <vkCmdBuildClusterAccelerationStructureIndirectNV> requires <VK_NV_cluster_acceleration_structure>" );
+
+      getDispatcher()->vkCmdBuildClusterAccelerationStructureIndirectNV(
+        static_cast<VkCommandBuffer>( m_commandBuffer ), reinterpret_cast<const VkClusterAccelerationStructureCommandsInfoNV *>( &commandInfos ) );
+    }
+
+    //=== VK_NV_partitioned_acceleration_structure ===
+
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::AccelerationStructureBuildSizesInfoKHR
+      Device::getPartitionedAccelerationStructuresBuildSizesNV( const VULKAN_HPP_NAMESPACE::PartitionedAccelerationStructureInstancesInputNV & info ) const
+      VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetPartitionedAccelerationStructuresBuildSizesNV &&
+                         "Function <vkGetPartitionedAccelerationStructuresBuildSizesNV> requires <VK_NV_partitioned_acceleration_structure>" );
+
+      VULKAN_HPP_NAMESPACE::AccelerationStructureBuildSizesInfoKHR sizeInfo;
+      getDispatcher()->vkGetPartitionedAccelerationStructuresBuildSizesNV(
+        static_cast<VkDevice>( m_device ),
+        reinterpret_cast<const VkPartitionedAccelerationStructureInstancesInputNV *>( &info ),
+        reinterpret_cast<VkAccelerationStructureBuildSizesInfoKHR *>( &sizeInfo ) );
+
+      return sizeInfo;
+    }
+
+    VULKAN_HPP_INLINE void CommandBuffer::buildPartitionedAccelerationStructuresNV(
+      const VULKAN_HPP_NAMESPACE::BuildPartitionedAccelerationStructureInfoNV & buildInfo ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdBuildPartitionedAccelerationStructuresNV &&
+                         "Function <vkCmdBuildPartitionedAccelerationStructuresNV> requires <VK_NV_partitioned_acceleration_structure>" );
+
+      getDispatcher()->vkCmdBuildPartitionedAccelerationStructuresNV( static_cast<VkCommandBuffer>( m_commandBuffer ),
+                                                                      reinterpret_cast<const VkBuildPartitionedAccelerationStructureInfoNV *>( &buildInfo ) );
+    }
+
     //=== VK_EXT_device_generated_commands ===
 
     VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::MemoryRequirements2 Device::getGeneratedCommandsMemoryRequirementsEXT(
@@ -24684,6 +24886,41 @@ namespace VULKAN_HPP_NAMESPACE
       }
       return properties;
     }
+
+#  if defined( VK_USE_PLATFORM_METAL_EXT )
+    //=== VK_EXT_external_memory_metal ===
+
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE void *
+      Device::getMemoryMetalHandleEXT( const VULKAN_HPP_NAMESPACE::MemoryGetMetalHandleInfoEXT & getMetalHandleInfo ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetMemoryMetalHandleEXT && "Function <vkGetMemoryMetalHandleEXT> requires <VK_EXT_external_memory_metal>" );
+
+      void *                       handle;
+      VULKAN_HPP_NAMESPACE::Result result = static_cast<VULKAN_HPP_NAMESPACE::Result>( getDispatcher()->vkGetMemoryMetalHandleEXT(
+        static_cast<VkDevice>( m_device ), reinterpret_cast<const VkMemoryGetMetalHandleInfoEXT *>( &getMetalHandleInfo ), &handle ) );
+      VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::getMemoryMetalHandleEXT" );
+
+      return handle;
+    }
+
+    template <typename HandleType>
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::MemoryMetalHandlePropertiesEXT
+      Device::getMemoryMetalHandlePropertiesEXT( VULKAN_HPP_NAMESPACE::ExternalMemoryHandleTypeFlagBits handleType, HandleType const & handle ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetMemoryMetalHandlePropertiesEXT &&
+                         "Function <vkGetMemoryMetalHandlePropertiesEXT> requires <VK_EXT_external_memory_metal>" );
+
+      VULKAN_HPP_NAMESPACE::MemoryMetalHandlePropertiesEXT memoryMetalHandleProperties;
+      VULKAN_HPP_NAMESPACE::Result                         result = static_cast<VULKAN_HPP_NAMESPACE::Result>(
+        getDispatcher()->vkGetMemoryMetalHandlePropertiesEXT( static_cast<VkDevice>( m_device ),
+                                                              static_cast<VkExternalMemoryHandleTypeFlagBits>( handleType ),
+                                                              reinterpret_cast<const void *>( &handle ),
+                                                              reinterpret_cast<VkMemoryMetalHandlePropertiesEXT *>( &memoryMetalHandleProperties ) ) );
+      VULKAN_HPP_NAMESPACE::detail::resultCheck( result, VULKAN_HPP_NAMESPACE_STRING "::Device::getMemoryMetalHandlePropertiesEXT" );
+
+      return memoryMetalHandleProperties;
+    }
+#  endif /*VK_USE_PLATFORM_METAL_EXT*/
 
     //====================
     //=== RAII Helpers ===

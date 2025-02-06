@@ -33,7 +33,6 @@
 #endif
 
 #define ANGLE_MTL_OBJC_SCOPE ANGLE_APPLE_OBJC_SCOPE
-#define ANGLE_MTL_AUTORELEASE ANGLE_APPLE_AUTORELEASE
 #define ANGLE_MTL_RETAIN ANGLE_APPLE_RETAIN
 #define ANGLE_MTL_RELEASE ANGLE_APPLE_RELEASE
 
@@ -265,17 +264,11 @@ class WrappedObject
     T mMetalObject = nil;
 };
 
-// Because ARC enablement is a compile-time choice, and we compile this header
-// both ways, we need a separate copy of our code when ARC is enabled.
-#if __has_feature(objc_arc)
-#    define adoptObjCObj adoptObjCObjArc
-#endif
 template <typename T>
 class AutoObjCPtr;
-template <typename T>
-using AutoObjCObj = AutoObjCPtr<T *>;
+
 template <typename U>
-AutoObjCObj<U> adoptObjCObj(U *NS_RELEASES_ARGUMENT) __attribute__((__warn_unused_result__));
+AutoObjCPtr<U *> adoptObjCPtr(U *NS_RELEASES_ARGUMENT) __attribute__((__warn_unused_result__));
 
 // This class is similar to WrappedObject, however, it allows changing the
 // internal pointer with public methods.
@@ -340,10 +333,12 @@ class AutoObjCPtr : public WrappedObject<T>
 
     bool operator!=(T rhs) const { return this->get() != rhs; }
 
+    operator T() const { return this->get(); }
+
     using ParentType::retainAssign;
 
     template <typename U>
-    friend AutoObjCObj<U> adoptObjCObj(U *NS_RELEASES_ARGUMENT)
+    friend AutoObjCPtr<U *> adoptObjCPtr(U *NS_RELEASES_ARGUMENT)
         __attribute__((__warn_unused_result__));
 
   private:
@@ -361,7 +356,7 @@ class AutoObjCPtr : public WrappedObject<T>
 };
 
 template <typename U>
-inline AutoObjCObj<U> adoptObjCObj(U *NS_RELEASES_ARGUMENT src)
+inline AutoObjCPtr<U *> adoptObjCPtr(U *NS_RELEASES_ARGUMENT src)
 {
 #if __has_feature(objc_arc)
     return src;
@@ -492,6 +487,7 @@ class ClearColorValue
 };
 
 class CommandQueue;
+
 class ErrorHandler
 {
   public:
@@ -503,11 +499,17 @@ class ErrorHandler
                              const char *function,
                              unsigned int line) = 0;
 
-    virtual void handleError(NSError *error,
-                             const char *message,
-                             const char *file,
-                             const char *function,
-                             unsigned int line) = 0;
+    void handleNSError(NSError *error, const char *file, const char *function, unsigned int line)
+    {
+        std::string message;
+        {
+            std::stringstream s;
+            s << "Internal error. Metal error: "
+              << (error != nil ? error.localizedDescription.UTF8String : "nil error");
+            message = s.str();
+        }
+        handleError(GL_INVALID_OPERATION, message.c_str(), file, function, line);
+    }
 };
 
 class Context : public ErrorHandler
@@ -522,28 +524,17 @@ class Context : public ErrorHandler
     DisplayMtl *mDisplay;
 };
 
-std::string FormatMetalErrorMessage(GLenum errorCode);
-std::string FormatMetalErrorMessage(NSError *error);
-
-#define ANGLE_MTL_HANDLE_ERROR(context, message, error) \
-    context->handleError(error, message, __FILE__, ANGLE_FUNCTION, __LINE__)
-
-#define ANGLE_MTL_CHECK(context, test, error)                                                  \
-    do                                                                                         \
-    {                                                                                          \
-        if (ANGLE_UNLIKELY(!(test)))                                                           \
-        {                                                                                      \
-            context->handleError(error, mtl::FormatMetalErrorMessage(error).c_str(), __FILE__, \
-                                 ANGLE_FUNCTION, __LINE__);                                    \
-            return angle::Result::Stop;                                                        \
-        }                                                                                      \
+#define ANGLE_MTL_CHECK(context, result, nserror)                                   \
+    do                                                                              \
+    {                                                                               \
+        auto &localResult = (result);                                               \
+        auto &localError  = (nserror);                                              \
+        if (ANGLE_UNLIKELY(!localResult || localError))                             \
+        {                                                                           \
+            context->handleNSError(localError, __FILE__, ANGLE_FUNCTION, __LINE__); \
+            return angle::Result::Stop;                                             \
+        }                                                                           \
     } while (0)
-
-#define ANGLE_MTL_TRY(context, test) ANGLE_MTL_CHECK(context, test, GL_INVALID_OPERATION)
-
-#define ANGLE_MTL_UNREACHABLE(context) \
-    UNREACHABLE();                     \
-    ANGLE_MTL_TRY(context, false)
 
 }  // namespace mtl
 }  // namespace rx
