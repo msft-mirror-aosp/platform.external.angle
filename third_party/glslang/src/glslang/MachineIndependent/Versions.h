@@ -285,6 +285,8 @@ const char* const E_GL_EXT_ray_tracing_position_fetch           = "GL_EXT_ray_tr
 const char* const E_GL_NV_displacement_micromap                 = "GL_NV_displacement_micromap";
 const char* const E_GL_NV_shader_atomic_fp16_vector             = "GL_NV_shader_atomic_fp16_vector";
 const char* const E_GL_NV_cooperative_matrix2                   = "GL_NV_cooperative_matrix2";
+const char* const E_GL_NV_cooperative_vector                    = "GL_NV_cooperative_vector";
+const char* const E_GL_NV_cluster_acceleration_structure        = "GL_NV_cluster_acceleration_structure";
 
 // ARM
 const char* const E_GL_ARM_shader_core_builtins                 = "GL_ARM_shader_core_builtins";

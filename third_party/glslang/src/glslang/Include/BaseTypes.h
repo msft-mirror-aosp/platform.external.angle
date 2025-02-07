@@ -70,6 +70,7 @@ enum TBasicType {
     EbtFunction,
     EbtTensorLayoutNV,
     EbtTensorViewNV,
+    EbtCoopvecNV,
     // SPIR-V type defined by spirv_type
     EbtSpirvType,
 
@@ -278,6 +279,7 @@ enum TBuiltInVariable {
     EbvWorldToObject3x4,
     EbvIncomingRayFlags,
     EbvCurrentRayTimeNV,
+    EbvClusterIDNV,
     // barycentrics
     EbvBaryCoordNV,
     EbvBaryCoordNoPerspNV,
@@ -502,6 +504,7 @@ __inline const char* GetBuiltInVariableString(TBuiltInVariable v)
     case EbvObjectToWorld:              return "ObjectToWorldNV";
     case EbvWorldToObject:              return "WorldToObjectNV";
     case EbvCurrentRayTimeNV:           return "CurrentRayTimeNV";
+    case EbvClusterIDNV:                return "ClusterIDNV";
 
     case EbvBaryCoordEXT:
     case EbvBaryCoordNV:                return "BaryCoordKHR";

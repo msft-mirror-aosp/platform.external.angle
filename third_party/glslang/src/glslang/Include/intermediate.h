@@ -472,6 +472,13 @@ enum TOperator {
     EOpTensorViewSetStrideNV,
     EOpTensorViewSetClipNV,
 
+    EOpCooperativeVectorMatMulNV,
+    EOpCooperativeVectorMatMulAddNV,
+    EOpCooperativeVectorLoadNV,
+    EOpCooperativeVectorStoreNV,
+    EOpCooperativeVectorOuterProductAccumulateNV,
+    EOpCooperativeVectorReduceSumAccumulateNV,
+
     EOpBeginInvocationInterlock, // Fragment only
     EOpEndInvocationInterlock, // Fragment only
 
@@ -610,6 +617,7 @@ enum TOperator {
     EOpConstructReference,
     EOpConstructCooperativeMatrixNV,
     EOpConstructCooperativeMatrixKHR,
+    EOpConstructCooperativeVectorNV,
     EOpConstructAccStruct,
     EOpConstructGuardEnd,
 
@@ -959,6 +967,10 @@ enum TOperator {
     EOpImageBlockMatchWindowSADQCOM,
     EOpImageBlockMatchGatherSSDQCOM,
     EOpImageBlockMatchGatherSADQCOM,
+
+    // GL_NV_cluster_acceleration_structure
+    EOpRayQueryGetIntersectionClusterIdNV,
+    EOpHitObjectGetClusterIdNV,
 };
 
 inline bool IsOpNumericConv(const TOperator op) {

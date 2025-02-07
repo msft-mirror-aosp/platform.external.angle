@@ -63,7 +63,7 @@ class SharedEventSyncImpl : public SyncImpl
                       uint64_t signalValue,
                       bool enqueueEvent)
     {
-        mMetalSharedEvent.retainAssign(sharedEvent);
+        mMetalSharedEvent = std::move(sharedEvent);
         mSignalValue = signalValue;
 
         if (enqueueEvent)
@@ -100,7 +100,7 @@ class SharedEventSyncImpl : public SyncImpl
         // onDestroy(), but the callback might still not be fired yet.
         std::shared_ptr<std::condition_variable> cvRef = mCv;
         std::shared_ptr<std::mutex> lockRef            = mLock;
-        AutoObjCObj<MTLSharedEventListener> eventListener =
+        AutoObjCPtr<MTLSharedEventListener *> eventListener =
             contextMtl->getDisplay()->getOrCreateSharedEventListener();
         [mMetalSharedEvent.get() notifyListener:eventListener
                                         atValue:mSignalValue
@@ -342,8 +342,8 @@ egl::Error EGLSyncMtl::initialize(const egl::Display *display,
 
         case EGL_SYNC_METAL_SHARED_EVENT_ANGLE:
         {
-            mSharedEvent.retainAssign((__bridge id<MTLSharedEvent>)reinterpret_cast<void *>(
-                attribs.get(EGL_SYNC_METAL_SHARED_EVENT_OBJECT_ANGLE, 0)));
+            mSharedEvent = (__bridge id<MTLSharedEvent>)reinterpret_cast<void *>(
+                attribs.get(EGL_SYNC_METAL_SHARED_EVENT_OBJECT_ANGLE, 0));
             if (!mSharedEvent)
             {
                 mSharedEvent = contextMtl->getMetalDevice().newSharedEvent();
