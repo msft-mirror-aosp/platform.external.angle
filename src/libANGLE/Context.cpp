@@ -29,6 +29,7 @@
 #include "libANGLE/Buffer.h"
 #include "libANGLE/Compiler.h"
 #include "libANGLE/Display.h"
+#include "libANGLE/ErrorStrings.h"
 #include "libANGLE/Fence.h"
 #include "libANGLE/FramebufferAttachment.h"
 #include "libANGLE/MemoryObject.h"
@@ -4012,6 +4013,9 @@ void Context::initCaps()
     Caps *caps = mState.getMutableCaps();
     *caps      = mImplementation->getNativeCaps();
 
+    // Update limitations before evaluating extension support
+    *mState.getMutableLimitations() = mImplementation->getNativeLimitations();
+
     // TODO (http://anglebug.com/42264543): mSupportedExtensions should not be modified here
     mSupportedExtensions = generateSupportedExtensions();
 
@@ -4051,8 +4055,6 @@ void Context::initCaps()
 
     Extensions *extensions = mState.getMutableExtensions();
     *extensions            = mSupportedExtensions;
-
-    *mState.getMutableLimitations() = mImplementation->getNativeLimitations();
 
     // GLES1 emulation: Initialize caps (Table 6.20 / 6.22 in the ES 1.1 spec)
     if (getClientVersion() < Version(2, 0))
@@ -4657,7 +4659,7 @@ ANGLE_INLINE angle::Result Context::prepareForDispatch()
         // since it successfully linked already in order to become part of the PPO in the first
         // place.
         pipeline->resolveLink(this);
-        ANGLE_CHECK(this, pipeline->isLinked(), "Program pipeline link failed",
+        ANGLE_CHECK(this, pipeline->isLinked(), err::kProgramPipelineLinkFailed,
                     GL_INVALID_OPERATION);
     }
 
@@ -10151,7 +10153,7 @@ void ErrorSet::handleError(GLenum errorCode,
     }
 
     std::stringstream errorStream;
-    errorStream << "Error: " << gl::FmtHex(errorCode) << ", in " << file << ", " << function << ":"
+    errorStream << "Error: " << gl::FmtHex(errorCode) << ", in " << file << ", " << function << ':'
                 << line << ". " << message;
 
     std::string formattedMessage = errorStream.str();

@@ -110,23 +110,23 @@ static constexpr PipelineStageAccessHeuristic kPipelineStageAccessPreFragmentOnl
 // Renderer::getPipelineStageMask call.
 enum class EventStage : uint32_t
 {
-    Transfer                                          = 0,
-    VertexShader                                      = 1,
-    FragmentShader                                    = 2,
-    ComputeShader                                     = 3,
-    AllShaders                                        = 4,
-    PreFragmentShaders                                = 5,
-    FragmentShadingRate                               = 6,
-    ColorAttachmentOutput                             = 7,
-    ColorAttachmentOutputAndFragmentShader            = 8,
-    ColorAttachmentOutputAndFragmentShaderAndTransfer = 9,
-    ColorAttachmentOutputAndAllShaders                = 10,
-    AllFragmentTest                                   = 11,
-    AllFragmentTestAndFragmentShader                  = 12,
-    AllFragmentTestAndAllShaders                      = 13,
-    TransferAndComputeShader                          = 14,
-    InvalidEnum                                       = 15,
-    EnumCount                                         = InvalidEnum,
+    Transfer                               = 0,
+    VertexShader                           = 1,
+    FragmentShader                         = 2,
+    ComputeShader                          = 3,
+    AllShaders                             = 4,
+    PreFragmentShaders                     = 5,
+    FragmentShadingRate                    = 6,
+    Attachment                             = 7,
+    AttachmentAndFragmentShader            = 8,
+    AttachmentAndFragmentShaderAndTransfer = 9,
+    AttachmentAndAllShaders                = 10,
+    TransferAndComputeShader               = 11,
+    // For buffers only
+    VertexInput            = 12,
+    TransformFeedbackWrite = 13,
+    InvalidEnum            = 14,
+    EnumCount              = InvalidEnum,
 };
 using EventStageBitMask = typename angle::PackedEnumBitSet<EventStage, uint64_t>;
 
@@ -243,7 +243,7 @@ class RefCountedEvent final
 using RefCountedEventCollector = std::deque<RefCountedEvent>;
 
 // Tracks a list of RefCountedEvents per EventStage.
-class RefCountedEventArray final : angle::NonCopyable
+class RefCountedEventArray : angle::NonCopyable
 {
   public:
     RefCountedEventArray &operator=(RefCountedEventArray &&other)
@@ -272,10 +272,46 @@ class RefCountedEventArray final : angle::NonCopyable
     template <typename CommandBufferT>
     void flushSetEvents(Renderer *renderer, CommandBufferT *commandBuffer) const;
 
-  private:
+  protected:
     angle::PackedEnumMap<EventStage, RefCountedEvent> mEvents;
     // The mask is used to accelerate the loop of map
     EventStageBitMask mBitMask;
+};
+
+class RefCountedEventArrayWithAccessFlags final : public RefCountedEventArray
+{
+  public:
+    RefCountedEventArrayWithAccessFlags() { mAccessFlags.fill(0); }
+    void replaceEventAtStage(Context *context,
+                             EventStage eventStage,
+                             const RefCountedEvent &event,
+                             VkAccessFlags accessFlags)
+    {
+        if (mBitMask[eventStage])
+        {
+            mEvents[eventStage].release(context);
+        }
+        mEvents[eventStage] = event;
+        mAccessFlags[eventStage] |= accessFlags;
+        mBitMask.set(eventStage);
+    }
+    VkAccessFlags getAccessFlags(EventStage eventStage) const
+    {
+        ASSERT(mBitMask[eventStage]);
+        return mAccessFlags[eventStage];
+    }
+    void releaseToEventCollector(RefCountedEventCollector *eventCollector)
+    {
+        for (EventStage eventStage : mBitMask)
+        {
+            eventCollector->emplace_back(std::move(mEvents[eventStage]));
+            mAccessFlags[eventStage] = 0;
+        }
+        mBitMask.reset();
+    }
+
+  private:
+    angle::PackedEnumMap<EventStage, VkAccessFlags> mAccessFlags;
 };
 
 // Only used by RenderPassCommandBufferHelper

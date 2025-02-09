@@ -199,8 +199,6 @@ constexpr const char *kSkippedMessages[] = {
     // http://anglebug.com/42263850
     "VUID-vkCmdDraw-magFilter-04553",
     "VUID-vkCmdDrawIndexed-magFilter-04553",
-    // http://anglebug.com/42264452
-    "VUID-VkImageViewCreateInfo-pNext-01585",
     // http://anglebug.com/42265014
     "vkEnumeratePhysicalDevices: One or more layers modified physical devices",
     // http://anglebug.com/42265797
@@ -5510,13 +5508,14 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // On ARM drivers prior to r48, |vkCmdBindVertexBuffers2| applies strides to the wrong index,
     // according to the errata: https://developer.arm.com/documentation/SDEN-3735689/0100/?lang=en
     //
-    // On Qualcomm drivers, this feature has a bug, unknown up to which version.
+    // On Qualcomm drivers prior to 777, this feature had a bug.
     // http://anglebug.com/381384988
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsVertexInputDynamicState,
-                            mVertexInputDynamicStateFeatures.vertexInputDynamicState == VK_TRUE &&
-                                !(IsWindows() && isIntel) &&
-                                !(isARM && driverVersion < angle::VersionTriple(48, 0, 0)) &&
-                                !isQualcommProprietary);
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsVertexInputDynamicState,
+        mVertexInputDynamicStateFeatures.vertexInputDynamicState == VK_TRUE &&
+            !(IsWindows() && isIntel) &&
+            !(isARM && driverVersion < angle::VersionTriple(48, 0, 0)) &&
+            !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 777, 0)));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsExtendedDynamicState,
                             mExtendedDynamicStateFeatures.extendedDynamicState == VK_TRUE &&
@@ -5873,6 +5872,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // TBRs. Also enabled for SwiftShader so that we get more test coverage in bots.
     ANGLE_FEATURE_CONDITION(&mFeatures, useVkEventForImageBarrier,
                             isTileBasedRenderer || isSwiftShader);
+    ANGLE_FEATURE_CONDITION(&mFeatures, useVkEventForBufferBarrier,
+                            isTileBasedRenderer || isSwiftShader);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsMaintenance5,
                             mMaintenance5Features.maintenance5 == VK_TRUE);
@@ -5989,6 +5990,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // 2. GL_APPLE_clip_distance
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsAngleRgbxInternalFormat, !isSamsung);
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsAppleClipDistance, !isSamsung);
+
+    // Enable the use of below native kernels
+    // Each builtin kernel gets its own feature and condition, for now a single feature condition is
+    // setup
+    ANGLE_FEATURE_CONDITION(&mFeatures, usesNativeBuiltinClKernel, isSamsung);
 }
 
 void Renderer::appBasedFeatureOverrides(const vk::ExtensionNameList &extensions) {}

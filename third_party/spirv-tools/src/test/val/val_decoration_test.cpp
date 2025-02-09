@@ -6243,34 +6243,6 @@ OpFunctionEnd
   ASSERT_EQ(SPV_SUCCESS, ValidateInstructions());
 }
 
-TEST_F(ValidateDecorations, PSBAliasedRestrictPointerMissing) {
-  const std::string body = R"(
-OpCapability PhysicalStorageBufferAddresses
-OpCapability Int64
-OpCapability Shader
-OpExtension "SPV_EXT_physical_storage_buffer"
-OpMemoryModel PhysicalStorageBuffer64 GLSL450
-OpEntryPoint Fragment %main "main"
-OpExecutionMode %main OriginUpperLeft
-%uint64 = OpTypeInt 64 0
-%ptr = OpTypePointer PhysicalStorageBuffer %uint64
-%pptr_f = OpTypePointer Function %ptr
-%void = OpTypeVoid
-%voidfn = OpTypeFunction %void
-%main = OpFunction %void None %voidfn
-%entry = OpLabel
-%val1 = OpVariable %pptr_f Function
-OpReturn
-OpFunctionEnd
-)";
-
-  CompileSuccessfully(body.c_str());
-  ASSERT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
-  EXPECT_THAT(getDiagnosticString(),
-              HasSubstr("expected AliasedPointer or RestrictPointer for "
-                        "PhysicalStorageBuffer pointer"));
-}
-
 TEST_F(ValidateDecorations, PSBAliasedRestrictPointerBoth) {
   const std::string body = R"(
 OpCapability PhysicalStorageBufferAddresses
@@ -6297,8 +6269,8 @@ OpFunctionEnd
   CompileSuccessfully(body.c_str());
   ASSERT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
   EXPECT_THAT(getDiagnosticString(),
-              HasSubstr("can't specify both AliasedPointer and RestrictPointer "
-                        "for PhysicalStorageBuffer pointer"));
+              HasSubstr("decorated with both AliasedPointer and "
+                        "RestrictPointer is not allowed"));
 }
 
 TEST_F(ValidateDecorations, PSBAliasedRestrictFunctionParamSuccess) {
@@ -6331,38 +6303,6 @@ OpFunctionEnd
   ASSERT_EQ(SPV_SUCCESS, ValidateInstructions());
 }
 
-TEST_F(ValidateDecorations, PSBAliasedRestrictFunctionParamMissing) {
-  const std::string body = R"(
-OpCapability PhysicalStorageBufferAddresses
-OpCapability Int64
-OpCapability Shader
-OpExtension "SPV_EXT_physical_storage_buffer"
-OpMemoryModel PhysicalStorageBuffer64 GLSL450
-OpEntryPoint Fragment %main "main"
-OpExecutionMode %main OriginUpperLeft
-%uint64 = OpTypeInt 64 0
-%ptr = OpTypePointer PhysicalStorageBuffer %uint64
-%void = OpTypeVoid
-%voidfn = OpTypeFunction %void
-%fnptr = OpTypeFunction %void %ptr
-%main = OpFunction %void None %voidfn
-%entry = OpLabel
-OpReturn
-OpFunctionEnd
-%fn = OpFunction %void None %fnptr
-%fparam = OpFunctionParameter %ptr
-%lab = OpLabel
-OpReturn
-OpFunctionEnd
-)";
-
-  CompileSuccessfully(body.c_str());
-  ASSERT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
-  EXPECT_THAT(getDiagnosticString(),
-              HasSubstr("expected Aliased or Restrict for "
-                        "PhysicalStorageBuffer pointer"));
-}
-
 TEST_F(ValidateDecorations, PSBAliasedRestrictFunctionParamBoth) {
   const std::string body = R"(
 OpCapability PhysicalStorageBufferAddresses
@@ -6392,9 +6332,9 @@ OpFunctionEnd
 
   CompileSuccessfully(body.c_str());
   ASSERT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
-  EXPECT_THAT(getDiagnosticString(),
-              HasSubstr("can't specify both Aliased and Restrict for "
-                        "PhysicalStorageBuffer pointer"));
+  EXPECT_THAT(
+      getDiagnosticString(),
+      HasSubstr("decorated with both Aliased and Restrict is not allowed"));
 }
 
 TEST_F(ValidateDecorations, PSBFPRoundingModeSuccess) {
@@ -10694,6 +10634,67 @@ OpDecorate %array ArrayStride 4
   EXPECT_THAT(getDiagnosticString(),
               HasSubstr("Array containing a Block or BufferBlock must not be "
                         "decorated with ArrayStride"));
+}
+
+TEST_F(ValidateDecorations, BlockArrayWithoutStride) {
+  const std::string spirv = R"(
+OpCapability Shader
+OpExtension "SPV_KHR_storage_buffer_storage_class"
+OpMemoryModel Logical GLSL450
+OpEntryPoint GLCompute %main "main"
+OpExecutionMode %main LocalSize 1 1 1
+OpDecorate %struct Block
+OpMemberDecorate %struct 0 Offset 0
+OpDecorate %var DescriptorSet 0
+OpDecorate %var Binding 0
+%int = OpTypeInt 32 0
+%int_4 = OpConstant %int 4
+%struct = OpTypeStruct %int
+%array = OpTypeArray %struct %int_4
+%ptr = OpTypePointer StorageBuffer %array
+%var = OpVariable %ptr StorageBuffer
+%void = OpTypeVoid
+%void_fn = OpTypeFunction %void
+%main = OpFunction %void None %void_fn
+%entry = OpLabel
+OpReturn
+OpFunctionEnd
+)";
+
+  CompileSuccessfully(spirv, SPV_ENV_VULKAN_1_0);
+  EXPECT_EQ(SPV_SUCCESS, ValidateInstructions(SPV_ENV_VULKAN_1_0));
+}
+
+TEST_F(ValidateDecorations, BlockArrayWithoutStrideUntypedAccessChain) {
+  const std::string spirv = R"(
+OpCapability Shader
+OpCapability UntypedPointersKHR
+OpExtension "SPV_KHR_storage_buffer_storage_class"
+OpExtension "SPV_KHR_untyped_pointers"
+OpMemoryModel Logical GLSL450
+OpEntryPoint GLCompute %main "main"
+OpExecutionMode %main LocalSize 1 1 1
+OpDecorate %struct Block
+OpMemberDecorate %struct 0 Offset 0
+OpDecorate %var DescriptorSet 0
+OpDecorate %var Binding 0
+%int = OpTypeInt 32 0
+%int_4 = OpConstant %int 4
+%struct = OpTypeStruct %int
+%array = OpTypeArray %struct %int_4
+%void = OpTypeVoid
+%ptr = OpTypeUntypedPointerKHR StorageBuffer
+%var = OpUntypedVariableKHR %ptr StorageBuffer %array
+%void_fn = OpTypeFunction %void
+%main = OpFunction %void None %void_fn
+%entry = OpLabel
+%gep = OpUntypedAccessChainKHR %ptr %array %var
+OpReturn
+OpFunctionEnd
+)";
+
+  CompileSuccessfully(spirv, SPV_ENV_VULKAN_1_0);
+  EXPECT_EQ(SPV_SUCCESS, ValidateInstructions(SPV_ENV_VULKAN_1_0));
 }
 
 }  // namespace

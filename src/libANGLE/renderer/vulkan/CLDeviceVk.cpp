@@ -71,9 +71,9 @@ CLDeviceVk::CLDeviceVk(const cl::Device &device, vk::Renderer *renderer)
     };
     mInfoUInt = {
         {cl::DeviceInfo::VendorID, props.vendorID},
-        {cl::DeviceInfo::MaxReadImageArgs, props.limits.maxPerStageDescriptorSampledImages},
-        {cl::DeviceInfo::MaxWriteImageArgs, props.limits.maxPerStageDescriptorStorageImages},
-        {cl::DeviceInfo::MaxReadWriteImageArgs, props.limits.maxPerStageDescriptorStorageImages},
+        {cl::DeviceInfo::MaxReadImageArgs, cl::IMPLEMENATION_MAX_READ_IMAGES},
+        {cl::DeviceInfo::MaxWriteImageArgs, cl::IMPLEMENATION_MAX_WRITE_IMAGES},
+        {cl::DeviceInfo::MaxReadWriteImageArgs, cl::IMPLEMENATION_MAX_WRITE_IMAGES},
         {cl::DeviceInfo::GlobalMemCachelineSize,
          static_cast<cl_uint>(props.limits.nonCoherentAtomSize)},
         {cl::DeviceInfo::Available, CL_TRUE},
@@ -204,6 +204,22 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
     {
         ERR() << "VK_KHR_uniform_buffer_standard_layout extension support is needed to properly "
                  "support uniform buffers. Otherwise, you must disable OpenCL.";
+    }
+
+    // Populate supported features
+    if (info.imageSupport)
+    {
+        info.OpenCL_C_Features.push_back(
+            cl_name_version{.version = CL_MAKE_VERSION(3, 0, 0), .name = "__opencl_c_images"});
+        info.OpenCL_C_Features.push_back(cl_name_version{.version = CL_MAKE_VERSION(3, 0, 0),
+                                                         .name    = "__opencl_c_3d_image_writes"});
+        info.OpenCL_C_Features.push_back(cl_name_version{.version = CL_MAKE_VERSION(3, 0, 0),
+                                                         .name = "__opencl_c_read_write_images"});
+    }
+    if (mRenderer->getEnabledFeatures().features.shaderInt64)
+    {
+        info.OpenCL_C_Features.push_back(
+            cl_name_version{.version = CL_MAKE_VERSION(3, 0, 0), .name = "__opencl_c_int64"});
     }
 
     return info;

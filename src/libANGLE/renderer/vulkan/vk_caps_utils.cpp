@@ -415,9 +415,11 @@ void Renderer::ensureCapsInitialized() const
 
     // Enable EXT_multi_draw_indirect
     mNativeExtensions.multiDrawIndirectEXT = true;
+    mNativeLimitations.multidrawEmulated   = false;
 
     // Enable EXT_base_instance
     mNativeExtensions.baseInstanceEXT = true;
+    mNativeLimitations.baseInstanceEmulated = false;
 
     // Enable ANGLE_base_vertex_base_instance
     mNativeExtensions.baseVertexBaseInstanceANGLE              = true;

@@ -149,12 +149,12 @@ angle::Result DisplayMtl::initializeImpl(egl::Display *display)
             return angle::Result::Stop;
         }
 
-        mCmdQueue.set([[mMetalDevice newCommandQueue] ANGLE_MTL_AUTORELEASE]);
+        mCmdQueue = mtl::adoptObjCObj([mMetalDevice newCommandQueue]);
 
         ANGLE_TRY(mFormatTable.initialize(this));
         ANGLE_TRY(initializeShaderLibrary());
 
-        mUtils = std::make_unique<mtl::RenderUtils>(this);
+        mUtils = std::make_unique<mtl::RenderUtils>();
 
         return angle::Result::Continue;
     }
@@ -1473,7 +1473,7 @@ mtl::AutoObjCObj<MTLSharedEventListener> DisplayMtl::getOrCreateSharedEventListe
     {
         ANGLE_MTL_OBJC_SCOPE
         {
-            mSharedEventListener = [[[MTLSharedEventListener alloc] init] ANGLE_MTL_AUTORELEASE];
+            mSharedEventListener = mtl::adoptObjCObj([[MTLSharedEventListener alloc] init]);
             ASSERT(mSharedEventListener);  // Failure here most probably means a sandbox issue.
         }
     }

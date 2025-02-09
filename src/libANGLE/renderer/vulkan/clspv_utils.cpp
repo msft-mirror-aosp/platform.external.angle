@@ -10,12 +10,18 @@
 #include "common/log_utils.h"
 #include "libANGLE/renderer/vulkan/CLDeviceVk.h"
 
+#include "libANGLE/CLDevice.h"
+#include "libANGLE/renderer/driver_utils.h"
+
 #include <mutex>
 #include <string>
 
 #include "CL/cl_half.h"
 
 #include "clspv/Compiler.h"
+
+#include "spirv-tools/libspirv.h"
+#include "spirv-tools/libspirv.hpp"
 
 namespace rx
 {
@@ -302,7 +308,16 @@ std::string GetSpvVersionAsClspvString(spv_target_env spvVersion)
     }
 }
 
-}  // namespace
+std::vector<std::string> GetNativeBuiltins(const vk::Renderer *renderer)
+{
+    if (renderer->getFeatures().usesNativeBuiltinClKernel.enabled)
+    {
+        return std::vector<std::string>({"fma", "half_exp2", "exp2"});
+    }
+
+    return {};
+}
+}  // anonymous namespace
 
 // Process the data recorded into printf storage buffer along with the info in printfino descriptor
 // and write it to stdout.
@@ -338,6 +353,7 @@ std::string ClspvGetCompilerOptions(const CLDeviceVk *device)
     ASSERT(device && device->getRenderer());
     const vk::Renderer *rendererVk = device->getRenderer();
     std::string options{""};
+    std::vector<std::string> featureMacros;
 
     cl_uint addressBits;
     if (IsError(device->getInfoUInt(cl::DeviceInfo::AddressBits, &addressBits)))
@@ -381,6 +397,7 @@ std::string ClspvGetCompilerOptions(const CLDeviceVk *device)
     options += " --long-vector";
     options += " --global-offset";
     options += " --enable-printf";
+    options += " --cl-kernel-arg-info";
 
     // 8 bit storage buffer support
     if (!rendererVk->getFeatures().supports8BitStorageBuffer.enabled)
@@ -413,6 +430,65 @@ std::string ClspvGetCompilerOptions(const CLDeviceVk *device)
     if (rendererVk->getFeatures().supportsUniformBufferStandardLayout.enabled)
     {
         options += " --std430-ubo-layout";
+    }
+
+    std::string nativeBuiltins{""};
+    for (const std::string &builtin : GetNativeBuiltins(rendererVk))
+    {
+        nativeBuiltins += builtin + ",";
+    }
+    options += " --use-native-builtins=" + nativeBuiltins;
+    std::vector<std::string> rteModes;
+    if (rendererVk->getFeatures().supportsRoundingModeRteFp32.enabled)
+    {
+        rteModes.push_back("32");
+    }
+    if (rendererVk->getFeatures().supportsShaderFloat16.enabled)
+    {
+        options += " --fp16";
+        if (rendererVk->getFeatures().supportsRoundingModeRteFp16.enabled)
+        {
+            rteModes.push_back("16");
+        }
+    }
+    if (rendererVk->getFeatures().supportsShaderFloat64.enabled)
+    {
+        options += " --fp64";
+        featureMacros.push_back("__opencl_c_fp64");
+        if (rendererVk->getFeatures().supportsRoundingModeRteFp64.enabled)
+        {
+            rteModes.push_back("64");
+        }
+    }
+    else
+    {
+        options += " --fp64=0";
+    }
+
+    if (device->getFrontendObject().getInfo().imageSupport)
+    {
+        featureMacros.push_back("__opencl_c_images");
+        featureMacros.push_back("__opencl_c_3d_image_writes");
+        featureMacros.push_back("__opencl_c_read_write_images");
+    }
+
+    if (rendererVk->getEnabledFeatures().features.shaderInt64)
+    {
+        featureMacros.push_back("__opencl_c_int64");
+    }
+
+    if (!rteModes.empty())
+    {
+        options += " --rounding-mode-rte=";
+        options += std::reduce(std::next(rteModes.begin()), rteModes.end(), rteModes[0],
+                               [](const auto a, const auto b) { return a + "," + b; });
+    }
+    if (!featureMacros.empty())
+    {
+        options += " --enable-feature-macros=";
+        options +=
+            std::reduce(std::next(featureMacros.begin()), featureMacros.end(), featureMacros[0],
+                        [](const std::string a, const std::string b) { return a + "," + b; });
     }
 
     return options;
@@ -464,6 +540,47 @@ spv_target_env ClspvGetSpirvVersion(const vk::Renderer *renderer)
         // return the latest supported version
         return SPV_ENV_VULKAN_1_3;
     }
+}
+
+bool ClspvValidate(vk::Renderer *rendererVk, const angle::spirv::Blob &blob)
+{
+    spvtools::SpirvTools spvTool(ClspvGetSpirvVersion(rendererVk));
+    spvTool.SetMessageConsumer([](spv_message_level_t level, const char *,
+                                  const spv_position_t &position, const char *message) {
+        switch (level)
+        {
+            case SPV_MSG_FATAL:
+            case SPV_MSG_ERROR:
+            case SPV_MSG_INTERNAL_ERROR:
+                ERR() << "SPV validation error (" << position.line << "." << position.column
+                      << "): " << message;
+                break;
+            case SPV_MSG_WARNING:
+                WARN() << "SPV validation warning (" << position.line << "." << position.column
+                       << "): " << message;
+                break;
+            case SPV_MSG_INFO:
+                INFO() << "SPV validation info (" << position.line << "." << position.column
+                       << "): " << message;
+                break;
+            case SPV_MSG_DEBUG:
+                INFO() << "SPV validation debug (" << position.line << "." << position.column
+                       << "): " << message;
+                break;
+            default:
+                UNREACHABLE();
+                break;
+        }
+    });
+
+    spvtools::ValidatorOptions options;
+    if (rendererVk->getFeatures().supportsUniformBufferStandardLayout.enabled)
+    {
+        // Allow UBO layouts that conform to std430 (SSBO) layout requirements
+        options.SetUniformBufferStandardLayout(true);
+    }
+
+    return spvTool.Validate(blob.data(), blob.size(), options);
 }
 
 }  // namespace rx
