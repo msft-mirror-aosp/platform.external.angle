@@ -1082,9 +1082,7 @@ void ExtendRenderPassInvalidateArea(const gl::Rectangle &invalidateArea, gl::Rec
 
 bool CanCopyWithTransferForCopyImage(Renderer *renderer,
                                      ImageHelper *srcImage,
-                                     VkImageTiling srcTilingMode,
-                                     ImageHelper *dstImage,
-                                     VkImageTiling dstTilingMode)
+                                     ImageHelper *dstImage)
 {
     // Neither source nor destination formats can be emulated for copy image through transfer,
     // unless they are emulated with the same format!
@@ -1097,8 +1095,8 @@ bool CanCopyWithTransferForCopyImage(Renderer *renderer,
            srcImage->getActualFormat().pixelBytes == dstImage->getActualFormat().pixelBytes);
 
     return isFormatCompatible &&
-           CanCopyWithTransfer(renderer, srcImage->getActualFormatID(), srcTilingMode,
-                               dstImage->getActualFormatID(), dstTilingMode);
+           CanCopyWithTransfer(renderer, srcImage->getUsage(), dstImage->getActualFormatID(),
+                               dstImage->getTilingMode());
 }
 
 void ReleaseBufferListToRenderer(Context *context, BufferHelperQueue *buffers)
@@ -1444,19 +1442,16 @@ bool FormatHasNecessaryFeature(Renderer *renderer,
 }
 
 bool CanCopyWithTransfer(Renderer *renderer,
-                         angle::FormatID srcFormatID,
-                         VkImageTiling srcTilingMode,
+                         VkImageUsageFlags srcUsage,
                          angle::FormatID dstFormatID,
                          VkImageTiling dstTilingMode)
 {
-    // Checks that the formats in the copy transfer have the appropriate tiling and transfer bits
-    bool isTilingCompatible           = srcTilingMode == dstTilingMode;
-    bool srcFormatHasNecessaryFeature = FormatHasNecessaryFeature(
-        renderer, srcFormatID, srcTilingMode, VK_FORMAT_FEATURE_TRANSFER_SRC_BIT);
+    // Checks that the formats in the copy transfer have the appropriate transfer bits
+    bool srcFormatHasNecessaryFeature = (srcUsage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) != 0;
     bool dstFormatHasNecessaryFeature = FormatHasNecessaryFeature(
         renderer, dstFormatID, dstTilingMode, VK_FORMAT_FEATURE_TRANSFER_DST_BIT);
 
-    return isTilingCompatible && srcFormatHasNecessaryFeature && dstFormatHasNecessaryFeature;
+    return srcFormatHasNecessaryFeature && dstFormatHasNecessaryFeature;
 }
 
 void InitializeEventStageToVkPipelineStageFlagsMap(
@@ -5713,7 +5708,7 @@ angle::Result BufferHelper::initializeNonZeroMemory(ErrorContext *context,
         memset(mapPointer, kNonZeroInitValue, static_cast<size_t>(getSize()));
         if (!isCoherent())
         {
-            mSuballocation.flush(renderer->getDevice());
+            mSuballocation.flush(renderer);
         }
     }
 
@@ -5871,7 +5866,7 @@ angle::Result BufferHelper::mapWithOffset(ErrorContext *context, uint8_t **ptrOu
 
 angle::Result BufferHelper::flush(Renderer *renderer, VkDeviceSize offset, VkDeviceSize size)
 {
-    mSuballocation.flush(renderer->getDevice());
+    mSuballocation.flush(renderer);
     return angle::Result::Continue;
 }
 angle::Result BufferHelper::flush(Renderer *renderer)
@@ -5881,7 +5876,7 @@ angle::Result BufferHelper::flush(Renderer *renderer)
 
 angle::Result BufferHelper::invalidate(Renderer *renderer, VkDeviceSize offset, VkDeviceSize size)
 {
-    mSuballocation.invalidate(renderer->getDevice());
+    mSuballocation.invalidate(renderer);
     return angle::Result::Continue;
 }
 angle::Result BufferHelper::invalidate(Renderer *renderer)
@@ -8554,14 +8549,10 @@ angle::Result ImageHelper::CopyImageSubData(const gl::Context *context,
     ContextVk *contextVk = GetImpl(context);
     Renderer *renderer   = contextVk->getRenderer();
 
-    VkImageTiling srcTilingMode  = srcImage->getTilingMode();
-    VkImageTiling destTilingMode = dstImage->getTilingMode();
-
     const gl::LevelIndex srcLevelGL = gl::LevelIndex(srcLevel);
     const gl::LevelIndex dstLevelGL = gl::LevelIndex(dstLevel);
 
-    if (CanCopyWithTransferForCopyImage(renderer, srcImage, srcTilingMode, dstImage,
-                                        destTilingMode))
+    if (CanCopyWithTransferForCopyImage(renderer, srcImage, dstImage))
     {
         bool isSrc3D                         = srcImage->getType() == VK_IMAGE_TYPE_3D;
         bool isDst3D                         = dstImage->getType() == VK_IMAGE_TYPE_3D;
@@ -9448,6 +9439,8 @@ void ImageHelper::onWrite(gl::LevelIndex levelStart,
 
     // Mark contents of the given subresource as defined.
     setContentDefined(toVkLevel(levelStart), levelCount, layerStart, layerCount, aspectFlags);
+
+    setSubresourcesWrittenSinceBarrier(levelStart, levelCount, layerStart, layerCount);
 }
 
 bool ImageHelper::hasSubresourceDefinedContent(gl::LevelIndex level,
@@ -11750,8 +11743,11 @@ angle::Result ImageHelper::readPixelsImpl(ContextVk *contextVk,
 
     if (isExternalFormat)
     {
+        // Make sure the render pass is closed, per UtilsVk::copyImage's requirements.
+        ANGLE_TRY(
+            contextVk->flushCommandsAndEndRenderPass(RenderPassClosureReason::PrepareForImageCopy));
+
         CommandBufferAccess access;
-        access.onImageTransferRead(layoutChangeAspectFlags, this);
         OutsideRenderPassCommandBuffer *commandBuffer;
         ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer(access, &commandBuffer));
 
@@ -12359,39 +12355,6 @@ VkColorComponentFlags ImageHelper::getEmulatedChannelsMask() const
     return emulatedChannelsMask;
 }
 
-bool ImageHelper::getCompressionFixedRate(VkImageCompressionControlEXT *compressionInfo,
-                                          VkImageCompressionFixedRateFlagsEXT *compressionRates,
-                                          GLenum glCompressionRate) const
-{
-    bool rtn = true;
-    ASSERT(compressionInfo->sType == VK_STRUCTURE_TYPE_IMAGE_COMPRESSION_CONTROL_EXT);
-    compressionInfo->compressionControlPlaneCount = 1;
-
-    if (glCompressionRate == GL_SURFACE_COMPRESSION_FIXED_RATE_NONE_EXT)
-    {
-        compressionInfo->flags = VK_IMAGE_COMPRESSION_DISABLED_EXT;
-    }
-    else if (glCompressionRate == GL_SURFACE_COMPRESSION_FIXED_RATE_DEFAULT_EXT)
-    {
-        compressionInfo->flags = VK_IMAGE_COMPRESSION_FIXED_RATE_DEFAULT_EXT;
-    }
-    else if (glCompressionRate >= GL_SURFACE_COMPRESSION_FIXED_RATE_1BPC_EXT &&
-             glCompressionRate <= GL_SURFACE_COMPRESSION_FIXED_RATE_12BPC_EXT)
-    {
-        int offset             = glCompressionRate - GL_SURFACE_COMPRESSION_FIXED_RATE_1BPC_EXT;
-        compressionInfo->flags = VK_IMAGE_COMPRESSION_FIXED_RATE_EXPLICIT_EXT;
-        *compressionRates      = 1u << offset;
-        compressionInfo->pFixedRateFlags = compressionRates;
-    }
-    else
-    {
-        // Invalid value
-        rtn = false;
-    }
-
-    return rtn;
-}
-
 LayerMode GetLayerMode(const vk::ImageHelper &image, uint32_t layerCount)
 {
     const uint32_t imageLayerCount = GetImageLayerCountForView(image);
@@ -12476,7 +12439,10 @@ void ImageViewHelper::release(Renderer *renderer, const ResourceUse &use)
     mIsCopyImageViewShared = false;
     mColorspaceState.reset();
 
-    std::vector<vk::GarbageObject> garbage;
+    GarbageObjects garbage;
+    // Reserve reasonable amount of storage
+    garbage.reserve(4);
+
     // Release the read views
     ReleaseImageViews(&mPerLevelRangeLinearReadImageViews, &garbage);
     ReleaseImageViews(&mPerLevelRangeSRGBReadImageViews, &garbage);

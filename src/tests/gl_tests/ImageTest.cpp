@@ -3834,6 +3834,62 @@ TEST_P(ImageTestES3, SourceYUVAHBTargetExternalYUVSample)
     destroyAndroidHardwareBuffer(source);
 }
 
+// Test using glCopySubTextureCHROMIUM with YUV AHB as the source
+TEST_P(ImageTestES3, SourceYUVAHBTargetExternalCopySrc)
+{
+    EGLWindow *window = getEGLWindow();
+
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+    ANGLE_SKIP_TEST_IF(!hasAndroidImageNativeBufferExt() || !hasAndroidHardwareBufferSupport());
+    ANGLE_SKIP_TEST_IF(!hasAhbLockPlanesSupport());
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_CHROMIUM_copy_texture"));
+
+    // 3 planes of data
+    GLubyte dataY[4]  = {7, 51, 197, 231};
+    GLubyte dataCb[1] = {
+        128,
+    };
+    GLubyte dataCr[1] = {
+        192,
+    };
+
+    // Create the Image
+    AHardwareBuffer *source;
+    EGLImageKHR image;
+    createEGLImageAndroidHardwareBufferSource(
+        2, 2, 1, AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420, kDefaultAHBUsage, kDefaultAttribs,
+        {{dataY, 1}, {dataCb, 1}, {dataCr, 1}}, &source, &image);
+
+    // Create a texture target to bind the egl image
+    GLTexture yuv;
+    createEGLImageTargetTextureExternal(image, yuv);
+
+    // Create a texture to be the destination of copy
+    GLTexture copyDst;
+    glBindTexture(GL_TEXTURE_2D, copyDst);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 2, 2);
+    glCopySubTextureCHROMIUM(yuv, 0, GL_TEXTURE_2D, copyDst, 0, 0, 0, 0, 0, 2, 2, false, false,
+                             false);
+    ASSERT_GL_NO_ERROR();
+
+    // Verify the results
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, copyDst, 0);
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    ASSERT_GL_NO_ERROR();
+
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(92, 0, 0, 255), 2);
+    EXPECT_PIXEL_COLOR_NEAR(1, 0, GLColor(143, 0, 41, 255), 2);
+    EXPECT_PIXEL_COLOR_NEAR(0, 1, GLColor(255, 159, 211, 255), 2);
+    EXPECT_PIXEL_COLOR_NEAR(1, 1, GLColor(255, 198, 250, 255), 2);
+    ASSERT_GL_NO_ERROR();
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
+    destroyAndroidHardwareBuffer(source);
+}
+
 TEST_P(ImageTestES3, SourceYUVAHBTargetExternalYUVSampleLinearFiltering)
 {
     EGLWindow *window = getEGLWindow();
@@ -7765,6 +7821,33 @@ void ImageTest::framebufferResolveAttachmentDeletedWhileInUseHelper(bool useText
     window->makeCurrent();
 
     ASSERT_NE(currentStep, Step::Abort);
+}
+
+// Test whether the dimension size of the target GL_TEXTURE_EXTERNAL_OES is as expected.
+TEST_P(ImageTestES31, QueryDimFromExternalTex)
+{
+    EGLWindow *window = getEGLWindow();
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt() || !hasExternalExt());
+
+    // Create the Image
+    GLTexture source;
+    GLsizei src_w = 1, src_h = 1, qw = 0, qh = 0;
+    EGLImageKHR image;
+    createEGLImage2DTextureSource(src_w, src_h, GL_RGBA, GL_UNSIGNED_BYTE, kDefaultAttribs,
+                                  kSrgbColor, source, &image);
+
+    // Create the target
+    GLTexture target;
+    createEGLImageTargetTextureExternal(image, target);
+
+    // Querying the dimensions should work
+    glGetTexLevelParameteriv(GL_TEXTURE_EXTERNAL_OES, 0, GL_TEXTURE_WIDTH, &qw);
+    EXPECT_EQ(qw, src_w);
+    glGetTexLevelParameteriv(GL_TEXTURE_EXTERNAL_OES, 0, GL_TEXTURE_HEIGHT, &qh);
+    EXPECT_EQ(qh, src_h);
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
 }
 
 // Testing Target 2D Texture deleted while still used in the RenderPass as resolve attachment (Image
