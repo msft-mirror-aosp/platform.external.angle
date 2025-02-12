@@ -570,6 +570,7 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.textureoffset_non_const.vert",
         "spv.sparsetextureoffset_non_const.vert",
         "spv.sparsetextureoffset_non_const_fail.vert",
+        "spv.nontemporalbuffer.frag"
     })),
     FileNameAsCustomTestSuffix
 );
@@ -749,6 +750,13 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.nv.cluster-allops.rahit",
         "spv.nv.cluster-allops.frag",
 
+        // SPV_NV_linear_swept_spheres
+
+        "spv.nv.lss-allops.rgen",
+        "spv.nv.lss-allops.rchit",
+        "spv.nv.lss-allops.rmiss",
+        "spv.nv.lss-allops.frag",
+
     })),
     FileNameAsCustomTestSuffix
 );
@@ -767,6 +775,7 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.coopmat2_constructor.comp",
         "spv.coopmat2_error.comp",
         "spv.coopmat2_tensor.comp",
+        "spv.1.6.nontemporalimage.frag"
     })),
     FileNameAsCustomTestSuffix
 );

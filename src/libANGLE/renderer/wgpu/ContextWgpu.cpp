@@ -70,6 +70,7 @@ ContextWgpu::ContextWgpu(const gl::State &state, gl::ErrorSet *errorSet, Display
         DIRTY_BIT_RENDER_PIPELINE_BINDING,  // The pipeline needs to be bound for each renderpass
         DIRTY_BIT_VIEWPORT,
         DIRTY_BIT_SCISSOR,
+        DIRTY_BIT_BLEND_CONSTANT,
         DIRTY_BIT_VERTEX_BUFFERS,
         DIRTY_BIT_INDEX_BUFFER,
         DIRTY_BIT_BIND_GROUPS,
@@ -581,12 +582,50 @@ angle::Result ContextWgpu::syncState(const gl::Context *context,
                 mDirtyBits.set(DIRTY_BIT_VIEWPORT);
                 break;
             case gl::state::DIRTY_BIT_BLEND_ENABLED:
+            {
+                const gl::BlendStateExt &blendStateExt = mState.getBlendStateExt();
+                gl::DrawBufferMask enabledMask         = blendStateExt.getEnabledMask();
+                for (size_t i = 0; i < blendStateExt.getDrawBufferCount(); i++)
+                {
+                    if (mRenderPipelineDesc.setBlendEnabled(i, enabledMask.test(i)))
+                    {
+                        invalidateCurrentRenderPipeline();
+                    }
+                }
+            }
                 break;
             case gl::state::DIRTY_BIT_BLEND_COLOR:
+                mDirtyBits.set(DIRTY_BIT_BLEND_CONSTANT);
                 break;
             case gl::state::DIRTY_BIT_BLEND_FUNCS:
+            {
+                const gl::BlendStateExt &blendState = mState.getBlendStateExt();
+                for (size_t i = 0; i < blendState.getDrawBufferCount(); i++)
+                {
+                    if (mRenderPipelineDesc.setBlendFuncs(
+                            i, gl_wgpu::GetBlendFactor(blendState.getSrcColorIndexed(i)),
+                            gl_wgpu::GetBlendFactor(blendState.getDstColorIndexed(i)),
+                            gl_wgpu::GetBlendFactor(blendState.getSrcAlphaIndexed(i)),
+                            gl_wgpu::GetBlendFactor(blendState.getDstAlphaIndexed(i))))
+                    {
+                        invalidateCurrentRenderPipeline();
+                    }
+                }
+            }
                 break;
             case gl::state::DIRTY_BIT_BLEND_EQUATIONS:
+            {
+                const gl::BlendStateExt &blendState = mState.getBlendStateExt();
+                for (size_t i = 0; i < blendState.getDrawBufferCount(); i++)
+                {
+                    if (mRenderPipelineDesc.setBlendEquations(
+                            i, gl_wgpu::GetBlendEquation(blendState.getEquationColorIndexed(i)),
+                            gl_wgpu::GetBlendEquation(blendState.getEquationAlphaIndexed(i))))
+                    {
+                        invalidateCurrentRenderPipeline();
+                    }
+                }
+            }
                 break;
             case gl::state::DIRTY_BIT_COLOR_MASK:
             {
@@ -1082,6 +1121,10 @@ angle::Result ContextWgpu::setupDraw(const gl::Context *context,
                     ANGLE_TRY(handleDirtyScissor(&dirtyBitIter));
                     break;
 
+                case DIRTY_BIT_BLEND_CONSTANT:
+                    ANGLE_TRY(handleDirtyBlendConstant(&dirtyBitIter));
+                    break;
+
                 case DIRTY_BIT_VERTEX_BUFFERS:
                     ANGLE_TRY(handleDirtyVertexBuffers(mDirtyVertexBuffers, &dirtyBitIter));
                     mDirtyVertexBuffers.reset();
@@ -1216,6 +1259,24 @@ angle::Result ContextWgpu::handleDirtyScissor(DirtyBits::Iterator *dirtyBitsIter
     return angle::Result::Continue;
 }
 
+angle::Result ContextWgpu::handleDirtyBlendConstant(DirtyBits::Iterator *dirtyBitsIterator)
+{
+    const gl::ColorF &blendColor = mState.getBlendColor();
+
+    bool isDefaultBlendConstant = blendColor.red == 0 && blendColor.green == 0 &&
+                                  blendColor.blue == 0 && blendColor.alpha == 0;
+    if (isDefaultBlendConstant && !mCommandBuffer.hasSetBlendConstantCommand())
+    {
+        // Each render pass has a default blend constant set to all zeroes. We can skip setting it.
+        return angle::Result::Continue;
+    }
+
+    ASSERT(mCurrentGraphicsPipeline);
+    mCommandBuffer.setBlendConstant(blendColor.red, blendColor.green, blendColor.blue,
+                                    blendColor.alpha);
+    return angle::Result::Continue;
+}
+
 angle::Result ContextWgpu::handleDirtyRenderPass(DirtyBits::Iterator *dirtyBitsIterator)
 {
     FramebufferWgpu *drawFramebufferWgpu = webgpu::GetImpl(mState.getDrawFramebuffer());
@@ -1231,19 +1292,20 @@ angle::Result ContextWgpu::handleDirtyVertexBuffers(const gl::AttributesMask &sl
     VertexArrayWgpu *vertexArrayWgpu = GetImplAs<VertexArrayWgpu>(mState.getVertexArray());
     for (size_t slot : slots)
     {
-        webgpu::BufferHelper *buffer = vertexArrayWgpu->getVertexBuffer(slot);
-        if (!buffer)
+        const VertexBufferWithOffset &buffer = vertexArrayWgpu->getVertexBuffer(slot);
+        if (!buffer.buffer)
         {
             // Missing default attribute support
             ASSERT(!mState.getVertexArray()->getVertexAttribute(slot).enabled);
             UNIMPLEMENTED();
             continue;
         }
-        if (buffer->getMappedState())
+        if (buffer.buffer->getMappedState())
         {
-            ANGLE_TRY(buffer->unmap());
+            ANGLE_TRY(buffer.buffer->unmap());
         }
-        mCommandBuffer.setVertexBuffer(static_cast<uint32_t>(slot), buffer->getBuffer());
+        mCommandBuffer.setVertexBuffer(static_cast<uint32_t>(slot), buffer.buffer->getBuffer(),
+                                       buffer.offset, WGPU_WHOLE_SIZE);
     }
     return angle::Result::Continue;
 }
