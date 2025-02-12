@@ -1117,7 +1117,7 @@ class BufferHelper : public ReadWriteResource
 
     void recordReadBarrier(Context *context,
                            VkAccessFlags readAccessType,
-                           VkPipelineStageFlags readStage,
+                           VkPipelineStageFlags readPipelineStageFlags,
                            PipelineStage stageIndex,
                            PipelineBarrierArray *pipelineBarriers,
                            EventBarrierArray *eventBarriers,
@@ -1131,6 +1131,21 @@ class BufferHelper : public ReadWriteResource
                             PipelineBarrierArray *pipelineBarriers,
                             EventBarrierArray *eventBarriers,
                             RefCountedEventCollector *eventCollector);
+
+    void recordReadEvent(Context *context,
+                         VkAccessFlags readAccessType,
+                         VkPipelineStageFlags readPipelineStageFlags,
+                         PipelineStage stageIndex,
+                         const QueueSerial &queueSerial,
+                         EventStage eventStage,
+                         RefCountedEventArray *refCountedEventArray);
+
+    void recordWriteEvent(Context *context,
+                          VkAccessFlags writeAccessType,
+                          VkPipelineStageFlags writePipelineStageFlags,
+                          const QueueSerial &writeQueueSerial,
+                          PipelineStage writeStage,
+                          RefCountedEventArray *refCountedEventArray);
 
     void fillWithColor(const angle::Color<uint8_t> &color,
                        const gl::InternalFormat &internalFormat);
@@ -1165,19 +1180,6 @@ class BufferHelper : public ReadWriteResource
     // Returns the current VkAccessFlags bits
     VkAccessFlags getCurrentWriteAccess() const { return mCurrentWriteAccess; }
 
-    void setCurrentWriteEvent(Context *context,
-                              VkAccessFlags writeAccessType,
-                              VkPipelineStageFlags writePipelineStageFlags,
-                              PipelineStage writeStage,
-                              EventStage eventStage,
-                              RefCountedEventArray *eventArray);
-
-    void setCurrentReadEvent(Context *context,
-                             VkAccessFlags readAccessType,
-                             VkPipelineStageFlags readPipelineStageFlags,
-                             EventStage eventStage,
-                             RefCountedEventArray *eventArray);
-
   private:
     // Only called by DynamicBuffer.
     friend class DynamicBuffer;
@@ -1207,13 +1209,15 @@ class BufferHelper : public ReadWriteResource
 
     // For memory barriers.
     DeviceQueueIndex mCurrentDeviceQueueIndex;
+
+    // Access that not tracked by VkEvents
     VkFlags mCurrentWriteAccess;
     VkFlags mCurrentReadAccess;
     VkPipelineStageFlags mCurrentWriteStages;
     VkPipelineStageFlags mCurrentReadStages;
 
     // The current refCounted event. When barrier is needed, we should wait for this event.
-    RefCountedEvent mCurrentWriteEvent;
+    RefCountedEventWithAccessFlags mCurrentWriteEvent;
     RefCountedEventArrayWithAccessFlags mCurrentReadEvents;
 
     // Track history of pipeline stages being used. This information provides
@@ -2243,8 +2247,7 @@ bool FormatHasNecessaryFeature(Renderer *renderer,
                                VkFormatFeatureFlags featureBits);
 
 bool CanCopyWithTransfer(Renderer *renderer,
-                         angle::FormatID srcFormatID,
-                         VkImageTiling srcTilingMode,
+                         VkImageUsageFlags srcUsage,
                          angle::FormatID dstFormatID,
                          VkImageTiling dstTilingMode);
 
@@ -2487,9 +2490,6 @@ class ImageHelper final : public Resource, public angle::Subject
     VkImageTiling getTilingMode() const { return mTilingMode; }
     VkImageCreateFlags getCreateFlags() const { return mCreateFlags; }
     VkImageUsageFlags getUsage() const { return mUsage; }
-    bool getCompressionFixedRate(VkImageCompressionControlEXT *compressionInfo,
-                                 VkImageCompressionFixedRateFlagsEXT *compressionRates,
-                                 GLenum glCompressionRate) const;
     VkImageType getType() const { return mImageType; }
     const VkExtent3D &getExtents() const { return mExtents; }
     const VkExtent3D getRotatedExtents() const;
