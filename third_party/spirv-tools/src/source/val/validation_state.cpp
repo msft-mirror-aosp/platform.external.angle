@@ -951,6 +951,19 @@ bool ValidationState_t::IsFloatScalarType(uint32_t id) const {
   return inst && inst->opcode() == spv::Op::OpTypeFloat;
 }
 
+bool ValidationState_t::IsFloatArrayType(uint32_t id) const {
+  const Instruction* inst = FindDef(id);
+  if (!inst) {
+    return false;
+  }
+
+  if (inst->opcode() == spv::Op::OpTypeArray) {
+    return IsFloatScalarType(GetComponentType(id));
+  }
+
+  return false;
+}
+
 bool ValidationState_t::IsFloatVectorType(uint32_t id) const {
   const Instruction* inst = FindDef(id);
   if (!inst) {
@@ -2402,8 +2415,6 @@ std::string ValidationState_t::VkErrorID(uint32_t id,
       return VUID_WRAP(VUID-StandaloneSpirv-Component-04922);
     case 4923:
       return VUID_WRAP(VUID-StandaloneSpirv-Component-04923);
-    case 4924:
-      return VUID_WRAP(VUID-StandaloneSpirv-Component-04924);
     case 6201:
       return VUID_WRAP(VUID-StandaloneSpirv-Flat-06201);
     case 6202:
@@ -2521,6 +2532,8 @@ std::string ValidationState_t::VkErrorID(uint32_t id,
     case 10213:
       // This use to be a standalone, but maintenance8 will set allow_offset_texture_operand now
       return VUID_WRAP(VUID-RuntimeSpirv-Offset-10213);
+    case 10583:
+      return VUID_WRAP(VUID-StandaloneSpirv-Component-10583);
     default:
       return "";  // unknown id
   }

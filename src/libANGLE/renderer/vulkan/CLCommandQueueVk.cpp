@@ -514,14 +514,17 @@ angle::Result CLCommandQueueVk::enqueueFillBuffer(const cl::Buffer &buffer,
     ANGLE_TRY(processWaitlist(waitEvents));
 
     CLBufferVk *bufferVk = &buffer.getImpl<CLBufferVk>();
-    if (mComputePassCommands->usesBuffer(bufferVk->getBuffer()))
-    {
-        ANGLE_TRY(finishInternal());
-    }
 
-    ANGLE_TRY(bufferVk->fillWithPattern(pattern, patternSize, offset, size));
+    // Stage a transfer routine
+    HostTransferConfig config;
+    config.type        = CL_COMMAND_FILL_BUFFER;
+    config.patternSize = patternSize;
+    config.offset      = offset;
+    config.size        = size;
+    config.srcHostPtr  = pattern;
+    ANGLE_TRY(addToHostTransferList(bufferVk, config));
 
-    ANGLE_TRY(createEvent(eventCreateFunc, cl::ExecutionStatus::Complete));
+    ANGLE_TRY(createEvent(eventCreateFunc, cl::ExecutionStatus::Queued));
 
     return angle::Result::Continue;
 }
@@ -747,6 +750,26 @@ angle::Result CLCommandQueueVk::addToHostTransferList(CLBufferVk *srcBuffer,
             // Config transfer barrier
             srcStageMask             = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
             dstStageMask             = VK_PIPELINE_STAGE_HOST_BIT;
+            memBarrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+            memBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+            break;
+        }
+        case CL_COMMAND_FILL_BUFFER:
+        {
+            VkBufferCopy copyRegion = {transferConfig.offset, transferConfig.offset,
+                                       transferConfig.size};
+            ANGLE_TRY(transferBufferHandleVk.fillWithPattern(
+                transferConfig.srcHostPtr, transferConfig.patternSize, transferConfig.offset,
+                transferConfig.size));
+            copyRegion.srcOffset += transferBufferHandleVk.getOffset();
+            copyRegion.dstOffset += srcBuffer->getOffset();
+            mComputePassCommands->getCommandBuffer().copyBuffer(
+                transferBufferHandleVk.getBuffer().getBuffer(), srcBuffer->getBuffer().getBuffer(),
+                1, &copyRegion);
+
+            // Config transfer barrier
+            srcStageMask             = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            dstStageMask             = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
             memBarrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
             memBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
             break;
@@ -1437,6 +1460,7 @@ angle::Result CLCommandQueueVk::syncHostBuffers(HostTransferEntries &hostTransfe
                 hostTransferEntry.transferBufferHandle->getImpl<CLBufferVk>();
             switch (hostTransferEntry.transferConfig.type)
             {
+                case CL_COMMAND_FILL_BUFFER:
                 case CL_COMMAND_WRITE_BUFFER:
                 case CL_COMMAND_WRITE_BUFFER_RECT:
                     // Nothing left to do here
@@ -1601,10 +1625,10 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk)
                 uint32_t offset = roundDownPow2(arg.pushConstOffset, 4u);
                 uint32_t size =
                     roundUpPow2(arg.pushConstOffset + arg.pushConstantSize, 4u) - offset;
-                ASSERT(offset + size <= kernelVk.getPodArgumentsData().size());
+                ASSERT(offset + size <= kernelVk.getPodArgumentPushConstantsData().size());
                 mComputePassCommands->getCommandBuffer().pushConstants(
                     kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, offset, size,
-                    &kernelVk.getPodArgumentsData()[offset]);
+                    &kernelVk.getPodArgumentPushConstantsData()[offset]);
                 break;
             }
             case NonSemanticClspvReflectionArgumentWorkgroup:
@@ -1973,45 +1997,14 @@ angle::Result CLCommandQueueVk::createEvent(CLEventImpl::CreateFunc *createFunc,
 {
     if (createFunc != nullptr)
     {
-        *createFunc = [this, initialStatus, queueSerial = mComputePassCommands->getQueueSerial()](
+        *createFunc = [initialStatus, queueSerial = mComputePassCommands->getQueueSerial()](
                           const cl::Event &event) {
-            auto eventVk = new (std::nothrow) CLEventVk(event);
+            auto eventVk = new (std::nothrow) CLEventVk(event, initialStatus, queueSerial);
             if (eventVk == nullptr)
             {
-                ERR() << "Failed to create event obj!";
-                ANGLE_CL_SET_ERROR(CL_OUT_OF_HOST_MEMORY);
+                ERR() << "Failed to create cmd event obj!";
                 return CLEventImpl::Ptr(nullptr);
             }
-
-            if (initialStatus == cl::ExecutionStatus::Complete)
-            {
-                // Submission finished at this point, just set event to complete
-                if (IsError(eventVk->setStatusAndExecuteCallback(cl::ToCLenum(initialStatus))))
-                {
-                    ANGLE_CL_SET_ERROR(CL_OUT_OF_RESOURCES);
-                }
-            }
-            else if (mCommandQueue.getProperties().intersects(CL_QUEUE_PROFILING_ENABLE))
-            {
-                // We also block for profiling so that we get timestamps per-command
-                if (IsError(mCommandQueue.getImpl<CLCommandQueueVk>().finish()))
-                {
-                    ANGLE_CL_SET_ERROR(CL_OUT_OF_RESOURCES);
-                }
-                // Submission finished at this point, just set event to complete
-                if (IsError(eventVk->setStatusAndExecuteCallback(CL_COMPLETE)))
-                {
-                    ANGLE_CL_SET_ERROR(CL_OUT_OF_RESOURCES);
-                }
-            }
-            else
-            {
-                eventVk->setQueueSerial(queueSerial);
-                // Save a reference to this event to set event transitions
-                std::lock_guard<std::mutex> lock(mCommandQueueMutex);
-                mCommandsStateMap[queueSerial].events.emplace_back(&eventVk->getFrontendObject());
-            }
-
             return CLEventImpl::Ptr(eventVk);
         };
     }
@@ -2239,6 +2232,16 @@ bool CLCommandQueueVk::hasUserEventDependency() const
 {
     return std::any_of(mExternalEvents.begin(), mExternalEvents.end(),
                        [](const cl::EventPtr event) { return event->isUserEvent(); });
+}
+
+void CLCommandQueueVk::addEventReference(CLEventVk &eventVk)
+{
+    ASSERT(eventVk.getQueueSerial().valid());
+    ASSERT(eventVk.getQueueSerial().getIndex() == mQueueSerialIndex);
+
+    std::lock_guard<std::mutex> lock(mCommandQueueMutex);
+
+    mCommandsStateMap[eventVk.getQueueSerial()].events.emplace_back(&eventVk.getFrontendObject());
 }
 
 }  // namespace rx

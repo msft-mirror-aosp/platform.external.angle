@@ -49,7 +49,7 @@ vars = {
   'dummy_checkout_chromium': False,
 
   # Current revision of VK-GL-CTS (a.k.a dEQP).
-  'vk_gl_cts_revision': '48e7f3020f52ef9adc31aa0f5db01dc42cc487cd',
+  'vk_gl_cts_revision': '69ec1790cb7c1b72a758a3562aa4e511caaef780',
 
   # Current revision of googletest.
   # Note: this dep cannot be auto-rolled b/c of nesting.
@@ -419,6 +419,7 @@ vars = {
   'checkout_angle_restricted_trace_toca_life_world': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_toon_blast': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_top_war': 'checkout_angle_restricted_traces',
+  'checkout_angle_restricted_trace_tower_of_fantasy': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_township': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_traffic_rider': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_trex_200': 'checkout_angle_restricted_traces',
@@ -997,7 +998,7 @@ deps = {
   },
 
   'third_party/SwiftShader': {
-    'url': Var('swiftshader_git') + '/SwiftShader@86cf34f50cbe5a9f35da7eedad0f4d4127fb8342',
+    'url': Var('swiftshader_git') + '/SwiftShader@720189cae8478484f51531a9eed9abc6d8635271',
     'condition': 'not build_with_chromium',
   },
 
@@ -1017,17 +1018,17 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@430dae9cea66d5193e8d6ac010bfaeaf0bf8857a',
+    'url': Var('chromium_git') + '/vulkan-deps@e2163451af70421be3082852ecfe1f412301c37b',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/glslang/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@0549c7127c2fbab2904892c9d6ff491fa1e93751',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@20827027233f389701af54586900463f7c9ff8e7',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/lunarg-vulkantools/src': {
-    'url': '{chromium_git}/external/github.com/LunarG/VulkanTools@c1c4712c75bc123dac21daea5dfffd416e103e59',
+    'url': '{chromium_git}/external/github.com/LunarG/VulkanTools@8d6c54f05bdaab45945555a3afeb639b0f6aa091',
     'condition': 'not build_with_chromium',
   },
 
@@ -1037,27 +1038,27 @@ deps = {
   },
 
   'third_party/spirv-headers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@e7294a8ebed84f8c5bd3686c68dbe12a4e65b644',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@09913f088a1197aba4aefd300a876b2ebbaa3391',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/spirv-tools/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@04b4a204aa501992ae85a207be1e200e195c98e1',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@66e57d1146fe9cd4649b63e361f526bcd239f0e1',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/vulkan-headers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Headers@39f924b810e561fd86b2558b6711ca68d4363f68',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Headers@234c4b7370a8ea3239a214c9e871e4b17c89f4ab',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/vulkan-loader/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Loader@0508dee4ff864f5034ae6b7f68d34cb2822b827d',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Loader@fde0f9718bd60b49cf8efc80d3fb7a093c309ac0',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/vulkan-tools/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Tools@c52931f012cb7b48e42bbf2050a7fb2183b76406',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Tools@a9f88a232a4cd6634e47f0f93c8fac5789387a7a',
     'condition': 'not build_with_chromium',
   },
 
@@ -1067,7 +1068,7 @@ deps = {
   },
 
   'third_party/vulkan-validation-layers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@c3dc948b0b960b3a01506b57a15ecee2a9e31bf2',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@b256782810c54e15209b64476823010f57f10b2a',
     'condition': 'not build_with_chromium',
   },
 
@@ -3860,6 +3861,16 @@ deps = {
       ],
       'dep_type': 'cipd',
       'condition': 'checkout_angle_restricted_trace_top_war',
+  },
+  'src/tests/restricted_traces/tower_of_fantasy': {
+      'packages': [
+        {
+            'package': 'angle/traces/tower_of_fantasy',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_trace_tower_of_fantasy',
   },
   'src/tests/restricted_traces/township': {
       'packages': [
