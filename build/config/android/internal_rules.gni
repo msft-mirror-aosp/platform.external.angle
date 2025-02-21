@@ -734,11 +734,20 @@ template("test_runner_script") {
                                "public_deps",
                              ])
       data_deps = []
+      if (defined(invoker.apk_target)) {
+        data_deps += [ invoker.apk_target ]
+      }
       if (defined(invoker.data_deps)) {
         data_deps += invoker.data_deps
       }
+      if (defined(invoker.apk_under_test)) {
+        data_deps += [ invoker.apk_under_test ]
+      }
       if (defined(invoker.additional_apks)) {
         data_deps += invoker.additional_apks
+      }
+      if (defined(invoker.data_deps)) {
+        data_deps += invoker.data_deps
       }
       write_runtime_deps = _runtime_deps_file
     }
@@ -2262,6 +2271,7 @@ if (enable_java_templates) {
       "//third_party/protobuf/python/google/protobuf/internal/encoder.py",
       "//third_party/protobuf/python/google/protobuf/internal/enum_type_wrapper.py",
       "//third_party/protobuf/python/google/protobuf/internal/extension_dict.py",
+      "//third_party/protobuf/python/google/protobuf/internal/field_mask.py",
       "//third_party/protobuf/python/google/protobuf/internal/generator_test.py",
       "//third_party/protobuf/python/google/protobuf/internal/import_test.py",
       "//third_party/protobuf/python/google/protobuf/internal/import_test_package/__init__.py",
@@ -2271,6 +2281,7 @@ if (enable_java_templates) {
       "//third_party/protobuf/python/google/protobuf/internal/message_listener.py",
       "//third_party/protobuf/python/google/protobuf/internal/message_test.py",
       "//third_party/protobuf/python/google/protobuf/internal/proto_builder_test.py",
+      "//third_party/protobuf/python/google/protobuf/internal/python_edition_defaults.py",
       "//third_party/protobuf/python/google/protobuf/internal/python_message.py",
       "//third_party/protobuf/python/google/protobuf/internal/reflection_test.py",
       "//third_party/protobuf/python/google/protobuf/internal/service_reflection_test.py",
@@ -2292,6 +2303,7 @@ if (enable_java_templates) {
       "//third_party/protobuf/python/google/protobuf/pyext/__init__.py",
       "//third_party/protobuf/python/google/protobuf/pyext/cpp_message.py",
       "//third_party/protobuf/python/google/protobuf/reflection.py",
+      "//third_party/protobuf/python/google/protobuf/runtime_version.py",
       "//third_party/protobuf/python/google/protobuf/service.py",
       "//third_party/protobuf/python/google/protobuf/service_reflection.py",
       "//third_party/protobuf/python/google/protobuf/symbol_database.py",
@@ -2316,11 +2328,6 @@ if (enable_java_templates) {
       "--target-sdk-version=${_target_sdk_version}",
       "--webp-cache-dir=obj/android-webp-cache",
     ]
-
-    # TODO(b/355432192): Remove this flag once not needed by Compose.
-    if (defined(enable_data_sharing_internal) && enable_data_sharing_internal) {
-      _args += [ "--xml-namespaces" ]
-    }
 
     _inputs += [ invoker.android_manifest ]
     _outputs = [ _final_srcjar_path ]
@@ -4004,15 +4011,17 @@ if (enable_java_templates) {
       }
 
       if (_kt_files != []) {
+        _abs_kt_files = get_path_info(_kt_files, "abspath")
         _kt_allowlist = [
-          "android/java/src/org/chromium/chrome/browser/tabmodel/AsyncTabParamsManagerImpl.kt",
-          "java/androidx/core/os/BuildCompat.kt",
-          "webengine_shell_apk/src/org/chromium/webengine/shell/*.kt",
+          "*/AsyncTabParamsManagerImpl.kt",
+          "//third_party/androidx/*",
+          "*/webengine_shell_apk/*",
+          "local_modifications/pdf/java/androidx/pdf/viewer/fragment/PdfViewerFragment.kt",
         ]
-        _found_kt = filter_exclude(_kt_files, _kt_allowlist)
+        _found_kt = filter_exclude(_abs_kt_files, _kt_allowlist)
         assert(
             _found_kt == [],
-            "Only a files in the allowlist can be included for now. Feel " + "free to remove this assert when experimenting locally. Found: $_found_kt")
+            "Only a files in the allowlist can be included for now. Feel free to remove this assert when experimenting locally. Found: $_found_kt")
         _compile_kt_target_name = "${_main_target_name}__compile_kt"
         _kotlinc_jar_path = "$target_out_dir/$_output_name.kotlinc.jar"
         _kotlin_interface_jar_path =

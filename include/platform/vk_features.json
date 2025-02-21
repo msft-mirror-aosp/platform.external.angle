@@ -1106,7 +1106,7 @@
             "name": "supports_yuv_target",
             "category": "Features",
             "description": [
-                "VkDevice supports VK_ANDROID_render_to_external_format and VK_EXT_ycbcr_attachment"
+                "VkDevice supports VK_ANDROID_external_format_resolve with nullColorAttachmentWithExternalFormatResolve"
             ]
         },
         {
@@ -1888,6 +1888,14 @@
             "description": [
                 "Enable the use of native builtin kernel in place of the libclc version"
             ]
+        },
+        {
+            "name": "supports_swapchain_mutable_format",
+            "category": "Features",
+            "description": [
+                "VkDevice supports VK_KHR_swapchain_mutable_format extension"
+            ],
+            "issue": "http://anglebug.com/386688871"
         }
     ]
 }

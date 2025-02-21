@@ -575,6 +575,12 @@ constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
         "prior_access = "
         "VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT(VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT)",
     },
+    // http://anglebug.com/397775556
+    {
+        "SYNC-HAZARD-READ-AFTER-WRITE",
+        "vkCmdDrawIndexed reads vertex VkBuffer",
+        "which was previously written by vkCmdCopyBuffer.",
+    },
 };
 
 // Messages that shouldn't be generated if storeOp=NONE is supported, otherwise they are expected.
@@ -3670,6 +3676,11 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
         vk::AddToPNextChain(&mEnabledFeatures, &mImageCompressionControlSwapchainFeatures);
     }
 
+    if (mFeatures.supportsSwapchainMutableFormat.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME);
+    }
+
 #if defined(ANGLE_PLATFORM_WINDOWS)
     // We only need the VK_EXT_full_screen_exclusive extension if we are opting
     // out of it via VK_FULL_SCREEN_EXCLUSIVE_DISALLOWED_EXT (i.e. working
@@ -5886,8 +5897,20 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 #if defined(ANGLE_PLATFORM_ANDROID)
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsExternalFormatResolve,
                             mExternalFormatResolveFeatures.externalFormatResolve == VK_TRUE);
+
+    // We can fully support GL_EXT_YUV_target iff we have support for
+    // VK_ANDROID_external_format_resolve and Vulkan ICD supports
+    // nullColorAttachmentWithExternalFormatResolve. ANGLE cannot yet support vendors that lack
+    // support for nullColorAttachmentWithExternalFormatResolve.
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsYuvTarget,
+        mFeatures.supportsExternalFormatResolve.enabled &&
+            mExternalFormatResolveProperties.nullColorAttachmentWithExternalFormatResolve ==
+                VK_TRUE);
+
 #else
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsExternalFormatResolve, false);
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsYuvTarget, false);
 #endif
 
     // VkEvent has much bigger overhead. Until we know that it helps desktop GPUs, we restrict it to
@@ -5897,17 +5920,23 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, useVkEventForBufferBarrier,
                             isTileBasedRenderer || isSwiftShader);
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsMaintenance5,
-                            mMaintenance5Features.maintenance5 == VK_TRUE);
-
+    // Disable for Samsung, details here -> http://anglebug.com/386749841#comment21
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsDynamicRendering,
-                            mDynamicRenderingFeatures.dynamicRendering == VK_TRUE);
+                            mDynamicRenderingFeatures.dynamicRendering == VK_TRUE && !isSamsung);
+
+    // Don't enable VK_KHR_maintenance5 without VK_KHR_dynamic_rendering
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsMaintenance5,
+                            mFeatures.supportsDynamicRendering.enabled &&
+                                mMaintenance5Features.maintenance5 == VK_TRUE);
 
     // Disabled on Nvidia driver due to a bug with attachment location mapping, resulting in
     // incorrect rendering in the presence of gaps in locations.  http://anglebug.com/372883691.
+    //
+    // Disable for Samsung, details here -> http://anglebug.com/386749841#comment21
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsDynamicRenderingLocalRead,
-        mDynamicRenderingLocalReadFeatures.dynamicRenderingLocalRead == VK_TRUE && !isNvidia);
+        mDynamicRenderingLocalReadFeatures.dynamicRenderingLocalRead == VK_TRUE &&
+            !(isNvidia || isSamsung));
 
     // Using dynamic rendering when VK_KHR_dynamic_rendering_local_read is available, because that's
     // needed for framebuffer fetch, MSRTT and advanced blend emulation.
