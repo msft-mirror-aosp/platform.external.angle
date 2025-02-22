@@ -170,13 +170,15 @@ declare_args() {
   #
   # For more information see
   # https://chromium.googlesource.com/chromium/src/+/main/docs/component_build.md
-  is_component_build =
-      is_debug && current_os != "ios" && current_os != "watchos"
+  is_component_build = is_debug && current_os != "ios" &&
+                       current_os != "tvos" && current_os != "watchos"
 }
 
 assert(!(is_debug && is_official_build), "Can't do official debug builds")
 assert(!(current_os == "ios" && is_component_build),
        "Can't use component build on iOS")
+assert(!(current_os == "tvos" && is_component_build),
+       "Can't use component build on tvOS")
 assert(!(current_os == "watchos" && is_component_build),
        "Can't use component build on watchOS")
 
@@ -315,10 +317,11 @@ is_ios = current_os == "ios"
 is_linux = current_os == "linux"
 is_mac = current_os == "mac"
 is_nacl = current_os == "nacl"
+is_tvos = current_os == "tvos"
 is_watchos = current_os == "watchos"
 is_win = current_os == "win" || current_os == "winuwp"
 
-is_apple = is_ios || is_mac || is_watchos
+is_apple = is_ios || is_mac || is_tvos || is_watchos
 is_posix = !is_win && !is_fuchsia
 
 # =============================================================================
@@ -540,10 +543,21 @@ foreach(_target_type,
         ]) {
   template(_target_type) {
     target(_target_type, target_name) {
-      forward_variables_from(invoker, "*", TESTONLY_AND_VISIBILITY)
+      forward_variables_from(invoker,
+                             "*",
+                             TESTONLY_AND_VISIBILITY + [ "no_default_deps" ])
       forward_variables_from(invoker, TESTONLY_AND_VISIBILITY)
       if (!defined(inputs)) {
         inputs = []
+      }
+      if (!defined(deps)) {
+        deps = []
+      }
+
+      if (is_clang &&
+          (!defined(invoker.no_default_deps) || !invoker.no_default_deps)) {
+        # This is necessary for Clang modules builds.
+        deps += [ "//buildtools/third_party/libc++:std" ]
       }
 
       # Consumed by the unsafe-buffers plugin during compile.
@@ -623,6 +637,16 @@ foreach(_target_type,
         # (This explicit list is so that grepping for these configs finds where
         # they are used.)
         deps += [ "//build/config:${_target_type}_deps" ]
+
+        if (is_clang) {
+          # These are necessary for Clang modules builds.
+          deps += [
+            "//buildtools/third_party/libc++:_Builtin_limits",
+            "//buildtools/third_party/libc++:_Builtin_stdarg",
+            "//buildtools/third_party/libc++:_Builtin_stddef",
+            "//buildtools/third_party/libc++:std",
+          ]
+        }
       }
 
       # On Android, write shared library output file to metadata. We will use

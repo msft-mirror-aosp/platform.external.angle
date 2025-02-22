@@ -214,6 +214,7 @@ TEST_P(FramebufferFormatsTest, RGB8)
     testTextureFormat(GL_RGB8_OES, 8, 8, 8, 0);
 }
 
+// Test that BGRA8 can be used as a framebuffer texture format
 TEST_P(FramebufferFormatsTest, BGRA8)
 {
     ANGLE_SKIP_TEST_IF(
