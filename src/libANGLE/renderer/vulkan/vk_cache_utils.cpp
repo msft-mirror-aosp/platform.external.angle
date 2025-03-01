@@ -394,7 +394,7 @@ void DeriveRenderingInfo(Renderer *renderer,
         if (subset == DynamicRenderingInfoSubset::Full)
         {
             const VkImageLayout layout = vk::ConvertImageLayoutToVkImageLayout(
-                renderer, static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
+                static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
             const VkImageLayout resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             const VkResolveModeFlagBits resolveMode =
                 isYUVExternalFormat ? VK_RESOLVE_MODE_EXTERNAL_FORMAT_DOWNSAMPLE_ANDROID
@@ -469,7 +469,7 @@ void DeriveRenderingInfo(Renderer *renderer,
                 angleFormat.stencilBits != 0 && desc.hasStencilResolveAttachment();
 
             const VkImageLayout layout = ConvertImageLayoutToVkImageLayout(
-                renderer, static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
+                static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
             const VkImageLayout resolveImageLayout =
                 VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             const VkResolveModeFlagBits depthResolveMode =
@@ -644,9 +644,9 @@ void UnpackAttachmentDesc(Renderer *renderer,
     desc->stencilStoreOp =
         ConvertRenderPassStoreOpToVkStoreOp(static_cast<RenderPassStoreOp>(ops.stencilStoreOp));
     desc->initialLayout =
-        ConvertImageLayoutToVkImageLayout(renderer, static_cast<ImageLayout>(ops.initialLayout));
+        ConvertImageLayoutToVkImageLayout(static_cast<ImageLayout>(ops.initialLayout));
     desc->finalLayout =
-        ConvertImageLayoutToVkImageLayout(renderer, static_cast<ImageLayout>(ops.finalLayout));
+        ConvertImageLayoutToVkImageLayout(static_cast<ImageLayout>(ops.finalLayout));
 }
 
 struct AttachmentInfo
@@ -687,7 +687,7 @@ void UnpackColorResolveAttachmentDesc(Renderer *renderer,
     desc->stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     desc->stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     desc->initialLayout  = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    desc->finalLayout    = ConvertImageLayoutToVkImageLayout(renderer, finalLayout);
+    desc->finalLayout    = ConvertImageLayoutToVkImageLayout(finalLayout);
 }
 
 void UnpackDepthStencilResolveAttachmentDesc(vk::ErrorContext *context,
@@ -6301,10 +6301,7 @@ void DescriptorSetDesc::updateDescriptorSet(Renderer *renderer,
                         mDescriptorInfos[infoDescIndex + arrayElement];
                     VkDescriptorImageInfo &imageInfo = writeImages[arrayElement];
 
-                    ImageLayout imageLayout = static_cast<ImageLayout>(infoDesc.imageLayoutOrRange);
-
-                    imageInfo.imageLayout =
-                        ConvertImageLayoutToVkImageLayout(renderer, imageLayout);
+                    imageInfo.imageLayout = static_cast<VkImageLayout>(infoDesc.imageLayoutOrRange);
                     imageInfo.imageView = handles[infoDescIndex + arrayElement].imageView;
                     imageInfo.sampler   = handles[infoDescIndex + arrayElement].sampler;
                 }
@@ -6526,7 +6523,7 @@ void DescriptorSetDescBuilder::updatePreCacheActiveTextures(
                     textureVk->getImageViewSubresourceSerial(
                         samplerState, samplerUniform.isTexelFetchStaticUse());
 
-                ImageLayout imageLayout = textureVk->getImage().getCurrentImageLayout();
+                VkImageLayout imageLayout = textureVk->getImage().getCurrentLayout();
                 SetBitField(infoDesc.imageLayoutOrRange, imageLayout);
                 infoDesc.imageViewSerialOrOffset = imageViewSerial.viewSerial.getValue();
                 infoDesc.samplerOrBufferSerial   = samplerHelper.getSamplerSerial().getValue();
@@ -6927,7 +6924,7 @@ angle::Result DescriptorSetDescBuilder::updateImages(
                 // Note: binding.access is unused because it is implied by the shader.
 
                 DescriptorInfoDesc &infoDesc = mDesc.getInfoDesc(infoIndex);
-                SetBitField(infoDesc.imageLayoutOrRange, image->getCurrentImageLayout());
+                SetBitField(infoDesc.imageLayoutOrRange, image->getCurrentLayout());
                 memcpy(&infoDesc.imageSubresourceRange, &serial.subresource, sizeof(uint32_t));
                 infoDesc.imageViewSerialOrOffset = serial.viewSerial.getValue();
                 infoDesc.samplerOrBufferSerial   = 0;
@@ -6974,8 +6971,9 @@ angle::Result DescriptorSetDescBuilder::updateInputAttachments(
                         .getVariableById(gl::ShaderType::Fragment,
                                          sh::vk::spirv::kIdDepthInputAttachment)
                         .binding;
-                updateInputAttachment(context, depthBinding, ImageLayout::DepthStencilWriteAndInput,
-                                      imageView, serial, writeDescriptorDescs);
+                updateInputAttachment(context, depthBinding,
+                                      VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, imageView, serial,
+                                      writeDescriptorDescs);
             }
 
             if (executable.usesStencilFramebufferFetch() &&
@@ -6991,7 +6989,7 @@ angle::Result DescriptorSetDescBuilder::updateInputAttachments(
                                          sh::vk::spirv::kIdStencilInputAttachment)
                         .binding;
                 updateInputAttachment(context, stencilBinding,
-                                      ImageLayout::DepthStencilWriteAndInput, imageView, serial,
+                                      VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, imageView, serial,
                                       writeDescriptorDescs);
             }
         }
@@ -7024,8 +7022,8 @@ angle::Result DescriptorSetDescBuilder::updateInputAttachments(
         // rendering, there's a specific layout.
         updateInputAttachment(context, binding,
                               context->getFeatures().preferDynamicRendering.enabled
-                                  ? ImageLayout::ColorWriteAndInput
-                                  : ImageLayout::FragmentShaderWrite,
+                                  ? VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR
+                                  : VK_IMAGE_LAYOUT_GENERAL,
                               imageView, serial, writeDescriptorDescs);
     }
 
@@ -7035,7 +7033,7 @@ angle::Result DescriptorSetDescBuilder::updateInputAttachments(
 void DescriptorSetDescBuilder::updateInputAttachment(
     Context *context,
     uint32_t binding,
-    ImageLayout layout,
+    VkImageLayout layout,
     const vk::ImageView *imageView,
     ImageOrBufferViewSubresourceSerial serial,
     const WriteDescriptorDescs &writeDescriptorDescs)
@@ -7083,6 +7081,17 @@ size_t SharedCacheKeyManager<SharedCacheKeyT>::updateEmptySlotBits()
 template <class SharedCacheKeyT>
 void SharedCacheKeyManager<SharedCacheKeyT>::addKey(const SharedCacheKeyT &key)
 {
+    // There are cases that same texture or buffer are bound in multiple binding point. When we have
+    // a cache miss, we end up looping binding point and calling addKey which may end up adding same
+    // key multiple times. This is a quick way to avoid that.
+    if (mLastAddedSharedCacheKey.owner_equal(key))
+    {
+        return;
+    }
+
+    mLastAddedSharedCacheKey = key;
+    ASSERT(!containsKeyWithOwnerEqual(key));
+
     // Search for available slots and use that if any
     size_t slot = 0;
     for (SlotBitMask &emptyBits : mEmptySlotBits)
@@ -7193,11 +7202,12 @@ void SharedCacheKeyManager<SharedCacheKeyT>::clear()
 }
 
 template <class SharedCacheKeyT>
-bool SharedCacheKeyManager<SharedCacheKeyT>::containsKey(const SharedCacheKeyT &key) const
+bool SharedCacheKeyManager<SharedCacheKeyT>::containsKeyWithOwnerEqual(
+    const SharedCacheKeyT &key) const
 {
     for (const SharedCacheKeyT &sharedCacheKey : mSharedCacheKeys)
     {
-        if (*key == *sharedCacheKey)
+        if (key.owner_equal(sharedCacheKey))
         {
             return true;
         }
@@ -7667,11 +7677,10 @@ angle::Result RenderPassCache::MakeRenderPass(vk::ErrorContext *context,
         VkAttachmentReference2 colorRef = {};
         colorRef.sType                  = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
         colorRef.attachment             = attachmentCount.get();
-        colorRef.layout =
-            needInputAttachments
-                ? VK_IMAGE_LAYOUT_GENERAL
-                : vk::ConvertImageLayoutToVkImageLayout(
-                      renderer, static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
+        colorRef.layout                 = needInputAttachments
+                                              ? VK_IMAGE_LAYOUT_GENERAL
+                                              : vk::ConvertImageLayoutToVkImageLayout(static_cast<vk::ImageLayout>(
+                                    ops[attachmentCount].initialLayout));
         colorRef.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         colorAttachmentRefs.push_back(colorRef);
 
@@ -7717,7 +7726,7 @@ angle::Result RenderPassCache::MakeRenderPass(vk::ErrorContext *context,
         depthStencilAttachmentRef.sType      = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
         depthStencilAttachmentRef.attachment = attachmentCount.get();
         depthStencilAttachmentRef.layout     = ConvertImageLayoutToVkImageLayout(
-            renderer, static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
+            static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
         depthStencilAttachmentRef.aspectMask =
             VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 
