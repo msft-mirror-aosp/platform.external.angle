@@ -75,7 +75,6 @@ angle_dma_buf_config_cc_defaults {
 
 cc_defaults {
     name: "angle_common_library_cflags",
-    cpp_std: "gnu++17",
     cflags: [
         "-O2",
         "-Wno-unknown-warning-option",
