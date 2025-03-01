@@ -101,7 +101,6 @@ inline constexpr const char *kDimensionsMustBePow2 = "Texture dimensions must be
 inline constexpr const char *kDispatchIndirectBufferNotBound = "Dispatch indirect buffer must be bound.";
 inline constexpr const char *kDrawBufferMaskMismatch = "Active draw buffers with missing fragment shader outputs.";
 inline constexpr const char *kDrawBuffersIndexedExtensionNotAvailable = "EXT/OES_draw_buffers_indexed is not available.";
-inline constexpr const char *kES31OrDrawBuffersIndexedExtensionNotAvailable = "EXT/OES_draw_buffers_indexed or ES 3.1 are required but not available.";
 inline constexpr const char *kDrawBufferTypeMismatch = "Fragment shader output type does not match the bound framebuffer attachment type.";
 inline constexpr const char *kDrawFramebufferIncomplete = "Draw framebuffer is incomplete.";
 inline constexpr const char *kDrawIndirectBufferNotBound = "Draw indirect buffer must be bound.";
@@ -663,6 +662,7 @@ inline constexpr const char *kNotAllStagesOfSeparableProgramUsed = "A program ob
 inline constexpr const char *kNoExecutableCodeInstalled = "There is no current program object specified by UseProgram, there is a current program pipeline object, and that object is empty (no executable code is installed for any stage).";
 inline constexpr const char *kProgramPipelineLinkFailed = "Program pipeline link failed.";
 inline constexpr const char *kProtectedTexturesExtensionRequired = "GL_EXT_protected_textures not enabled.";
+inline constexpr const char *kProgramNotValid = "Program is not a program object.";
 // clang-format on
 
 }  // namespace err

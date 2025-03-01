@@ -394,7 +394,7 @@ void DeriveRenderingInfo(Renderer *renderer,
         if (subset == DynamicRenderingInfoSubset::Full)
         {
             const VkImageLayout layout = vk::ConvertImageLayoutToVkImageLayout(
-                renderer, static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
+                static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
             const VkImageLayout resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             const VkResolveModeFlagBits resolveMode =
                 isYUVExternalFormat ? VK_RESOLVE_MODE_EXTERNAL_FORMAT_DOWNSAMPLE_ANDROID
@@ -411,6 +411,19 @@ void DeriveRenderingInfo(Renderer *renderer,
             // See description of RenderPassFramebuffer::mImageViews regarding the layout of the
             // attachmentViews.  In short, the draw attachments are packed, while the resolve
             // attachments are not.
+            if (isYUVExternalFormat && renderer->nullColorAttachmentWithExternalFormatResolve())
+            {
+                // If nullColorAttachmentWithExternalFormatResolve is VK_TRUE, attachmentViews has
+                // no color attachment imageView and only has resolveImageView.
+                infoOut->colorAttachmentInfo[attachmentCount.get()].imageView = VK_NULL_HANDLE;
+                infoOut->colorAttachmentInfo[attachmentCount.get()].resolveImageView =
+                    attachmentViews[attachmentCount.get()];
+                infoOut->colorAttachmentInfo[attachmentCount.get()].clearValue =
+                    clearValues[attachmentCount];
+
+                ++attachmentCount;
+                continue;
+            }
             infoOut->colorAttachmentInfo[attachmentCount.get()].imageView =
                 attachmentViews[attachmentCount.get()];
             if (resolveMode != VK_RESOLVE_MODE_NONE)
@@ -456,7 +469,7 @@ void DeriveRenderingInfo(Renderer *renderer,
                 angleFormat.stencilBits != 0 && desc.hasStencilResolveAttachment();
 
             const VkImageLayout layout = ConvertImageLayoutToVkImageLayout(
-                renderer, static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
+                static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
             const VkImageLayout resolveImageLayout =
                 VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             const VkResolveModeFlagBits depthResolveMode =
@@ -631,9 +644,9 @@ void UnpackAttachmentDesc(Renderer *renderer,
     desc->stencilStoreOp =
         ConvertRenderPassStoreOpToVkStoreOp(static_cast<RenderPassStoreOp>(ops.stencilStoreOp));
     desc->initialLayout =
-        ConvertImageLayoutToVkImageLayout(renderer, static_cast<ImageLayout>(ops.initialLayout));
+        ConvertImageLayoutToVkImageLayout(static_cast<ImageLayout>(ops.initialLayout));
     desc->finalLayout =
-        ConvertImageLayoutToVkImageLayout(renderer, static_cast<ImageLayout>(ops.finalLayout));
+        ConvertImageLayoutToVkImageLayout(static_cast<ImageLayout>(ops.finalLayout));
 }
 
 struct AttachmentInfo
@@ -674,7 +687,7 @@ void UnpackColorResolveAttachmentDesc(Renderer *renderer,
     desc->stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     desc->stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     desc->initialLayout  = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    desc->finalLayout    = ConvertImageLayoutToVkImageLayout(renderer, finalLayout);
+    desc->finalLayout    = ConvertImageLayoutToVkImageLayout(finalLayout);
 }
 
 void UnpackDepthStencilResolveAttachmentDesc(vk::ErrorContext *context,
@@ -5196,7 +5209,10 @@ WaitableMonolithicPipelineCreationTask::~WaitableMonolithicPipelineCreationTask(
 }
 
 // PipelineHelper implementation.
-PipelineHelper::PipelineHelper() = default;
+PipelineHelper::PipelineHelper()
+{
+    mTransitions.reserve(8);
+}
 
 PipelineHelper::~PipelineHelper() = default;
 
@@ -5499,6 +5515,13 @@ void FramebufferDesc::releaseCachedObject(ContextVk *contextVk)
     ASSERT(valid());
     contextVk->getShareGroup()->getFramebufferCache().erase(contextVk, *this);
     SetBitField(mIsValid, 0);
+}
+
+bool FramebufferDesc::hasValidCachedObject(ContextVk *contextVk) const
+{
+    ASSERT(valid());
+    Framebuffer framebuffer;
+    return contextVk->getShareGroup()->getFramebufferCache().get(contextVk, *this, framebuffer);
 }
 
 // YcbcrConversionDesc implementation
@@ -6278,10 +6301,7 @@ void DescriptorSetDesc::updateDescriptorSet(Renderer *renderer,
                         mDescriptorInfos[infoDescIndex + arrayElement];
                     VkDescriptorImageInfo &imageInfo = writeImages[arrayElement];
 
-                    ImageLayout imageLayout = static_cast<ImageLayout>(infoDesc.imageLayoutOrRange);
-
-                    imageInfo.imageLayout =
-                        ConvertImageLayoutToVkImageLayout(renderer, imageLayout);
+                    imageInfo.imageLayout = static_cast<VkImageLayout>(infoDesc.imageLayoutOrRange);
                     imageInfo.imageView = handles[infoDescIndex + arrayElement].imageView;
                     imageInfo.sampler   = handles[infoDescIndex + arrayElement].sampler;
                 }
@@ -6321,6 +6341,12 @@ void DescriptorSetDescAndPool::releaseCachedObject(Renderer *renderer)
     ASSERT(valid());
     mPool->releaseCachedDescriptorSet(renderer, mDesc);
     mPool = nullptr;
+}
+
+bool DescriptorSetDescAndPool::hasValidCachedObject(ContextVk *contextVk) const
+{
+    ASSERT(valid());
+    return mPool->hasCachedDescriptorSet(mDesc);
 }
 
 // DescriptorSetDescBuilder implementation.
@@ -6497,7 +6523,7 @@ void DescriptorSetDescBuilder::updatePreCacheActiveTextures(
                     textureVk->getImageViewSubresourceSerial(
                         samplerState, samplerUniform.isTexelFetchStaticUse());
 
-                ImageLayout imageLayout = textureVk->getImage().getCurrentImageLayout();
+                VkImageLayout imageLayout = textureVk->getImage().getCurrentLayout();
                 SetBitField(infoDesc.imageLayoutOrRange, imageLayout);
                 infoDesc.imageViewSerialOrOffset = imageViewSerial.viewSerial.getValue();
                 infoDesc.samplerOrBufferSerial   = samplerHelper.getSamplerSerial().getValue();
@@ -6898,7 +6924,7 @@ angle::Result DescriptorSetDescBuilder::updateImages(
                 // Note: binding.access is unused because it is implied by the shader.
 
                 DescriptorInfoDesc &infoDesc = mDesc.getInfoDesc(infoIndex);
-                SetBitField(infoDesc.imageLayoutOrRange, image->getCurrentImageLayout());
+                SetBitField(infoDesc.imageLayoutOrRange, image->getCurrentLayout());
                 memcpy(&infoDesc.imageSubresourceRange, &serial.subresource, sizeof(uint32_t));
                 infoDesc.imageViewSerialOrOffset = serial.viewSerial.getValue();
                 infoDesc.samplerOrBufferSerial   = 0;
@@ -6945,8 +6971,9 @@ angle::Result DescriptorSetDescBuilder::updateInputAttachments(
                         .getVariableById(gl::ShaderType::Fragment,
                                          sh::vk::spirv::kIdDepthInputAttachment)
                         .binding;
-                updateInputAttachment(context, depthBinding, ImageLayout::DepthStencilWriteAndInput,
-                                      imageView, serial, writeDescriptorDescs);
+                updateInputAttachment(context, depthBinding,
+                                      VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, imageView, serial,
+                                      writeDescriptorDescs);
             }
 
             if (executable.usesStencilFramebufferFetch() &&
@@ -6962,7 +6989,7 @@ angle::Result DescriptorSetDescBuilder::updateInputAttachments(
                                          sh::vk::spirv::kIdStencilInputAttachment)
                         .binding;
                 updateInputAttachment(context, stencilBinding,
-                                      ImageLayout::DepthStencilWriteAndInput, imageView, serial,
+                                      VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, imageView, serial,
                                       writeDescriptorDescs);
             }
         }
@@ -6995,8 +7022,8 @@ angle::Result DescriptorSetDescBuilder::updateInputAttachments(
         // rendering, there's a specific layout.
         updateInputAttachment(context, binding,
                               context->getFeatures().preferDynamicRendering.enabled
-                                  ? ImageLayout::ColorWriteAndInput
-                                  : ImageLayout::FragmentShaderWrite,
+                                  ? VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR
+                                  : VK_IMAGE_LAYOUT_GENERAL,
                               imageView, serial, writeDescriptorDescs);
     }
 
@@ -7006,7 +7033,7 @@ angle::Result DescriptorSetDescBuilder::updateInputAttachments(
 void DescriptorSetDescBuilder::updateInputAttachment(
     Context *context,
     uint32_t binding,
-    ImageLayout layout,
+    VkImageLayout layout,
     const vk::ImageView *imageView,
     ImageOrBufferViewSubresourceSerial serial,
     const WriteDescriptorDescs &writeDescriptorDescs)
@@ -7054,6 +7081,17 @@ size_t SharedCacheKeyManager<SharedCacheKeyT>::updateEmptySlotBits()
 template <class SharedCacheKeyT>
 void SharedCacheKeyManager<SharedCacheKeyT>::addKey(const SharedCacheKeyT &key)
 {
+    // There are cases that same texture or buffer are bound in multiple binding point. When we have
+    // a cache miss, we end up looping binding point and calling addKey which may end up adding same
+    // key multiple times. This is a quick way to avoid that.
+    if (mLastAddedSharedCacheKey.owner_equal(key))
+    {
+        return;
+    }
+
+    mLastAddedSharedCacheKey = key;
+    ASSERT(!containsKeyWithOwnerEqual(key));
+
     // Search for available slots and use that if any
     size_t slot = 0;
     for (SlotBitMask &emptyBits : mEmptySlotBits)
@@ -7164,11 +7202,12 @@ void SharedCacheKeyManager<SharedCacheKeyT>::clear()
 }
 
 template <class SharedCacheKeyT>
-bool SharedCacheKeyManager<SharedCacheKeyT>::containsKey(const SharedCacheKeyT &key) const
+bool SharedCacheKeyManager<SharedCacheKeyT>::containsKeyWithOwnerEqual(
+    const SharedCacheKeyT &key) const
 {
     for (const SharedCacheKeyT &sharedCacheKey : mSharedCacheKeys)
     {
-        if (*key == *sharedCacheKey)
+        if (key.owner_equal(sharedCacheKey))
         {
             return true;
         }
@@ -7177,13 +7216,26 @@ bool SharedCacheKeyManager<SharedCacheKeyT>::containsKey(const SharedCacheKeyT &
 }
 
 template <class SharedCacheKeyT>
-void SharedCacheKeyManager<SharedCacheKeyT>::assertAllEntriesDestroyed()
+void SharedCacheKeyManager<SharedCacheKeyT>::assertAllEntriesDestroyed() const
 {
     // Caller must have already freed all caches
-    for (SharedCacheKeyT &sharedCacheKey : mSharedCacheKeys)
+    for (const SharedCacheKeyT &sharedCacheKey : mSharedCacheKeys)
     {
         ASSERT(!sharedCacheKey->valid());
     }
+}
+
+template <class SharedCacheKeyT>
+bool SharedCacheKeyManager<SharedCacheKeyT>::allValidEntriesAreCached(ContextVk *contextVk) const
+{
+    for (const SharedCacheKeyT &sharedCacheKey : mSharedCacheKeys)
+    {
+        if (sharedCacheKey->valid() && !sharedCacheKey->hasValidCachedObject(contextVk))
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 // Explict instantiate for FramebufferCacheManager
@@ -7242,81 +7294,60 @@ void PipelineCacheAccess::merge(Renderer *renderer, const vk::PipelineCache &pip
 UpdateDescriptorSetsBuilder::UpdateDescriptorSetsBuilder()
 {
     // Reserve reasonable amount of spaces so that for majority of apps we don't need to grow at all
-    constexpr size_t kDescriptorBufferInfosInitialSize = 8;
-    constexpr size_t kDescriptorImageInfosInitialSize  = 4;
+    constexpr size_t kDescriptorBufferInfosInitialSize = 16;
+    constexpr size_t kDescriptorImageInfosInitialSize  = 16;
+    constexpr size_t kDescriptorBufferViewsInitialSize = 1;
     constexpr size_t kDescriptorWriteInfosInitialSize =
         kDescriptorBufferInfosInitialSize + kDescriptorImageInfosInitialSize;
-    constexpr size_t kDescriptorBufferViewsInitialSize = 0;
 
-    mDescriptorBufferInfos.reserve(kDescriptorBufferInfosInitialSize);
-    mDescriptorImageInfos.reserve(kDescriptorImageInfosInitialSize);
-    mWriteDescriptorSets.reserve(kDescriptorWriteInfosInitialSize);
-    mBufferViews.reserve(kDescriptorBufferViewsInitialSize);
+    mDescriptorBufferInfos.init(kDescriptorBufferInfosInitialSize);
+    mDescriptorImageInfos.init(kDescriptorImageInfosInitialSize);
+    mBufferViews.init(kDescriptorBufferViewsInitialSize);
+    mWriteDescriptorSets.init(kDescriptorWriteInfosInitialSize);
 }
 
 UpdateDescriptorSetsBuilder::~UpdateDescriptorSetsBuilder() = default;
 
-template <typename T, const T *VkWriteDescriptorSet::*pInfo>
-void UpdateDescriptorSetsBuilder::growDescriptorCapacity(std::vector<T> *descriptorVector,
-                                                         size_t newSize)
+template <typename T>
+T *UpdateDescriptorSetsBuilder::DescriptorInfoAllocator<T>::allocate(uint32_t count)
 {
-    const T *const oldInfoStart = descriptorVector->empty() ? nullptr : &(*descriptorVector)[0];
-    size_t newCapacity          = std::max(descriptorVector->capacity() << 1, newSize);
-    descriptorVector->reserve(newCapacity);
-
-    if (oldInfoStart)
+    size_t oldSize = mCurrentVector->size();
+    size_t newSize = oldSize + count;
+    if (newSize <= mCurrentVector->capacity())
     {
-        // patch mWriteInfo with new BufferInfo/ImageInfo pointers
-        for (VkWriteDescriptorSet &set : mWriteDescriptorSets)
+        (*mCurrentVector).resize(newSize);
+        mTotalSize += count;
+        return &(*mCurrentVector)[oldSize];
+    }
+
+    ++mCurrentVector;
+    // clear() always ensures we have a single element left.
+    ASSERT(mCurrentVector == mDescriptorInfos.end());
+
+    // We have reached capacity, grow the storage
+    mVectorCapacity = std::max(count, mVectorCapacity);
+    mDescriptorInfos.emplace_back();
+    mDescriptorInfos.back().reserve(mVectorCapacity);
+    mCurrentVector = mDescriptorInfos.end() - 1;
+
+    mCurrentVector->resize(count);
+    mTotalSize += count;
+
+    return &mCurrentVector->front();
+}
+
+uint32_t UpdateDescriptorSetsBuilder::WriteDescriptorSetAllocator::updateDescriptorSets(
+    VkDevice device) const
+{
+    for (const std::vector<VkWriteDescriptorSet> &vector : mDescriptorInfos)
+    {
+        if (!vector.empty())
         {
-            if (set.*pInfo)
-            {
-                size_t index = set.*pInfo - oldInfoStart;
-                set.*pInfo   = &(*descriptorVector)[index];
-            }
+            vkUpdateDescriptorSets(device, static_cast<uint32_t>(vector.size()), vector.data(), 0,
+                                   nullptr);
         }
     }
-}
-
-template <typename T, const T *VkWriteDescriptorSet::*pInfo>
-T *UpdateDescriptorSetsBuilder::allocDescriptorInfos(std::vector<T> *descriptorVector, size_t count)
-{
-    size_t oldSize = descriptorVector->size();
-    size_t newSize = oldSize + count;
-    if (newSize > descriptorVector->capacity())
-    {
-        // If we have reached capacity, grow the storage and patch the descriptor set with new
-        // buffer info pointer
-        growDescriptorCapacity<T, pInfo>(descriptorVector, newSize);
-    }
-    descriptorVector->resize(newSize);
-    return &(*descriptorVector)[oldSize];
-}
-
-VkDescriptorBufferInfo *UpdateDescriptorSetsBuilder::allocDescriptorBufferInfos(size_t count)
-{
-    return allocDescriptorInfos<VkDescriptorBufferInfo, &VkWriteDescriptorSet::pBufferInfo>(
-        &mDescriptorBufferInfos, count);
-}
-
-VkDescriptorImageInfo *UpdateDescriptorSetsBuilder::allocDescriptorImageInfos(size_t count)
-{
-    return allocDescriptorInfos<VkDescriptorImageInfo, &VkWriteDescriptorSet::pImageInfo>(
-        &mDescriptorImageInfos, count);
-}
-
-VkWriteDescriptorSet *UpdateDescriptorSetsBuilder::allocWriteDescriptorSets(size_t count)
-{
-    size_t oldSize = mWriteDescriptorSets.size();
-    size_t newSize = oldSize + count;
-    mWriteDescriptorSets.resize(newSize);
-    return &mWriteDescriptorSets[oldSize];
-}
-
-VkBufferView *UpdateDescriptorSetsBuilder::allocBufferViews(size_t count)
-{
-    return allocDescriptorInfos<VkBufferView, &VkWriteDescriptorSet::pTexelBufferView>(
-        &mBufferViews, count);
+    return mTotalSize;
 }
 
 uint32_t UpdateDescriptorSetsBuilder::flushDescriptorSetUpdates(VkDevice device)
@@ -7328,17 +7359,14 @@ uint32_t UpdateDescriptorSetsBuilder::flushDescriptorSetUpdates(VkDevice device)
         return 0;
     }
 
-    vkUpdateDescriptorSets(device, static_cast<uint32_t>(mWriteDescriptorSets.size()),
-                           mWriteDescriptorSets.data(), 0, nullptr);
-
-    uint32_t retVal = static_cast<uint32_t>(mWriteDescriptorSets.size());
+    uint32_t totalSize = mWriteDescriptorSets.updateDescriptorSets(device);
 
     mWriteDescriptorSets.clear();
     mDescriptorBufferInfos.clear();
     mDescriptorImageInfos.clear();
     mBufferViews.clear();
 
-    return retVal;
+    return totalSize;
 }
 
 // FramebufferCache implementation.
@@ -7612,23 +7640,47 @@ angle::Result RenderPassCache::MakeRenderPass(vk::ErrorContext *context,
         ASSERT(attachmentFormatID != angle::FormatID::NONE);
 
         bool isYUVExternalFormat = vk::IsYUVExternalFormat(attachmentFormatID);
+
+        // If nullColorAttachmentWithExternalFormatResolve is VK_TRUE, pack YUV resolve first as if
+        // it is the color attachment.
         if (isYUVExternalFormat && renderer->nullColorAttachmentWithExternalFormatResolve())
         {
             colorAttachmentRefs.push_back(kUnusedAttachment);
             // temporary workaround for ARM driver assertion. Will remove once driver fix lands
             colorAttachmentRefs.back().layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             colorAttachmentRefs.back().aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+            VkAttachmentReference2 colorRef = {};
+            colorRef.sType                  = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+            colorRef.attachment             = attachmentCount.get();
+            colorRef.layout                 = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            colorRef.aspectMask             = VK_IMAGE_ASPECT_COLOR_BIT;
+
+            colorResolveAttachmentRefs.push_back(colorRef);
+            vk::UnpackAttachmentDesc(renderer, &attachmentDescs[attachmentCount.get()],
+                                     attachmentFormatID, attachmentSamples, ops[attachmentCount]);
+
+#if defined(ANGLE_PLATFORM_ANDROID)
+            // For rendering to YUV, chain on the external format info to the resolve
+            // attachment
+            const vk::ExternalYuvFormatInfo &externalFormatInfo =
+                renderer->getExternalFormatTable()->getExternalFormatInfo(attachmentFormatID);
+            externalFormat.externalFormat        = externalFormatInfo.externalFormat;
+            VkAttachmentDescription2 &attachment = attachmentDescs[attachmentCount.get()];
+            attachment.pNext                     = &externalFormat;
+            ASSERT(attachment.format == VK_FORMAT_UNDEFINED);
+#endif
+            ++attachmentCount;
             continue;
         }
 
         VkAttachmentReference2 colorRef = {};
         colorRef.sType                  = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
         colorRef.attachment             = attachmentCount.get();
-        colorRef.layout =
-            needInputAttachments
-                ? VK_IMAGE_LAYOUT_GENERAL
-                : vk::ConvertImageLayoutToVkImageLayout(
-                      renderer, static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
+        colorRef.layout                 = needInputAttachments
+                                              ? VK_IMAGE_LAYOUT_GENERAL
+                                              : vk::ConvertImageLayoutToVkImageLayout(static_cast<vk::ImageLayout>(
+                                    ops[attachmentCount].initialLayout));
         colorRef.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         colorAttachmentRefs.push_back(colorRef);
 
@@ -7674,7 +7726,7 @@ angle::Result RenderPassCache::MakeRenderPass(vk::ErrorContext *context,
         depthStencilAttachmentRef.sType      = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
         depthStencilAttachmentRef.attachment = attachmentCount.get();
         depthStencilAttachmentRef.layout     = ConvertImageLayoutToVkImageLayout(
-            renderer, static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
+            static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
         depthStencilAttachmentRef.aspectMask =
             VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 
@@ -7704,7 +7756,7 @@ angle::Result RenderPassCache::MakeRenderPass(vk::ErrorContext *context,
     }
 
     // Pack color resolve attachments
-    const uint32_t nonResolveAttachmentCount = attachmentCount.get();
+    uint32_t nonResolveAttachmentCount = attachmentCount.get();
     for (uint32_t colorIndexGL = 0; colorIndexGL < desc.colorAttachmentRange(); ++colorIndexGL)
     {
         if (!desc.hasColorResolveAttachment(colorIndexGL))
@@ -7717,6 +7769,13 @@ angle::Result RenderPassCache::MakeRenderPass(vk::ErrorContext *context,
 
         angle::FormatID attachmentFormatID = desc[colorIndexGL];
         bool isYUVExternalFormat           = vk::IsYUVExternalFormat(attachmentFormatID);
+
+        if (isYUVExternalFormat && renderer->nullColorAttachmentWithExternalFormatResolve())
+        {
+            // attachmentCount counts the YUV resolve, so decrease nonResolveAttachmentCount here.
+            --nonResolveAttachmentCount;
+            continue;
+        }
 
         VkAttachmentReference2 colorRef = {};
         colorRef.sType                  = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
@@ -7736,18 +7795,10 @@ angle::Result RenderPassCache::MakeRenderPass(vk::ErrorContext *context,
 
         const bool isInvalidated = isMSRTTEmulationColorInvalidated.test(colorIndexGL);
 
-        if (isYUVExternalFormat && renderer->nullColorAttachmentWithExternalFormatResolve())
-        {
-            vk::UnpackAttachmentDesc(renderer, &attachmentDescs[attachmentCount.get()],
-                                     attachmentFormatID, attachmentSamples, ops[attachmentCount]);
-        }
-        else
-        {
-            vk::UnpackColorResolveAttachmentDesc(
-                renderer, &attachmentDescs[attachmentCount.get()], attachmentFormatID,
-                {desc.hasColorUnresolveAttachment(colorIndexGL), isInvalidated, false},
-                colorResolveImageLayout[colorIndexGL]);
-        }
+        vk::UnpackColorResolveAttachmentDesc(
+            renderer, &attachmentDescs[attachmentCount.get()], attachmentFormatID,
+            {desc.hasColorUnresolveAttachment(colorIndexGL), isInvalidated, false},
+            colorResolveImageLayout[colorIndexGL]);
 
 #if defined(ANGLE_PLATFORM_ANDROID)
         // For rendering to YUV, chain on the external format info to the resolve attachment

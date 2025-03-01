@@ -11,6 +11,8 @@
 #ifndef LIBANGLE_RENDERER_VULKAN_VK_CACHE_UTILS_H_
 #define LIBANGLE_RENDERER_VULKAN_VK_CACHE_UTILS_H_
 
+#include <deque>
+
 #include "common/Color.h"
 #include "common/FixedVector.h"
 #include "common/SimpleMutex.h"
@@ -1611,7 +1613,7 @@ class PipelineHelper final : public Resource
                        const GraphicsPipelineDesc *desc,
                        PipelineHelper *pipeline);
 
-    const std::vector<GraphicsPipelineTransition> getTransitions() const { return mTransitions; }
+    const std::vector<GraphicsPipelineTransition> &getTransitions() const { return mTransitions; }
 
     void setComputePipeline(Pipeline &&pipeline, CacheLookUpFeedback feedback)
     {
@@ -1771,7 +1773,7 @@ struct DescriptorInfoDesc
 {
     uint32_t samplerOrBufferSerial;
     uint32_t imageViewSerialOrOffset;
-    uint32_t imageLayoutOrRange;  // Packed VkImageLayout
+    uint32_t imageLayoutOrRange;
     uint32_t imageSubresourceRange;
 };
 
@@ -1855,10 +1857,6 @@ class WriteDescriptorDescs
     void updateWriteDesc(uint32_t bindingIndex,
                          VkDescriptorType descriptorType,
                          uint32_t descriptorCount);
-
-    void updateInputAttachment(uint32_t binding,
-                               ImageLayout layout,
-                               RenderTargetVk *renderTargetVk);
 
     // After a preliminary minimum size, use heap memory.
     angle::FastMap<WriteDescriptorDesc, kFastDescriptorSetDescLimit> mDescs;
@@ -1949,6 +1947,9 @@ class DescriptorSetDescAndPool final
     {
         return mDesc == other.mDesc && mPool == other.mPool;
     }
+
+    // Returns true if the key/value can be found in the cache.
+    bool hasValidCachedObject(ContextVk *contextVk) const;
 
   private:
     DescriptorSetDesc mDesc;
@@ -2069,7 +2070,7 @@ class DescriptorSetDescBuilder final
   private:
     void updateInputAttachment(Context *context,
                                uint32_t binding,
-                               ImageLayout layout,
+                               VkImageLayout layout,
                                const vk::ImageView *imageView,
                                ImageOrBufferViewSubresourceSerial serial,
                                const WriteDescriptorDescs &writeDescriptorDescs);
@@ -2159,6 +2160,7 @@ class FramebufferDesc
     void releaseCachedObject(Renderer *renderer) { UNREACHABLE(); }
     void releaseCachedObject(ContextVk *contextVk);
     bool valid() const { return mIsValid; }
+    bool hasValidCachedObject(ContextVk *contextVk) const;
 
   private:
     void reset();
@@ -2275,16 +2277,19 @@ class SharedCacheKeyManager
     void clear();
 
     // The following APIs are expected to be used for assertion only
-    bool containsKey(const SharedCacheKeyT &key) const;
     bool empty() const { return mSharedCacheKeys.empty(); }
-    void assertAllEntriesDestroyed();
+    bool allValidEntriesAreCached(ContextVk *contextVk) const;
 
   private:
     size_t updateEmptySlotBits();
 
+    bool containsKeyWithOwnerEqual(const SharedCacheKeyT &key) const;
+    void assertAllEntriesDestroyed() const;
+
     // Tracks an array of cache keys with refcounting. Note this owns one refcount of
     // SharedCacheKeyT object.
     std::deque<SharedCacheKeyT> mSharedCacheKeys;
+    SharedCacheKeyT mLastAddedSharedCacheKey;
 
     // To speed up searching for available slot in the mSharedCacheKeys, we use bitset to track
     // available (i.e, empty) slot
@@ -2915,7 +2920,7 @@ class DescriptorSetCache final : angle::NonCopyable
 
     void clear() { mPayload.clear(); }
 
-    bool getDescriptorSet(const vk::DescriptorSetDesc &desc, T *descriptorSetOut)
+    bool getDescriptorSet(const vk::DescriptorSetDesc &desc, T *descriptorSetOut) const
     {
         auto iter = mPayload.find(desc);
         if (iter != mPayload.end())
@@ -2981,10 +2986,19 @@ class UpdateDescriptorSetsBuilder final : angle::NonCopyable
     UpdateDescriptorSetsBuilder();
     ~UpdateDescriptorSetsBuilder();
 
-    VkDescriptorBufferInfo *allocDescriptorBufferInfos(size_t count);
-    VkDescriptorImageInfo *allocDescriptorImageInfos(size_t count);
-    VkWriteDescriptorSet *allocWriteDescriptorSets(size_t count);
-    VkBufferView *allocBufferViews(size_t count);
+    VkDescriptorBufferInfo *allocDescriptorBufferInfos(uint32_t count)
+    {
+        return mDescriptorBufferInfos.allocate(count);
+    }
+    VkDescriptorImageInfo *allocDescriptorImageInfos(uint32_t count)
+    {
+        return mDescriptorImageInfos.allocate(count);
+    }
+    VkWriteDescriptorSet *allocWriteDescriptorSets(uint32_t count)
+    {
+        return mWriteDescriptorSets.allocate(count);
+    }
+    VkBufferView *allocBufferViews(uint32_t count) { return mBufferViews.allocate(count); }
 
     VkDescriptorBufferInfo &allocDescriptorBufferInfo() { return *allocDescriptorBufferInfos(1); }
     VkDescriptorImageInfo &allocDescriptorImageInfo() { return *allocDescriptorImageInfos(1); }
@@ -2995,15 +3009,52 @@ class UpdateDescriptorSetsBuilder final : angle::NonCopyable
     uint32_t flushDescriptorSetUpdates(VkDevice device);
 
   private:
-    template <typename T, const T *VkWriteDescriptorSet::*pInfo>
-    T *allocDescriptorInfos(std::vector<T> *descriptorVector, size_t count);
-    template <typename T, const T *VkWriteDescriptorSet::*pInfo>
-    void growDescriptorCapacity(std::vector<T> *descriptorVector, size_t newSize);
+    // Manage the storage for VkDescriptorBufferInfo and VkDescriptorImageInfo. The storage is not
+    // required to be continuous, but the requested allocation from allocate() call must be
+    // continuous. The actual storage will grow as needed.
+    template <typename T>
+    class DescriptorInfoAllocator : angle::NonCopyable
+    {
+      public:
+        void init(uint32_t initialVectorCapacity)
+        {
+            mVectorCapacity = initialVectorCapacity;
+            mDescriptorInfos.emplace_back();
+            mDescriptorInfos.back().reserve(mVectorCapacity);
+            mCurrentVector = mDescriptorInfos.begin();
+            mTotalSize     = 0;
+        }
+        void clear()
+        {
+            mDescriptorInfos.resize(1);
+            mDescriptorInfos.front().clear();
+            // Grow the first vector's capacity big enough to hold all of them
+            mVectorCapacity = std::max(mTotalSize, mVectorCapacity);
+            mDescriptorInfos.front().reserve(mVectorCapacity);
+            mCurrentVector = mDescriptorInfos.begin();
+            mTotalSize     = 0;
+        }
+        T *allocate(uint32_t count);
 
-    std::vector<VkDescriptorBufferInfo> mDescriptorBufferInfos;
-    std::vector<VkDescriptorImageInfo> mDescriptorImageInfos;
-    std::vector<VkWriteDescriptorSet> mWriteDescriptorSets;
-    std::vector<VkBufferView> mBufferViews;
+        bool empty() const { return mTotalSize == 0; }
+
+      protected:
+        uint32_t mVectorCapacity = 16;
+        std::deque<std::vector<T>> mDescriptorInfos;
+        typename std::deque<std::vector<T>>::iterator mCurrentVector;
+        uint32_t mTotalSize;
+    };
+
+    class WriteDescriptorSetAllocator final : public DescriptorInfoAllocator<VkWriteDescriptorSet>
+    {
+      public:
+        uint32_t updateDescriptorSets(VkDevice device) const;
+    };
+
+    DescriptorInfoAllocator<VkDescriptorBufferInfo> mDescriptorBufferInfos;
+    DescriptorInfoAllocator<VkDescriptorImageInfo> mDescriptorImageInfos;
+    DescriptorInfoAllocator<VkBufferView> mBufferViews;
+    WriteDescriptorSetAllocator mWriteDescriptorSets;
 };
 
 }  // namespace rx

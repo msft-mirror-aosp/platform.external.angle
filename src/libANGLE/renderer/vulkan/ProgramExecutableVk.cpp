@@ -257,7 +257,6 @@ angle::Result UpdateFullTexturesDescriptorSet(vk::ErrorContext *context,
                                               const gl::SamplerBindingVector &samplers,
                                               VkDescriptorSet descriptorSet)
 {
-    vk::Renderer *renderer                                 = context->getRenderer();
     const std::vector<gl::SamplerBinding> &samplerBindings = executable.getSamplerBindings();
     const std::vector<GLuint> &samplerBoundTextureUnits = executable.getSamplerBoundTextureUnits();
     const std::vector<gl::LinkedUniform> &uniforms      = executable.getUniforms();
@@ -265,7 +264,7 @@ angle::Result UpdateFullTexturesDescriptorSet(vk::ErrorContext *context,
 
     // Allocate VkWriteDescriptorSet and initialize the data structure
     VkWriteDescriptorSet *writeDescriptorSets =
-        updateBuilder->allocWriteDescriptorSets(writeDescriptorDescs.size());
+        updateBuilder->allocWriteDescriptorSets(static_cast<uint32_t>(writeDescriptorDescs.size()));
     for (uint32_t writeIndex = 0; writeIndex < writeDescriptorDescs.size(); ++writeIndex)
     {
         ASSERT(writeDescriptorDescs[writeIndex].descriptorCount > 0);
@@ -343,7 +342,7 @@ angle::Result UpdateFullTexturesDescriptorSet(vk::ErrorContext *context,
 
                 VkDescriptorImageInfo *imageInfo = const_cast<VkDescriptorImageInfo *>(
                     &writeSet.pImageInfo[arrayElement + samplerUniform.getOuterArrayOffset()]);
-                imageInfo->imageLayout = ConvertImageLayoutToVkImageLayout(renderer, imageLayout);
+                imageInfo->imageLayout = ConvertImageLayoutToVkImageLayout(imageLayout);
                 imageInfo->imageView   = imageView.getHandle();
                 imageInfo->sampler     = samplerHelper.get().getHandle();
             }
@@ -2190,7 +2189,6 @@ angle::Result ProgramExecutableVk::updateUniforms(vk::Context *context,
                                                     &uniformsAndXfbDesc, &newSharedCacheKey));
         if (newSharedCacheKey)
         {
-            defaultUniformBuffer->getBufferBlock()->onNewDescriptorSet(newSharedCacheKey);
             if (mExecutable->hasTransformFeedbackOutput() &&
                 context->getFeatures().emulateTransformFeedback.enabled)
             {
