@@ -280,6 +280,37 @@ void main()
 })";
     }
 
+    const char *getTextureYUVVS() const
+    {
+        return R"(#version 300 es
+#extension GL_EXT_YUV_target : require
+precision highp float;
+uniform __samplerExternal2DY2YEXT tex;
+in vec4 position;
+out vec4 color;
+
+void main()
+{
+    gl_Position = position;
+    vec2 texcoord = (position.xy * 0.5) + 0.5;
+    texcoord.y = 1.0 - texcoord.y;
+    color = texture(tex, texcoord);
+})";
+    }
+
+    const char *getPassThroughFS() const
+    {
+        return R"(#version 300 es
+precision highp float;
+in vec4 color;
+out vec4 frag_color;
+
+void main()
+{
+    frag_color = color;
+})";
+    }
+
     const char *getTextureYUVFS() const
     {
         return R"(#version 300 es
@@ -357,6 +388,11 @@ void main()
             ASSERT_NE(0u, mTextureYUVProgram) << "shader compilation failed.";
 
             mTextureYUVUniformLocation = glGetUniformLocation(mTextureYUVProgram, "tex");
+
+            mTextureYUVVSProgram = CompileProgram(getTextureYUVVS(), getPassThroughFS());
+            ASSERT_NE(0u, mTextureYUVVSProgram) << "shader compilation failed.";
+
+            mTextureYUVVSUniformLocation = glGetUniformLocation(mTextureYUVVSProgram, "tex");
 
             mRenderYUVProgram = CompileProgram(getVSESSL3(), getRenderYUVFS());
             ASSERT_NE(0u, mRenderYUVProgram) << "shader compilation failed.";
@@ -1096,6 +1132,12 @@ void main()
                              mTextureYUVUniformLocation);
     }
 
+    void verifyResultsExternalYUVVS(GLuint texture, const GLubyte data[4])
+    {
+        verifyResultsTexture(texture, data, GL_TEXTURE_EXTERNAL_OES, mTextureYUVVSProgram,
+                             mTextureYUVVSUniformLocation);
+    }
+
     void verifyResultsRenderbuffer(GLuint renderbuffer, GLubyte referenceColor[4])
     {
         // Bind the renderbuffer to a framebuffer
@@ -1533,6 +1575,9 @@ void main()
 
     GLuint mTextureYUVProgram        = 0;
     GLint mTextureYUVUniformLocation = -1;
+
+    GLuint mTextureYUVVSProgram        = 0;
+    GLint mTextureYUVVSUniformLocation = -1;
 
     GLuint mRenderYUVProgram        = 0;
     GLint mRenderYUVUniformLocation = -1;
@@ -2479,6 +2524,111 @@ TEST_P(ImageTestES3, SourceAHBTarget2DGenerateMipmapColorspaceBlend)
 
     // Clean up AHB
     destroyAndroidHardwareBuffer(aHardwareBuffer);
+}
+
+// Test that drawing to an AHB works.
+TEST_P(ImageTestES3, SourceAHBTarget2DDraw)
+{
+    EGLWindow *window = getEGLWindow();
+
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+    ANGLE_SKIP_TEST_IF(!hasAndroidImageNativeBufferExt() || !hasAndroidHardwareBufferSupport());
+
+    // Create the Image without data so we don't need ANGLE_AHARDWARE_BUFFER_LOCK_PLANES_SUPPORT
+    AHardwareBuffer *source;
+    EGLImageKHR image;
+    createEGLImageAndroidHardwareBufferSource(1, 1, 1, AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM,
+                                              kDefaultAHBUsage, kDefaultAttribs, {}, &source,
+                                              &image);
+
+    // Create a texture target to bind the egl image
+    GLTexture target;
+    createEGLImageTargetTexture2D(image, target);
+
+    // Draw to the target and verify results.
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target, 0);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    ANGLE_GL_PROGRAM(drawGreen, essl1_shaders::vs::Simple(), essl1_shaders::fs::Green());
+    drawQuad(drawGreen, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+
+    // Verify results for completeness.
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
+    destroyAndroidHardwareBuffer(source);
+}
+
+// Test that using an image through a texture, detaching it, then using it again with another
+// texture works.  This is similar to the usage pattern of |SourceAHBTarget2DGenerateMipmap|, but
+// doesn't require the |kAHBUsageGPUMipMapComplete| flags.
+TEST_P(ImageTestES3, SourceAHBTarget2DUseAfterDetach)
+{
+    EGLWindow *window = getEGLWindow();
+
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+    ANGLE_SKIP_TEST_IF(!hasAndroidImageNativeBufferExt() || !hasAndroidHardwareBufferSupport());
+
+    // Create the Image without data so we don't need ANGLE_AHARDWARE_BUFFER_LOCK_PLANES_SUPPORT
+    AHardwareBuffer *source;
+    EGLImageKHR image;
+    createEGLImageAndroidHardwareBufferSource(1, 1, 1, AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM,
+                                              kDefaultAHBUsage, kDefaultAttribs, {}, &source,
+                                              &image);
+
+    // Create a texture target to bind the egl image
+    GLTexture target;
+    createEGLImageTargetTexture2D(image, target);
+
+    // Clear the texture, use a temporary framebuffer.
+    {
+        GLFramebuffer fbo;
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target, 0);
+        ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+        glClearColor(1, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    // Use the texture in a command buffer, but don't let it get submitted (use the default
+    // framebuffer).
+    ANGLE_GL_PROGRAM(drawTexture, essl1_shaders::vs::Texture2D(), essl1_shaders::fs::Texture2D());
+    GLint texLocation = glGetUniformLocation(drawTexture, essl1_shaders::Texture2DUniform());
+    ASSERT_NE(-1, texLocation);
+    glUseProgram(drawTexture);
+    glUniform1i(texLocation, 0);
+    ASSERT_GL_NO_ERROR();
+
+    glBindTexture(GL_TEXTURE_2D, target);
+    drawQuad(drawTexture, essl1_shaders::PositionAttrib(), 0.5f);
+
+    // Release the texture.  In the Vulkan backend, the image is scheduled to be transitioned to the
+    // FORIENG queue because this is an AHB.
+    glBindTexture(GL_TEXTURE_2D, 0);
+    target.reset();
+
+    // Now attach another texture to the same image.
+    GLTexture target2;
+    glBindTexture(GL_TEXTURE_2D, target2);
+    glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
+    ASSERT_GL_NO_ERROR();
+
+    // Use the new texture.  In the Vulkan backend, the management of transfer to FOREIGN queue and
+    // back should be correct.
+    drawQuad(drawTexture, essl1_shaders::PositionAttrib(), 0.5f);
+    ASSERT_GL_NO_ERROR();
+
+    // Verify results for completeness.
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
+    destroyAndroidHardwareBuffer(source);
 }
 
 // Try to orphan image created with the GL_EXT_EGL_image_storage extension
@@ -3834,6 +3984,43 @@ TEST_P(ImageTestES3, SourceYUVAHBTargetExternalYUVSample)
     destroyAndroidHardwareBuffer(source);
 }
 
+// Test sampling from a YUV AHB using EXT_yuv_target in the vertex shader
+TEST_P(ImageTestES3, SourceYUVAHBTargetExternalYUVSampleVS)
+{
+    EGLWindow *window = getEGLWindow();
+
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt() || !hasYUVTargetExt());
+    ANGLE_SKIP_TEST_IF(!hasAndroidImageNativeBufferExt() || !hasAndroidHardwareBufferSupport());
+    ANGLE_SKIP_TEST_IF(!hasAhbLockPlanesSupport());
+
+    // 3 planes of data
+    GLubyte dataY[4]  = {7, 51, 197, 231};
+    GLubyte dataCb[1] = {
+        128,
+    };
+    GLubyte dataCr[1] = {
+        192,
+    };
+
+    // Create the Image
+    AHardwareBuffer *source;
+    EGLImageKHR image;
+    createEGLImageAndroidHardwareBufferSource(
+        2, 2, 1, AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420, kDefaultAHBUsage, kDefaultAttribs,
+        {{dataY, 1}, {dataCb, 1}, {dataCr, 1}}, &source, &image);
+
+    // Create a texture target to bind the egl image
+    GLTexture target;
+    createEGLImageTargetTextureExternal(image, target);
+
+    GLubyte pixelColor[4] = {197, 128, 192, 255};
+    verifyResultsExternalYUVVS(target, pixelColor);
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
+    destroyAndroidHardwareBuffer(source);
+}
+
 // Test using glCopySubTextureCHROMIUM with YUV AHB as the source
 TEST_P(ImageTestES3, SourceYUVAHBTargetExternalCopySrc)
 {
@@ -4033,6 +4220,84 @@ TEST_P(ImageTestES3, RenderToYUVAHB)
     destroyAndroidHardwareBuffer(source);
 }
 
+// Test rendering to a YUV AHB using EXT_yuv_target with a normal depth attachment
+TEST_P(ImageTestES3, RenderToYUVAHBWithDepth)
+{
+    EGLWindow *window = getEGLWindow();
+
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt() || !hasYUVTargetExt());
+    ANGLE_SKIP_TEST_IF(!hasAndroidImageNativeBufferExt() || !hasAndroidHardwareBufferSupport());
+    ANGLE_SKIP_TEST_IF(!hasAhbLockPlanesSupport());
+
+    // 3 planes of data, initialize to all zeroes
+    GLubyte dataY[4]  = {0, 0, 0, 0};
+    GLubyte dataCb[1] = {
+        0,
+    };
+    GLubyte dataCr[1] = {
+        0,
+    };
+
+    // Create the Image
+    AHardwareBuffer *source;
+    EGLImageKHR image;
+    createEGLImageAndroidHardwareBufferSource(
+        2, 2, 1, AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420, kDefaultAHBUsage, kDefaultAttribs,
+        {{dataY, 1}, {dataCb, 1}, {dataCr, 1}}, &source, &image);
+
+    // Create a texture target to bind the egl image
+    GLTexture target;
+    createEGLImageTargetTextureExternal(image, target);
+
+    // Create a depth texture
+    GLTexture depthTexture;
+    glBindTexture(GL_TEXTURE_2D, depthTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, 2, 2, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
+                 nullptr);
+    EXPECT_GL_NO_ERROR();
+
+    // Set up a framebuffer to render into the AHB
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_EXTERNAL_OES, target,
+                           0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    GLubyte drawColor[4] = {197, 128, 192, 255};
+
+    glUseProgram(mRenderYUVProgram);
+    glUniform4f(mRenderYUVUniformLocation, drawColor[0] / 255.0f, drawColor[1] / 255.0f,
+                drawColor[2] / 255.0f, drawColor[3] / 255.0f);
+
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+    drawQuad(mRenderYUVProgram, "position", 0.0f);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    drawQuad(mRenderYUVProgram, "position", 0.0f);
+    ASSERT_GL_NO_ERROR();
+
+    // ReadPixels returns the RGB converted color
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(255, 159, 212, 255), 1.0);
+
+    // Finish before reading back AHB data
+    glFinish();
+
+    GLubyte expectedDataY[4]  = {drawColor[0], drawColor[0], drawColor[0], drawColor[0]};
+    GLubyte expectedDataCb[1] = {
+        drawColor[1],
+    };
+    GLubyte expectedDataCr[1] = {
+        drawColor[2],
+    };
+    verifyResultAHB(source, {{expectedDataY, 1}, {expectedDataCb, 1}, {expectedDataCr, 1}});
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
+    destroyAndroidHardwareBuffer(source);
+}
+
 // Test clearing to a YUV AHB using EXT_yuv_target
 TEST_P(ImageTestES3, ClearYUVAHB)
 {
@@ -4057,6 +4322,57 @@ TEST_P(ImageTestES3, ClearYUVAHB)
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_EXTERNAL_OES, target,
                            0);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    // Clearing a YUV framebuffer reinterprets the rgba clear color as YUV values and writes them
+    // directly to the buffer
+    GLubyte clearColor[4] = {197, 128, 192, 255};
+    glClearColor(clearColor[0] / 255.0f, clearColor[1] / 255.0f, clearColor[2] / 255.0f,
+                 clearColor[3] / 255.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    ASSERT_GL_NO_ERROR();
+
+    // ReadPixels returns the RGB converted color
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(255, 159, 212, 255), 1.0);
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
+    destroyAndroidHardwareBuffer(source);
+}
+
+// Test clearing to a YUV AHB using EXT_yuv_target with a normal depth attachment
+TEST_P(ImageTestES3, ClearYUVAHBWithDepth)
+{
+    EGLWindow *window = getEGLWindow();
+
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt() || !hasYUVTargetExt());
+    ANGLE_SKIP_TEST_IF(!hasAndroidImageNativeBufferExt() || !hasAndroidHardwareBufferSupport());
+
+    // Create the Image without data so we don't need ANGLE_AHARDWARE_BUFFER_LOCK_PLANES_SUPPORT
+    AHardwareBuffer *source;
+    EGLImageKHR image;
+    createEGLImageAndroidHardwareBufferSource(2, 2, 1, AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420,
+                                              kDefaultAHBUsage, kDefaultAttribs, {}, &source,
+                                              &image);
+
+    // Create a texture target to bind the egl image
+    GLTexture target;
+    createEGLImageTargetTextureExternal(image, target);
+
+    // Create a depth texture
+    GLTexture depthTexture;
+    glBindTexture(GL_TEXTURE_2D, depthTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, 2, 2, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
+                 nullptr);
+    EXPECT_GL_NO_ERROR();
+
+    // Set up a framebuffer to render into the AHB
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_EXTERNAL_OES, target,
+                           0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
     ASSERT_GL_NO_ERROR();
     EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
 
@@ -4116,6 +4432,37 @@ TEST_P(ImageTestES3, AHBClearAppliedBeforeReadBack)
     destroyAndroidHardwareBuffer(ahb);
 }
 
+// Similar to AHBClearAppliedBeforeReadBack, but clear is applied glClearTexImage().
+TEST_P(ImageTestES3, AHBClearAppliedViaClearTexImageBeforeReadBack)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_clear_texture"));
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+    ANGLE_SKIP_TEST_IF(!hasAndroidImageNativeBufferExt() || !hasAndroidHardwareBufferSupport());
+    ANGLE_SKIP_TEST_IF(!hasAhbLockPlanesSupport());
+    EGLWindow *window = getEGLWindow();
+
+    const GLubyte kRed[]   = {255, 0, 0, 255};
+    const GLubyte kBlack[] = {0, 0, 0, 0};
+
+    // Create one image backed by the AHB.
+    AHardwareBuffer *ahb;
+    EGLImageKHR ahbImage;
+    createEGLImageAndroidHardwareBufferSource(1, 1, 1, AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM,
+                                              kDefaultAHBUsage, kDefaultAttribs, {{kBlack, 4}},
+                                              &ahb, &ahbImage);
+    GLTexture ahbTexture;
+    createEGLImageTargetTexture2D(ahbImage, ahbTexture);
+
+    // Clear to red
+    glClearTexImageEXT(ahbTexture, 0, GL_RGBA, GL_UNSIGNED_BYTE, &GLColor::red);
+    glFinish();
+
+    verifyResultAHB(ahb, {{kRed, 4}});
+
+    eglDestroyImageKHR(window->getDisplay(), ahbImage);
+    destroyAndroidHardwareBuffer(ahb);
+}
+
 // Similar to AHBClearAppliedBeforeReadBack, but clear is applied twice.
 TEST_P(ImageTestES3, AHBTwiceClearAppliedBeforeReadBack)
 {
@@ -4151,6 +4498,38 @@ TEST_P(ImageTestES3, AHBTwiceClearAppliedBeforeReadBack)
         glClear(GL_COLOR_BUFFER_BIT);
         glFinish();
     }
+
+    verifyResultAHB(ahb, {{kRed, 4}});
+
+    eglDestroyImageKHR(window->getDisplay(), ahbImage);
+    destroyAndroidHardwareBuffer(ahb);
+}
+
+// Similar to AHBTwiceClearAppliedBeforeReadBack, but clear is applied using glClearTexImage().
+TEST_P(ImageTestES3, AHBTwiceClearViaClearTexImageAppliedBeforeReadBack)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_clear_texture"));
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+    ANGLE_SKIP_TEST_IF(!hasAndroidImageNativeBufferExt() || !hasAndroidHardwareBufferSupport());
+    ANGLE_SKIP_TEST_IF(!hasAhbLockPlanesSupport());
+    EGLWindow *window = getEGLWindow();
+
+    const GLubyte kRed[]   = {255, 0, 0, 255};
+    const GLubyte kBlack[] = {0, 0, 0, 0};
+
+    // Create one image backed by the AHB.
+    AHardwareBuffer *ahb;
+    EGLImageKHR ahbImage;
+    createEGLImageAndroidHardwareBufferSource(1, 1, 1, AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM,
+                                              kDefaultAHBUsage, kDefaultAttribs, {{kBlack, 4}},
+                                              &ahb, &ahbImage);
+    GLTexture ahbTexture;
+    createEGLImageTargetTexture2D(ahbImage, ahbTexture);
+
+    // Clear to green, then to red
+    glClearTexImageEXT(ahbTexture, 0, GL_RGBA, GL_UNSIGNED_BYTE, &GLColor::green);
+    glClearTexImageEXT(ahbTexture, 0, GL_RGBA, GL_UNSIGNED_BYTE, &GLColor::red);
+    glFinish();
 
     verifyResultAHB(ahb, {{kRed, 4}});
 

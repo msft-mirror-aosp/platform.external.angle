@@ -659,6 +659,8 @@ constexpr angle::PackedEnumMap<RenderPassClosureReason, const char *> kRenderPas
      "Render pass closed due to sync object server wait"},
     {RenderPassClosureReason::SyncObjectGetStatus,
      "Render pass closed due to sync object get status"},
+    {RenderPassClosureReason::ForeignImageRelease,
+     "Render pass closed due to release of foreign image"},
     {RenderPassClosureReason::XfbPause, "Render pass closed due to transform feedback pause"},
     {RenderPassClosureReason::FramebufferFetchEmulation,
      "Render pass closed due to framebuffer fetch emulation"},
@@ -1262,6 +1264,8 @@ ContextVk::ContextVk(const gl::State &state, gl::ErrorSet *errorSet, vk::Rendere
 #undef ANGLE_ADD_PERF_MONITOR_COUNTER_GROUP
 
     mPerfMonitorCounters.push_back(vulkanGroup);
+
+    mCurrentGarbage.reserve(32);
 }
 
 ContextVk::~ContextVk() {}
@@ -1519,8 +1523,9 @@ bool ContextVk::hasSomethingToFlush() const
     const bool isSingleBufferedWindowWithStagedUpdates =
         isSingleBufferedWindowCurrent() && mCurrentWindowSurface->hasStagedUpdates();
 
-    return (mHasAnyCommandsPendingSubmission || hasActiveRenderPass() ||
-            !mOutsideRenderPassCommands->empty() || isSingleBufferedWindowWithStagedUpdates);
+    return mHasAnyCommandsPendingSubmission || hasActiveRenderPass() ||
+           !mOutsideRenderPassCommands->empty() || isSingleBufferedWindowWithStagedUpdates ||
+           hasForeignImagesToTransition();
 }
 
 angle::Result ContextVk::flushImpl(const gl::Context *context)
@@ -7776,7 +7781,8 @@ angle::Result ContextVk::flushAndSubmitCommands(const vk::Semaphore *signalSemap
     bool someCommandAlreadyFlushedNeedsSubmit =
         mLastFlushedQueueSerial != mLastSubmittedQueueSerial;
     bool someOtherReasonNeedsSubmit = signalSemaphore != nullptr || externalFence != nullptr ||
-                                      mHasWaitSemaphoresPendingSubmission;
+                                      mHasWaitSemaphoresPendingSubmission ||
+                                      hasForeignImagesToTransition();
 
     if (!someCommandsNeedFlush && !someCommandAlreadyFlushedNeedsSubmit &&
         !someOtherReasonNeedsSubmit)
@@ -8060,7 +8066,13 @@ void ContextVk::finalizeImageLayout(vk::ImageHelper *image, UniqueSerial imageSi
 
     if (image->isForeignImage() && !image->isReleasedToForeign())
     {
-        finalizeForeignImage(image);
+        // Note: Foreign images may be shared between different textures.  If another texture starts
+        // to use the image while the barrier-to-foreign is cached in the context, it will attempt
+        // to acquire the image from foreign while the release is still cached.  A submission is
+        // made to finalize the queue family ownership transfer back to foreign.
+        (void)flushAndSubmitCommands(nullptr, nullptr,
+                                     RenderPassClosureReason::ForeignImageRelease);
+        ASSERT(!hasForeignImagesToTransition());
     }
 }
 

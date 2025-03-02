@@ -654,6 +654,20 @@ angle::Result OffscreenSurfaceVk::initializeImpl(DisplayVk *displayVk)
 
     bool robustInit = mState.isRobustResourceInitEnabled();
 
+    EGLBoolean isLargestPbuffer =
+        static_cast<EGLBoolean>(mState.attributes.get(EGL_LARGEST_PBUFFER, EGL_FALSE));
+    if (isLargestPbuffer)
+    {
+        mWidth = std::min(mWidth, config->maxPBufferWidth);
+
+        mHeight = std::min(mHeight, config->maxPBufferHeight);
+
+        if (mWidth * mHeight > config->maxPBufferPixels)
+        {
+            mHeight = config->maxPBufferPixels / mWidth;
+        }
+    }
+
     if (config->renderTargetFormat != GL_NONE)
     {
         ANGLE_TRY(mColorAttachment.initialize(displayVk, mWidth, mHeight,
@@ -1242,15 +1256,12 @@ angle::Result WindowSurfaceVk::initializeImpl(DisplayVk *displayVk, bool *anyMat
                        kSurfaceVkColorImageUsageFlags,
                    VK_ERROR_INITIALIZATION_FAILED);
 
-    EGLAttrib attribWidth  = mState.attributes.get(EGL_WIDTH, 0);
-    EGLAttrib attribHeight = mState.attributes.get(EGL_HEIGHT, 0);
-
     if (mSurfaceCaps.currentExtent.width == kSurfaceSizedBySwapchain)
     {
         ASSERT(mSurfaceCaps.currentExtent.height == kSurfaceSizedBySwapchain);
 
-        width  = (attribWidth != 0) ? static_cast<uint32_t>(attribWidth) : windowSize.width;
-        height = (attribHeight != 0) ? static_cast<uint32_t>(attribHeight) : windowSize.height;
+        width  = windowSize.width;
+        height = windowSize.height;
     }
 
     gl::Extents extents(static_cast<int>(width), static_cast<int>(height), 1);
@@ -1594,7 +1605,8 @@ angle::Result WindowSurfaceVk::createSwapChain(vk::ErrorContext *context,
     vk::Renderer *renderer = context->getRenderer();
     VkDevice device        = renderer->getDevice();
 
-    const vk::Format &format = renderer->getFormat(mState.config->renderTargetFormat);
+    const angle::FormatID actualFormatID   = getActualFormatID(renderer);
+    const angle::FormatID intendedFormatID = getIntendedFormatID(renderer);
 
     gl::Extents rotatedExtents = extents;
     if (Is90DegreeRotation(getPreTransform()))
@@ -1626,7 +1638,7 @@ angle::Result WindowSurfaceVk::createSwapChain(vk::ErrorContext *context,
     swapchainInfo.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     swapchainInfo.flags = mState.hasProtectedContent() ? VK_SWAPCHAIN_CREATE_PROTECTED_BIT_KHR : 0;
     swapchainInfo.surface     = mSurface;
-    swapchainInfo.imageFormat = vk::GetVkFormatFromFormatID(renderer, getActualFormatID(renderer));
+    swapchainInfo.imageFormat = vk::GetVkFormatFromFormatID(renderer, actualFormatID);
     swapchainInfo.imageColorSpace = mSurfaceColorSpace;
     // Note: Vulkan doesn't allow 0-width/height swapchains.
     swapchainInfo.imageExtent.width     = std::max(rotatedExtents.width, 1);
@@ -1820,8 +1832,9 @@ angle::Result WindowSurfaceVk::createSwapChain(vk::ErrorContext *context,
         // with the rest of ANGLE, (e.g. which calculates the Vulkan scissor with non-rotated
         // values and then rotates the final rectangle).
         ANGLE_TRY(mColorImageMS.initMSAASwapchain(
-            context, gl::TextureType::_2D, vkExtents, Is90DegreeRotation(getPreTransform()), format,
-            samples, usage, gl::LevelIndex(0), 1, 1, robustInit, mState.hasProtectedContent()));
+            context, gl::TextureType::_2D, vkExtents, Is90DegreeRotation(getPreTransform()),
+            intendedFormatID, actualFormatID, samples, usage, gl::LevelIndex(0), 1, 1, robustInit,
+            mState.hasProtectedContent()));
         ANGLE_TRY(mColorImageMS.initMemoryAndNonZeroFillIfNeeded(
             context, mState.hasProtectedContent(), renderer->getMemoryProperties(),
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vk::MemoryAllocationType::SwapchainMSAAImage));
@@ -1847,8 +1860,7 @@ angle::Result WindowSurfaceVk::createSwapChain(vk::ErrorContext *context,
         ASSERT(member.image);
         member.image->init2DWeakReference(
             context, swapchainImages[imageIndex], extents, Is90DegreeRotation(getPreTransform()),
-            getIntendedFormatID(renderer), getActualFormatID(renderer), createFlags,
-            imageUsageFlags, 1, robustInit);
+            intendedFormatID, actualFormatID, createFlags, imageUsageFlags, 1, robustInit);
         member.imageViews.init(renderer);
         member.frameNumber = 0;
     }
@@ -2226,25 +2238,23 @@ angle::Result WindowSurfaceVk::prePresentSubmit(ContextVk *contextVk,
     // Make sure deferred clears are applied, if any.
     if (mColorImageMS.valid())
     {
-        // anglebug:382006939
+        // http://anglebug.com/382006939
         // If app calls:
-        // glClear(GL_COLOR_BUFFER_BIT);
-        // eglSwapBuffers();
+        //     glClear(GL_COLOR_BUFFER_BIT);
+        //     eglSwapBuffers();
         // As an optimization, deferred clear could skip msaa buffer and applied to back buffer
         // directly instead of clearing msaa buffer and then resolve.
         // The exception is that when we back buffer data has to be preserved under
         // certain situations, we must also ensure msaa buffer contains the right content.
         // Under that situation, this optimization will not apply.
 
-        vk::ClearValuesArray deferredClearValues;
-        ANGLE_TRY(mColorImageMS.flushSingleSubresourceStagedUpdates(contextVk, gl::LevelIndex(0), 0,
-                                                                    1, &deferredClearValues, 0));
-        if (deferredClearValues.any())
+        if (!isSharedPresentMode() &&
+            (mState.swapBehavior == EGL_BUFFER_DESTROYED && mBufferAgeQueryFrameNumber == 0))
         {
-            // Apply clear color directly to the single sampled image if the EGL surface is
-            // double buffered or when EGL_SWAP_BEHAVIOR is EGL_BUFFER_DESTROYED
-            if (!isSharedPresentMode() &&
-                (mState.swapBehavior == EGL_BUFFER_DESTROYED && mBufferAgeQueryFrameNumber == 0))
+            vk::ClearValuesArray deferredClearValues;
+            ANGLE_TRY(mColorImageMS.flushSingleSubresourceStagedUpdates(
+                contextVk, gl::LevelIndex(0), 0, 1, &deferredClearValues, 0));
+            if (deferredClearValues.any())
             {
                 // Apply clear color directly to the single sampled image if the EGL surface is
                 // double buffered and when EGL_SWAP_BEHAVIOR is EGL_BUFFER_DESTROYED
@@ -2255,14 +2265,14 @@ angle::Result WindowSurfaceVk::prePresentSubmit(ContextVk *contextVk,
                                                           gl::LevelIndex(1), 0, 1, {}));
                 imageResolved = true;
             }
-            else
-            {
-                // Apply clear value to multisampled mColorImageMS and then resolve to single
-                // sampled image later if EGL surface is single buffered or when EGL_SWAP_BEHAVIOR
-                // is EGL_BUFFER_PRESERVED
-                ANGLE_TRY(mColorImageMS.flushStagedUpdates(contextVk, gl::LevelIndex(0),
-                                                           gl::LevelIndex(1), 0, 1, {}));
-            }
+        }
+        else
+        {
+            // Apply clear value to multisampled mColorImageMS and then resolve to single sampled
+            // image later if EGL surface is single buffered or when EGL_SWAP_BEHAVIOR is
+            // EGL_BUFFER_PRESERVED
+            ANGLE_TRY(mColorImageMS.flushStagedUpdates(contextVk, gl::LevelIndex(0),
+                                                       gl::LevelIndex(1), 0, 1, {}));
         }
     }
     else
@@ -2689,7 +2699,7 @@ angle::Result WindowSurfaceVk::onSharedPresentContextFlush(const gl::Context *co
 bool WindowSurfaceVk::hasStagedUpdates() const
 {
     return mAcquireOperation.state == impl::ImageAcquireState::Ready &&
-           mSwapchainImages[mCurrentSwapchainImageIndex].image->hasStagedUpdatesInAllocatedLevels();
+           mColorRenderTarget.getImageForRenderPass().hasStagedUpdatesInAllocatedLevels();
 }
 
 void WindowSurfaceVk::setTimestampsEnabled(bool enabled)

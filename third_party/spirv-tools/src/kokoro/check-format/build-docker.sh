@@ -1,10 +1,11 @@
-# Copyright 2024 The Abseil Authors.
+#!/bin/bash
+# Copyright (c) 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      https://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,8 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# https://bazel.build/external/migration#workspace.bzlmod
-#
-# This file is intentionally empty. When bzlmod is enabled and this
-# file exists, the contents of WORKSPACE is ignored. This prevents
-# bzlmod builds from unintentionally depending on the WORKSPACE file.
+# Fail on any error.
+set -e
+
+# This is required to run any git command in the docker since owner will
+# have changed between the clone environment, and the docker container.
+# Marking the root of the repo as safe for ownership changes.
+git config --global --add safe.directory "$PWD"
+
+echo $(date): Check formatting...
+./utils/check_code_format.sh ${1:-main}
+echo $(date): check completed.
