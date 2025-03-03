@@ -85,8 +85,6 @@
 42265405 VULKAN : Texture2DTestES3.TextureRGBUpdateWithPBO/ES3_Vulkan* = SKIP
 42265226 VULKAN : GLSLTest_ES3.GLVertexIDIntegerTextureDrawElementsU8Line/* = SKIP
 42265226 VULKAN : GLSLTest_ES3.GLVertexIDIntegerTextureDrawElementsU8LineIds/* = SKIP
-42265671 VULKAN : BlitFramebufferTest.BlitMultisampleStencilToDefault/ES3_Vulkan_EmulatedPrerotation90 = SKIP
-42265671 VULKAN : BlitFramebufferTest.BlitMultisampleStencilToDefault/ES3_Vulkan_EmulatedPrerotation270 = SKIP
 235877059 VULKAN : MultisampleTestES3.ResolveToFBO/ES3_Vulkan_EmulatedPrerotation180 = SKIP
 235877059 VULKAN : MultisampleTestES3.ResolveToFBO/ES3_Vulkan_EmulatedPrerotation270 = SKIP
 // ANGLE is broken if a context is made current before a surface is created in the presence of multiple queue families
@@ -656,6 +654,7 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 
 42266150 PIXEL4ORXL VULKAN : PixelLocalStorageTest.MaxCombinedDrawBuffersAndPLSPlanes/* = SKIP
 42266150 PIXEL4ORXL VULKAN : PixelLocalStorageTest.BlendColorMaskAndClear/* = SKIP
+42266150 PIXEL4ORXL VULKAN : PixelLocalStorageTest.CopyTexSubImage/* = SKIP
 42266151 PIXEL4ORXL VULKAN : PixelLocalStorageTest.MipMapLevels/* = SKIP
 42266242 PIXEL4ORXL VULKAN : PixelLocalStorageTest.DrawStateReset/* = SKIP
 42266242 PIXEL4ORXL VULKAN : PixelLocalStorageTestES31.DrawStateReset/* = SKIP
@@ -1037,6 +1036,9 @@ b/330697097 PIXEL6 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachmen
 343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeUnsignedNormalized_* = SKIP
 343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeSignedNormalized_* = SKIP
 343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeFloat_* = SKIP
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeUnsignedInteger_* = SKIP
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeSignedInteger_* = SKIP
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeStencil_* = SKIP
 
 // Intel Mesa 19.0.2 appears to have a driver bug.
 // imageLoad isn't fully implemented for fragment shaders on D3D11.
@@ -1367,7 +1369,6 @@ b/267953710 GALAXYS22 VULKAN : VulkanPerformanceCounterTest_ES31.ColorMaskedFram
 42266622 GALAXYA23 VULKAN : GLSLTest_ES31.StructAndArrayEqualOperator/* = SKIP
 
 // Samsung Galaxy A23 non-crash failures
-42266622 GALAXYA23 VULKAN : BlitFramebufferTest.BlitMultisampleStencilToDefault/* = SKIP
 42266622 GALAXYA23 VULKAN : ClearTestES3.ClearMaxAttachmentsAfterDraw/* = SKIP
 42266622 GALAXYA23 VULKAN : ClearTestES3.ClearStencilAfterDraw/* = SKIP
 42266622 GALAXYA23 VULKAN : ClearTestES3.MaskedClearBufferBug/* = SKIP

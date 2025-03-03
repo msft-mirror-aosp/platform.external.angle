@@ -453,8 +453,9 @@ angle::Result BufferHelper::initBuffer(wgpu::Device device,
                                        wgpu::BufferUsage usage,
                                        MapAtCreation mappedAtCreation)
 {
+    size_t safeBufferSize = rx::roundUpPow2(size, kBufferSizeAlignment);
     wgpu::BufferDescriptor descriptor;
-    descriptor.size             = roundUp(size, kBufferSizeAlignment);
+    descriptor.size             = safeBufferSize;
     descriptor.usage            = usage;
     descriptor.mappedAtCreation = mappedAtCreation == MapAtCreation::Yes;
 
@@ -462,7 +463,7 @@ angle::Result BufferHelper::initBuffer(wgpu::Device device,
 
     if (mappedAtCreation == MapAtCreation::Yes)
     {
-        mMappedState = {wgpu::MapMode::Read | wgpu::MapMode::Write, 0, size};
+        mMappedState = {wgpu::MapMode::Read | wgpu::MapMode::Write, 0, safeBufferSize};
     }
     else
     {
@@ -481,18 +482,17 @@ angle::Result BufferHelper::mapImmediate(ContextWgpu *context,
 {
     ASSERT(!mMappedState.has_value());
 
-    WGPUBufferMapAsyncStatus mapResult = WGPUBufferMapAsyncStatus_Unknown;
-
-    wgpu::BufferMapCallbackInfo callbackInfo;
-    callbackInfo.mode     = wgpu::CallbackMode::WaitAnyOnly;
-    callbackInfo.callback = [](WGPUBufferMapAsyncStatus status, void *userdata) {
-        *static_cast<WGPUBufferMapAsyncStatus *>(userdata) = status;
-    };
-    callbackInfo.userdata = &mapResult;
-
+    wgpu::MapAsyncStatus mapResult = wgpu::MapAsyncStatus::Error;
+    wgpu::BufferMapCallback<wgpu::MapAsyncStatus *> *mapAsyncCallback =
+        [](wgpu::MapAsyncStatus status, wgpu::StringView message, wgpu::MapAsyncStatus *pStatus) {
+            *pStatus = status;
+        };
     wgpu::FutureWaitInfo waitInfo;
-    waitInfo.future = mBuffer.MapAsync(mode, GetSafeBufferMapOffset(offset),
-                                       GetSafeBufferMapSize(offset, size), callbackInfo);
+    size_t safeBufferMapOffset = GetSafeBufferMapOffset(offset);
+    size_t safeBufferMapSize   = GetSafeBufferMapSize(offset, size);
+    waitInfo.future =
+        mBuffer.MapAsync(mode, safeBufferMapOffset, safeBufferMapSize,
+                         wgpu::CallbackMode::WaitAnyOnly, mapAsyncCallback, &mapResult);
 
     wgpu::Instance instance = context->getDisplay()->getInstance();
     ANGLE_WGPU_TRY(context, instance.WaitAny(1, &waitInfo, -1));
