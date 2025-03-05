@@ -1773,7 +1773,7 @@ struct DescriptorInfoDesc
 {
     uint32_t samplerOrBufferSerial;
     uint32_t imageViewSerialOrOffset;
-    uint32_t imageLayoutOrRange;  // Packed VkImageLayout
+    uint32_t imageLayoutOrRange;
     uint32_t imageSubresourceRange;
 };
 
@@ -1857,10 +1857,6 @@ class WriteDescriptorDescs
     void updateWriteDesc(uint32_t bindingIndex,
                          VkDescriptorType descriptorType,
                          uint32_t descriptorCount);
-
-    void updateInputAttachment(uint32_t binding,
-                               ImageLayout layout,
-                               RenderTargetVk *renderTargetVk);
 
     // After a preliminary minimum size, use heap memory.
     angle::FastMap<WriteDescriptorDesc, kFastDescriptorSetDescLimit> mDescs;
@@ -2074,7 +2070,7 @@ class DescriptorSetDescBuilder final
   private:
     void updateInputAttachment(Context *context,
                                uint32_t binding,
-                               ImageLayout layout,
+                               VkImageLayout layout,
                                const vk::ImageView *imageView,
                                ImageOrBufferViewSubresourceSerial serial,
                                const WriteDescriptorDescs &writeDescriptorDescs);
@@ -2281,17 +2277,20 @@ class SharedCacheKeyManager
     void clear();
 
     // The following APIs are expected to be used for assertion only
-    bool containsKey(const SharedCacheKeyT &key) const;
     bool empty() const { return mSharedCacheKeys.empty(); }
-    void assertAllEntriesDestroyed() const;
     bool allValidEntriesAreCached(ContextVk *contextVk) const;
 
   private:
     size_t updateEmptySlotBits();
+    void addKeyImpl(const SharedCacheKeyT &key);
+
+    bool containsKeyWithOwnerEqual(const SharedCacheKeyT &key) const;
+    void assertAllEntriesDestroyed() const;
 
     // Tracks an array of cache keys with refcounting. Note this owns one refcount of
     // SharedCacheKeyT object.
     std::deque<SharedCacheKeyT> mSharedCacheKeys;
+    SharedCacheKeyT mLastAddedSharedCacheKey;
 
     // To speed up searching for available slot in the mSharedCacheKeys, we use bitset to track
     // available (i.e, empty) slot
@@ -2302,7 +2301,12 @@ class SharedCacheKeyManager
 };
 
 using FramebufferCacheManager   = SharedCacheKeyManager<SharedFramebufferCacheKey>;
+template <>
+void FramebufferCacheManager::addKey(const SharedFramebufferCacheKey &key);
+
 using DescriptorSetCacheManager = SharedCacheKeyManager<SharedDescriptorSetCacheKey>;
+template <>
+void DescriptorSetCacheManager::addKey(const SharedDescriptorSetCacheKey &key);
 }  // namespace vk
 }  // namespace rx
 
