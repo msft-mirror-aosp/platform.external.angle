@@ -326,9 +326,6 @@ class VulkanPerformanceCounterTest : public ANGLETest<>
     void maskedFramebufferFetchDraw(const GLColor &clearColor, GLBuffer &buffer);
     void maskedFramebufferFetchDrawVerify(const GLColor &expectedColor, GLBuffer &buffer);
 
-    void saveAndReloadBinary(GLProgram *original, GLProgram *reloaded);
-    void testPipelineCacheIsWarm(GLProgram *program, GLColor color);
-
     void updateBuffer(BufferUpdate update,
                       GLenum target,
                       GLintptr offset,
@@ -7276,9 +7273,10 @@ TEST_P(VulkanPerformanceCounterTest, VerifySubmitCounterForSwitchUserFBOToSystem
               expectedCommandQueueWaitSemaphoreCount);
 }
 
-// Tests that PreferSubmitAtFBOBoundary feature works properly. Bind to different FBO and should
-// trigger submit of previous FBO. In this specific test, we test bind to a new user FBO which we
-// used to had a bug.
+// Tests that PreferSubmitAtFBOBoundary feature works properly. Binding to a different FBO should
+// trigger the submission of the previous FBO if enough workload has been accumulated. In this
+// specific test, we test binding to a new user FBO after issuing the minimum amount of draw calls
+// for submission.
 TEST_P(VulkanPerformanceCounterTest, VerifySubmitCounterForSwitchUserFBOToDirtyUserFBO)
 {
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled(kPerfMonitorExtensionName));
@@ -7287,18 +7285,25 @@ TEST_P(VulkanPerformanceCounterTest, VerifySubmitCounterForSwitchUserFBOToDirtyU
     uint64_t expectedCommandQueueWaitSemaphoreCount =
         getPerfCounters().commandQueueWaitSemaphoresTotal;
 
-    GLFramebuffer framebuffer;
-    GLTexture texture;
-    setupForColorOpsTest(&framebuffer, &texture);
+    GLFramebuffer framebuffer1;
+    GLTexture texture1;
+    setupForColorOpsTest(&framebuffer1, &texture1);
 
-    // Draw
+    // Issue the draws. In case of preference to submit at FBO boundary, there is a minimum render
+    // pass command count to submit. (Currently, the exception is if there is a clear or invalidate
+    // command at the boundary, or if there are no in-flight commands. In those cases, the minimum
+    // command count is ignored.)
+    constexpr uint32_t kMinCommandCountToSubmit = 32;
     ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), essl1_shaders::fs::Red());
-    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+    for (uint32_t i = 0; i < kMinCommandCountToSubmit; i++)
+    {
+        drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+    }
     ASSERT_GL_NO_ERROR();
 
     if (hasPreferSubmitAtFBOBoundary())
     {
-        // One submission coming from glBindFramebuffer and draw
+        // One submission coming from glBindFramebuffer and draw calls.
         ++expectedCommandQueueSubmitCount;
         // This submission should not wait for any semaphore.
     }
@@ -7709,100 +7714,6 @@ TEST_P(VulkanPerformanceCounterTest, SetTextureSwizzleWithDifferentValueOnFBOAtt
     int32_t expectedFramebufferCacheSizeIncrease = (hasSupportsImagelessFramebuffer()) ? 0 : 1;
     // This should not cause frame buffer cache increase.
     EXPECT_EQ(framebufferCacheSizeIncrease, expectedFramebufferCacheSizeIncrease);
-}
-
-void VulkanPerformanceCounterTest::saveAndReloadBinary(GLProgram *original, GLProgram *reloaded)
-{
-    GLint programLength = 0;
-    GLint writtenLength = 0;
-    GLenum binaryFormat = 0;
-
-    // Get the binary out of the program and delete it.
-    glGetProgramiv(*original, GL_PROGRAM_BINARY_LENGTH_OES, &programLength);
-    EXPECT_GL_NO_ERROR();
-
-    std::vector<uint8_t> binary(programLength);
-    glGetProgramBinaryOES(*original, programLength, &writtenLength, &binaryFormat, binary.data());
-    EXPECT_GL_NO_ERROR();
-
-    original->reset();
-
-    // Reload the binary into another program
-    reloaded->makeEmpty();
-    glProgramBinaryOES(*reloaded, binaryFormat, binary.data(), writtenLength);
-    EXPECT_GL_NO_ERROR();
-
-    GLint linkStatus;
-    glGetProgramiv(*reloaded, GL_LINK_STATUS, &linkStatus);
-    EXPECT_NE(linkStatus, 0);
-}
-
-void VulkanPerformanceCounterTest::testPipelineCacheIsWarm(GLProgram *program, GLColor color)
-{
-    glUseProgram(*program);
-    GLint colorUniformLocation =
-        glGetUniformLocation(*program, angle::essl1_shaders::ColorUniform());
-    ASSERT_NE(-1, colorUniformLocation);
-    ASSERT_GL_NO_ERROR();
-
-    GLuint expectedCacheHits   = getPerfCounters().pipelineCreationCacheHits + 1;
-    GLuint expectedCacheMisses = getPerfCounters().pipelineCreationCacheMisses;
-
-    glUniform4fv(colorUniformLocation, 1, color.toNormalizedVector().data());
-    drawQuad(*program, essl1_shaders::PositionAttrib(), 0.5f);
-
-    EXPECT_EQ(getPerfCounters().pipelineCreationCacheHits, expectedCacheHits);
-    EXPECT_EQ(getPerfCounters().pipelineCreationCacheMisses, expectedCacheMisses);
-
-    EXPECT_PIXEL_COLOR_EQ(0, 0, color);
-}
-
-// Verifies that the pipeline cache is warmed up at link time with reasonable defaults.
-TEST_P(VulkanPerformanceCounterTest, PipelineCacheIsWarmedUpAtLinkTime)
-{
-    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled(kPerfMonitorExtensionName));
-
-    // Test is only valid when pipeline creation feedback is available
-    ANGLE_SKIP_TEST_IF(!hasSupportsPipelineCreationFeedback() || !hasWarmUpPipelineCacheAtLink() ||
-                       skipPipelineCacheSerialization());
-
-    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Passthrough(), essl1_shaders::fs::UniformColor());
-
-    testPipelineCacheIsWarm(&program, GLColor::red);
-}
-
-// Verifies that the pipeline cache is reloaded correctly through glProgramBinary.
-TEST_P(VulkanPerformanceCounterTest, PipelineCacheIsRestoredWithProgramBinary)
-{
-    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled(kPerfMonitorExtensionName));
-
-    // Test is only valid when pipeline creation feedback is available
-    ANGLE_SKIP_TEST_IF(!hasSupportsPipelineCreationFeedback() || !hasWarmUpPipelineCacheAtLink() ||
-                       skipPipelineCacheSerialization());
-
-    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Passthrough(), essl1_shaders::fs::UniformColor());
-    GLProgram reloadedProgram;
-    saveAndReloadBinary(&program, &reloadedProgram);
-
-    testPipelineCacheIsWarm(&reloadedProgram, GLColor::green);
-}
-
-// Verifies that the pipeline cache is reloaded correctly through glProgramBinary twice.
-TEST_P(VulkanPerformanceCounterTest, PipelineCacheIsRestoredWithProgramBinaryTwice)
-{
-    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled(kPerfMonitorExtensionName));
-
-    // Test is only valid when pipeline creation feedback is available
-    ANGLE_SKIP_TEST_IF(!hasSupportsPipelineCreationFeedback() || !hasWarmUpPipelineCacheAtLink() ||
-                       skipPipelineCacheSerialization());
-
-    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Passthrough(), essl1_shaders::fs::UniformColor());
-    GLProgram reloadedProgram;
-    GLProgram twiceReloadedProgram;
-    saveAndReloadBinary(&program, &reloadedProgram);
-    saveAndReloadBinary(&reloadedProgram, &twiceReloadedProgram);
-
-    testPipelineCacheIsWarm(&twiceReloadedProgram, GLColor::blue);
 }
 
 // Test calling glEGLImageTargetTexture2DOES repeatedly with same arguments will not leak
@@ -8410,7 +8321,6 @@ ANGLE_INSTANTIATE_TEST(
     VulkanPerformanceCounterTest,
     ES3_VULKAN(),
     ES3_VULKAN().enable(Feature::PadBuffersToMaxVertexAttribStride),
-    ES3_VULKAN_SWIFTSHADER().disable(Feature::PreferMonolithicPipelinesOverLibraries),
     ES3_VULKAN_SWIFTSHADER().enable(Feature::PreferMonolithicPipelinesOverLibraries),
     ES3_VULKAN_SWIFTSHADER()
         .enable(Feature::PreferMonolithicPipelinesOverLibraries)
