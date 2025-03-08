@@ -430,6 +430,7 @@ class WindowSurfaceVk : public SurfaceVk
                                           VkResult result,
                                           bool *presentOutOfDate);
     angle::Result prePresentSubmit(ContextVk *contextVk, const vk::Semaphore &presentSemaphore);
+    angle::Result recordPresentLayoutBarrierIfNecessary(ContextVk *contextVk);
     angle::Result present(ContextVk *contextVk,
                           const EGLint *rects,
                           EGLint n_rects,
@@ -445,6 +446,7 @@ class WindowSurfaceVk : public SurfaceVk
     // not ahead of the frame being rendered by *one* frame.
     angle::Result throttleCPU(vk::ErrorContext *context, const QueueSerial &currentSubmitSerial);
 
+    void mergeImageResourceUses();
     // Finish all GPU operations on the surface
     angle::Result finish(vk::ErrorContext *context);
 

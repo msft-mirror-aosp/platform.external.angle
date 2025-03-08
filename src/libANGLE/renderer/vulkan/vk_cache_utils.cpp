@@ -393,9 +393,17 @@ void DeriveRenderingInfo(Renderer *renderer,
 
         if (subset == DynamicRenderingInfoSubset::Full)
         {
+            ASSERT(static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout) !=
+                       vk::ImageLayout::SharedPresent ||
+                   static_cast<vk::ImageLayout>(ops[attachmentCount].finalLayout) ==
+                       vk::ImageLayout::SharedPresent);
             const VkImageLayout layout = vk::ConvertImageLayoutToVkImageLayout(
                 static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout));
-            const VkImageLayout resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            const VkImageLayout resolveImageLayout =
+                (static_cast<vk::ImageLayout>(ops[attachmentCount].finalResolveLayout) ==
+                         vk::ImageLayout::SharedPresent
+                     ? VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR
+                     : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             const VkResolveModeFlagBits resolveMode =
                 isYUVExternalFormat ? VK_RESOLVE_MODE_EXTERNAL_FORMAT_DOWNSAMPLE_ANDROID
                 : desc.hasColorResolveAttachment(colorIndexGL) ? VK_RESOLVE_MODE_AVERAGE_BIT
@@ -662,7 +670,8 @@ void UnpackColorResolveAttachmentDesc(Renderer *renderer,
                                       VkAttachmentDescription2 *desc,
                                       angle::FormatID formatID,
                                       const AttachmentInfo &info,
-                                      ImageLayout finalLayout)
+                                      VkImageLayout initialLayout,
+                                      VkImageLayout finalLayout)
 {
     *desc        = {};
     desc->sType  = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
@@ -686,8 +695,8 @@ void UnpackColorResolveAttachmentDesc(Renderer *renderer,
         info.isInvalidated ? VK_ATTACHMENT_STORE_OP_DONT_CARE : VK_ATTACHMENT_STORE_OP_STORE;
     desc->stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     desc->stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    desc->initialLayout  = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    desc->finalLayout    = ConvertImageLayoutToVkImageLayout(finalLayout);
+    desc->initialLayout  = initialLayout;
+    desc->finalLayout    = finalLayout;
 }
 
 void UnpackDepthStencilResolveAttachmentDesc(vk::ErrorContext *context,
@@ -7079,19 +7088,8 @@ size_t SharedCacheKeyManager<SharedCacheKeyT>::updateEmptySlotBits()
 }
 
 template <class SharedCacheKeyT>
-void SharedCacheKeyManager<SharedCacheKeyT>::addKey(const SharedCacheKeyT &key)
+void SharedCacheKeyManager<SharedCacheKeyT>::addKeyImpl(const SharedCacheKeyT &key)
 {
-    // There are cases that same texture or buffer are bound in multiple binding point. When we have
-    // a cache miss, we end up looping binding point and calling addKey which may end up adding same
-    // key multiple times. This is a quick way to avoid that.
-    if (mLastAddedSharedCacheKey.owner_equal(key))
-    {
-        return;
-    }
-
-    mLastAddedSharedCacheKey = key;
-    ASSERT(!containsKeyWithOwnerEqual(key));
-
     // Search for available slots and use that if any
     size_t slot = 0;
     for (SlotBitMask &emptyBits : mEmptySlotBits)
@@ -7240,8 +7238,41 @@ bool SharedCacheKeyManager<SharedCacheKeyT>::allValidEntriesAreCached(ContextVk 
 
 // Explict instantiate for FramebufferCacheManager
 template class SharedCacheKeyManager<SharedFramebufferCacheKey>;
+template <>
+void SharedCacheKeyManager<SharedFramebufferCacheKey>::addKey(const SharedFramebufferCacheKey &key)
+{
+    addKeyImpl(key);
+}
+
 // Explict instantiate for DescriptorSetCacheManager
 template class SharedCacheKeyManager<SharedDescriptorSetCacheKey>;
+template <>
+void SharedCacheKeyManager<SharedDescriptorSetCacheKey>::addKey(
+    const SharedDescriptorSetCacheKey &key)
+{
+    // There are cases that same texture or buffer are bound in multiple binding point. When we have
+    // a cache miss, we end up looping binding point and calling addKey which may end up adding same
+    // key multiple times. This is a quick way to avoid that.
+    if (mLastAddedSharedCacheKey.owner_equal(key))
+    {
+        return;
+    }
+
+    // In case of the texture or buffer is part of many descriptorSets, lets not track it any more
+    // to alleviate the overhead associated with this. We will rely on eviction to free the
+    // descriptorSets when needed.
+    static constexpr size_t kMaxEmptySlots            = 4;
+    static constexpr size_t kMaxSharedCacheKeyTracked = kSlotBitCount * kMaxEmptySlots;
+    if (mSharedCacheKeys.size() >= kMaxSharedCacheKeyTracked)
+    {
+        return;
+    }
+
+    mLastAddedSharedCacheKey = key;
+    ASSERT(!containsKeyWithOwnerEqual(key));
+
+    addKeyImpl(key);
+}
 
 // PipelineCacheAccess implementation.
 std::unique_lock<angle::SimpleMutex> PipelineCacheAccess::getLock()
@@ -7674,6 +7705,11 @@ angle::Result RenderPassCache::MakeRenderPass(vk::ErrorContext *context,
             continue;
         }
 
+        ASSERT(static_cast<vk::ImageLayout>(ops[attachmentCount].initialLayout) !=
+                   vk::ImageLayout::SharedPresent ||
+               static_cast<vk::ImageLayout>(ops[attachmentCount].finalLayout) ==
+                   vk::ImageLayout::SharedPresent);
+
         VkAttachmentReference2 colorRef = {};
         colorRef.sType                  = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
         colorRef.attachment             = attachmentCount.get();
@@ -7777,10 +7813,16 @@ angle::Result RenderPassCache::MakeRenderPass(vk::ErrorContext *context,
             continue;
         }
 
+        const VkImageLayout finalLayout =
+            ConvertImageLayoutToVkImageLayout(colorResolveImageLayout[colorIndexGL]);
+        const VkImageLayout initialLayout = (finalLayout == VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR
+                                                 ? VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR
+                                                 : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
         VkAttachmentReference2 colorRef = {};
         colorRef.sType                  = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
         colorRef.attachment             = attachmentCount.get();
-        colorRef.layout                 = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorRef.layout                 = initialLayout;
         colorRef.aspectMask             = VK_IMAGE_ASPECT_COLOR_BIT;
 
         // If color attachment is invalidated, try to remove its resolve attachment altogether.
@@ -7797,8 +7839,8 @@ angle::Result RenderPassCache::MakeRenderPass(vk::ErrorContext *context,
 
         vk::UnpackColorResolveAttachmentDesc(
             renderer, &attachmentDescs[attachmentCount.get()], attachmentFormatID,
-            {desc.hasColorUnresolveAttachment(colorIndexGL), isInvalidated, false},
-            colorResolveImageLayout[colorIndexGL]);
+            {desc.hasColorUnresolveAttachment(colorIndexGL), isInvalidated, false}, initialLayout,
+            finalLayout);
 
 #if defined(ANGLE_PLATFORM_ANDROID)
         // For rendering to YUV, chain on the external format info to the resolve attachment
