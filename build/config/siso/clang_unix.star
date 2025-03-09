@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 """Siso configuration for clang/unix."""
 
+load("@builtin//lib/gn.star", "gn")
 load("@builtin//path.star", "path")
 load("@builtin//struct.star", "module")
 load("./android.star", "android")
