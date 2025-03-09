@@ -236,6 +236,12 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
+    FeatureInfo supportsDeviceFault = {
+        "supportsDeviceFault",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
     FeatureInfo supportsMultiview = {
         "supportsMultiview",
         FeatureCategory::VulkanFeatures,
@@ -956,8 +962,8 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
-    FeatureInfo hasEffectivePipelineCacheSerialization = {
-        "hasEffectivePipelineCacheSerialization",
+    FeatureInfo skipPipelineCacheSerialization = {
+        "skipPipelineCacheSerialization",
         FeatureCategory::VulkanFeatures,
         &members,
     };
@@ -970,12 +976,6 @@ struct FeaturesVk : FeatureSetBase
 
     FeatureInfo supportsPipelineProtectedAccess = {
         "supportsPipelineProtectedAccess",
-        FeatureCategory::VulkanFeatures,
-        &members,
-    };
-
-    FeatureInfo supportsMixedReadWriteDepthStencilLayouts = {
-        "supportsMixedReadWriteDepthStencilLayouts",
         FeatureCategory::VulkanFeatures,
         &members,
     };

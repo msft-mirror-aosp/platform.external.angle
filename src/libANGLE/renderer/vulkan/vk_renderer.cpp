@@ -104,9 +104,6 @@ constexpr uint32_t kPipelineCacheVkUpdatePeriod = 60;
 // initialization logic simpler.
 constexpr uint32_t kPreferredVulkanAPIVersion = VK_API_VERSION_1_1;
 
-// Development flag for transition period when both old and new syncval fitlers are used
-constexpr bool kSyncValCheckExtraProperties = false;
-
 bool IsVulkan11(uint32_t apiVersion)
 {
     return apiVersion >= VK_API_VERSION_1_1;
@@ -351,14 +348,6 @@ constexpr const char *kSkippedMessagesWithDynamicRendering[] = {
 // those, ANGLE makes no further attempt to resolve them and expects vendor support for the
 // extensions instead.  The list of skipped messages is split based on this support.
 constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
-    // http://anglebug.com/42264929
-    // http://anglebug.com/42264934
-    {
-        "SYNC-HAZARD-WRITE-AFTER-WRITE",
-        "Access info (usage: SYNC_IMAGE_LAYOUT_TRANSITION, prior_usage: "
-        "SYNC_IMAGE_LAYOUT_TRANSITION, "
-        "write_barriers: 0",
-    },
     // These errors are caused by a feedback loop tests that don't produce correct Vulkan to begin
     // with.
     // http://anglebug.com/42264930
@@ -583,34 +572,114 @@ constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
     },
     // http://anglebug.com/399191283
     {"SYNC-HAZARD-WRITE-AFTER-WRITE",
-     "vkCmdBeginRenderingKHR writes pRenderingInfo.pDepthAttachment",
+     "vkCmdBeginRenderingKHR potentially modifies",
      "which was previously written during an image layout transition initiated by "
-     "vkCmdPipelineBarrier.",
+     "vkCmdPipelineBarrier",
      false,
-     {"message_type = GeneralError",
+     {"message_type = GeneralError", "hazard_type = WRITE_AFTER_WRITE",
       "access = "
       "VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_"
       "BIT)",
-      "prior_access = SYNC_IMAGE_LAYOUT_TRANSITION",
-      "write_barriers = "
-      "VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT|VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT|VK_"
-      "PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT)",
+      "prior_access = SYNC_IMAGE_LAYOUT_TRANSITION", "prior_command = vkCmdPipelineBarrier",
       "command = vkCmdBeginRenderingKHR"}},
     // http://anglebug.com/399191283
     {"SYNC-HAZARD-WRITE-AFTER-WRITE",
-     "vkCmdBeginRenderingKHR writes pRenderingInfo.pStencilAttachment",
+     "vkCmdBeginRenderPass potentially modifies",
      "which was previously written during an image layout transition initiated by "
-     "vkCmdPipelineBarrier.",
+     "vkCmdPipelineBarrier",
      false,
-     {"message_type = GeneralError",
+     {"message_type = GeneralError", "hazard_type = WRITE_AFTER_WRITE",
       "access = "
       "VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_"
       "BIT)",
-      "prior_access = SYNC_IMAGE_LAYOUT_TRANSITION",
-      "write_barriers = "
-      "VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT|VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT|VK_"
-      "PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT)",
-      "command = vkCmdBeginRenderingKHR"}},
+      "prior_access = SYNC_IMAGE_LAYOUT_TRANSITION", "prior_command = vkCmdPipelineBarrier",
+      "command = vkCmdBeginRenderPass"}},
+    // http://anglebug.com/399191283
+    {"SYNC-HAZARD-WRITE-AFTER-WRITE",
+     nullptr,
+     nullptr,
+     false,
+     {"message_type = GeneralError", "hazard_type = WRITE_AFTER_WRITE",
+      "access = SYNC_IMAGE_LAYOUT_TRANSITION",
+      "prior_access = "
+      "VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT(VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT)",
+      "command = vkCmdBeginRenderPass", "prior_command = vkCmdDrawIndexed",
+      "old_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL",
+      "new_layout = VK_IMAGE_LAYOUT_GENERAL"}},
+    // http://anglebug.com/399191283
+    {"SYNC-HAZARD-WRITE-AFTER-WRITE",
+     nullptr,
+     nullptr,
+     false,
+     {"message_type = GeneralError", "hazard_type = WRITE_AFTER_WRITE",
+      "access = SYNC_IMAGE_LAYOUT_TRANSITION",
+      "prior_access = "
+      "VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT(VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT)",
+      "command = vkCmdBeginRenderPass", "prior_command = vkCmdEndRenderPass",
+      "old_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL",
+      "new_layout = VK_IMAGE_LAYOUT_GENERAL"}},
+    // http://anglebug.com/399191283
+    {"SYNC-HAZARD-WRITE-AFTER-WRITE",
+     nullptr,
+     nullptr,
+     false,
+     {"message_type = GeneralError", "hazard_type = WRITE_AFTER_WRITE",
+      "access = SYNC_IMAGE_LAYOUT_TRANSITION",
+      "prior_access = "
+      "VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT(VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT)",
+      "command = vkCmdBeginRenderPass", "prior_command = vkCmdEndRenderPass",
+      "old_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL",
+      "new_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL"}},
+    // http://anglebug.com/399191283
+    {"SYNC-HAZARD-WRITE-AFTER-WRITE",
+     nullptr,
+     nullptr,
+     false,
+     {"message_type = GeneralError", "hazard_type = WRITE_AFTER_WRITE",
+      "access = "
+      "VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT(VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT)",
+      "prior_access = SYNC_IMAGE_LAYOUT_TRANSITION", "command = vkCmdDrawIndexed",
+      "prior_command = vkCmdEndRenderPass", "subcmd = 1"}},
+    // http://anglebug.com/399191283
+    {"SYNC-HAZARD-WRITE-AFTER-WRITE",
+     nullptr,
+     nullptr,
+     false,
+     {"message_type = GeneralError", "hazard_type = WRITE_AFTER_WRITE",
+      "access = SYNC_IMAGE_LAYOUT_TRANSITION",
+      "prior_access = "
+      "VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)",
+      "command = vkCmdPipelineBarrier", "prior_command = vkCmdEndRenderPass"}},
+    // http://anglebug.com/399191283
+    {"SYNC-HAZARD-READ-AFTER-WRITE",
+     nullptr,
+     nullptr,
+     false,
+     {"message_type = GeneralError", "hazard_type = READ_AFTER_WRITE",
+      "access = "
+      "VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT(VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT)",
+      "prior_access = SYNC_IMAGE_LAYOUT_TRANSITION", "command = vkCmdBeginRenderPass",
+      "prior_command = vkCmdEndRenderPass", "load_op = VK_ATTACHMENT_LOAD_OP_LOAD", "subcmd = 1"}},
+    // https://anglebug.com/400789178
+    {"SYNC-HAZARD-WRITE_AFTER_WRITE",
+     nullptr,
+     nullptr,
+     false,
+     {"message_type = ImageBarrierError", "hazard_type = WRITE_AFTER_WRITE",
+      "access = SYNC_IMAGE_LAYOUT_TRANSITION",
+      "prior_access = "
+      "VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)",
+      "command = vkCmdPipelineBarrier", "prior_command = vkCmdEndRenderPass"}},
+    // https://anglebug.com/400789178
+    {"SYNC-HAZARD-WRITE_AFTER_WRITE",
+     nullptr,
+     nullptr,
+     false,
+     {"message_type = RenderPassAttachmentError", "hazard_type = WRITE_AFTER_WRITE",
+      "access = "
+      "VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT(VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT)",
+      "prior_access = SYNC_IMAGE_LAYOUT_TRANSITION", "command = vkCmdDrawIndexed",
+      "prior_command = vkCmdEndRenderPass", "subcmd = 1"}},
 };
 
 // Messages that shouldn't be generated if storeOp=NONE is supported, otherwise they are expected.
@@ -716,6 +785,43 @@ bool IsMessageInSkipList(const char *message,
     return false;
 }
 
+bool SyncvalMessageMatchesSkip(const char *messageId,
+                               const char *message,
+                               const vk::SkippedSyncvalMessage &skip)
+{
+    // TODO(http://angleproject:391284743): Ongoing transition: textual matches -> extraProperties.
+    // When a skip includes the extraProperties list, use that list and ignore messageContents1/2.
+    // When extraProperties list is not present, use messageContents1/2 as before.
+    if (skip.extraProperties[0])
+    {
+        if (strstr(messageId, skip.messageId) == nullptr)
+        {
+            return false;
+        }
+        // Check that all extraProperties entries are present in the message
+        bool mismatch = false;
+        for (uint32_t i = 0; i < kMaxSyncValExtraProperties; i++)
+        {
+            if (skip.extraProperties[i] == nullptr)
+            {
+                break;
+            }
+            if (strstr(message, skip.extraProperties[i]) == nullptr)
+            {
+                mismatch = true;
+                break;
+            }
+        }
+        return !mismatch;
+    }
+    else
+    {
+        return (strstr(messageId, skip.messageId) != nullptr &&
+                strstr(message, skip.messageContents1) != nullptr &&
+                strstr(message, skip.messageContents2) != nullptr);
+    }
+}
+
 // Suppress validation errors that are known.  Returns DebugMessageReport::Ignore in that case.
 DebugMessageReport ShouldReportDebugMessage(Renderer *renderer,
                                             const char *messageId,
@@ -736,63 +842,37 @@ DebugMessageReport ShouldReportDebugMessage(Renderer *renderer,
     // Then check with syncval messages:
     const bool isColorFramebufferFetchUsed = renderer->isColorFramebufferFetchUsed();
 
-    for (const vk::SkippedSyncvalMessage &msg : renderer->getSkippedSyncvalMessages())
+    for (const vk::SkippedSyncvalMessage &skip : renderer->getSkippedSyncvalMessages())
     {
-        if (kSyncValCheckExtraProperties && msg.extraProperties[0])
+        if (!SyncvalMessageMatchesSkip(messageId, message, skip))
         {
-            if (strstr(messageId, msg.messageId) == nullptr)
-            {
-                continue;
-            }
-            bool mismatch = false;
-            for (uint32_t i = 0; i < kMaxSyncValExtraProperties; i++)
-            {
-                if (msg.extraProperties[i] == nullptr)
-                {
-                    break;
-                }
-                if (strstr(message, msg.extraProperties[i]) == nullptr)
-                {
-                    mismatch = true;
-                    break;
-                }
-            }
-            if (mismatch)
-            {
-                continue;
-            }
+            continue;
         }
-        else
+
+        if (skip.isDueToNonConformantCoherentColorFramebufferFetch)
         {
-            if (strstr(messageId, msg.messageId) == nullptr ||
-                strstr(message, msg.messageContents1) == nullptr ||
-                strstr(message, msg.messageContents2) == nullptr)
+            // If the error is due to exposing coherent framebuffer fetch (without
+            // VK_EXT_rasterization_order_attachment_access), but framebuffer fetch has not been
+            // used by the application, report it.
+            //
+            // Note that currently syncval doesn't support the
+            // VK_EXT_rasterization_order_attachment_access extension, so the syncval messages would
+            // continue to be produced despite the extension.
+            constexpr bool kSyncValSupportsRasterizationOrderExtension = false;
+            const bool hasRasterizationOrderExtension =
+                renderer->getFeatures().supportsRasterizationOrderAttachmentAccess.enabled &&
+                kSyncValSupportsRasterizationOrderExtension;
+            if (!isColorFramebufferFetchUsed || hasRasterizationOrderExtension)
             {
-                continue;
+                return DebugMessageReport::Print;
             }
         }
 
-        // If the error is due to exposing coherent framebuffer fetch (without
-        // VK_EXT_rasterization_order_attachment_access), but framebuffer fetch has not been used by
-        // the application, report it.
-        //
-        // Note that currently syncval doesn't support the
-        // VK_EXT_rasterization_order_attachment_access extension, so the syncval messages would
-        // continue to be produced despite the extension.
-        constexpr bool kSyncValSupportsRasterizationOrderExtension = false;
-        const bool hasRasterizationOrderExtension =
-            renderer->getFeatures().supportsRasterizationOrderAttachmentAccess.enabled &&
-            kSyncValSupportsRasterizationOrderExtension;
-        if (msg.isDueToNonConformantCoherentColorFramebufferFetch &&
-            (!isColorFramebufferFetchUsed || hasRasterizationOrderExtension))
-        {
-            return DebugMessageReport::Print;
-        }
-
-        // Otherwise ignore the message
+        // Ignore the message as it matched one the the skips
         return DebugMessageReport::Ignore;
     }
 
+    // Message didn't match any skips, report
     return DebugMessageReport::Print;
 }
 
@@ -1787,6 +1867,104 @@ bool CanSupportMSRTSSForRGBA8(Renderer *renderer)
 
     return supportsMSRTTUsageRGBA8 && supportsMSRTTUsageRGBA8SRGB;
 }
+
+VkResult RetrieveDeviceLostInfoFromDevice(VkDevice device,
+                                          VkPhysicalDeviceFaultFeaturesEXT faultFeatures)
+{
+    // For VkDeviceFaultAddressTypeEXT in VK_EXT_device_fault
+    constexpr const char *kDeviceFaultAddressTypeMessage[] = {
+        "None",
+        "InvalidRead",
+        "InvalidWrite",
+        "InvalidExecute",
+        "InstructionPointerUnknown",
+        "InstructionPointerInvalid",
+        "InstructionPointerFault",
+    };
+
+    // At first, the data regarding the number of faults is collected, so the proper allocations can
+    // be made to store the incoming data.
+    VkDeviceFaultCountsEXT faultCounts = {};
+    faultCounts.sType                  = VK_STRUCTURE_TYPE_DEVICE_FAULT_COUNTS_EXT;
+
+    VkResult result = vkGetDeviceFaultInfoEXT(device, &faultCounts, nullptr);
+    if (result != VK_SUCCESS)
+    {
+        return result;
+    }
+
+    VkDeviceFaultInfoEXT faultInfos = {};
+    faultInfos.sType                = VK_STRUCTURE_TYPE_DEVICE_FAULT_INFO_EXT;
+
+    std::vector<VkDeviceFaultAddressInfoEXT> addressInfos(faultCounts.addressInfoCount);
+    faultInfos.pAddressInfos = addressInfos.data();
+
+    std::vector<VkDeviceFaultVendorInfoEXT> vendorInfos(faultCounts.vendorInfoCount);
+    faultInfos.pVendorInfos = vendorInfos.data();
+
+    // The vendor binary data will be logged in chunks of 4 bytes.
+    uint32_t vendorBinaryDataChunkCount =
+        (static_cast<uint32_t>(faultCounts.vendorBinarySize) + 3) / 4;
+    std::vector<uint32_t> vendorBinaryDataChunks(vendorBinaryDataChunkCount, 0);
+    faultInfos.pVendorBinaryData = vendorBinaryDataChunks.data();
+
+    result = vkGetDeviceFaultInfoEXT(device, &faultCounts, &faultInfos);
+    if (result != VK_SUCCESS)
+    {
+        return result;
+    }
+
+    // Collect the fault information from the device.
+    std::stringstream faultString;
+    faultString << "Fault description: <" << faultInfos.description << ">" << std::endl;
+
+    for (auto &addressFault : addressInfos)
+    {
+        // Based on the spec, The address precision is a power of two, and shows the lower and upper
+        // address ranges where the error could be:
+        // - lowerAddress = (reportedAddress & ~(addressPrecision - 1))
+        // - upperAddress = (reportedAddress |  (addressPrecision - 1))
+        // For example, if the reported address is 0x12345 and the precision is 16, it shows that
+        // the address could be between 0x12340 and 0x1234F.
+        faultString << "--> Address fault reported at 0x" << std::hex
+                    << addressFault.reportedAddress << " | Precision range: 0x"
+                    << addressFault.addressPrecision << " (" << std::dec
+                    << std::log2(addressFault.addressPrecision) << " bits) | Operation: "
+                    << kDeviceFaultAddressTypeMessage[addressFault.addressType] << std::endl;
+    }
+
+    for (auto &vendorFault : vendorInfos)
+    {
+        faultString << "--> Vendor-specific fault reported (Code " << std::dec
+                    << vendorFault.vendorFaultCode << "): <" << vendorFault.description
+                    << "> | Fault Data: 0x" << std::hex << vendorFault.vendorFaultData << std::endl;
+    }
+
+    if (faultFeatures.deviceFaultVendorBinary)
+    {
+        // The binary data must start with the header in the format of the following type:
+        // - VkDeviceFaultVendorBinaryHeaderVersionOneEXT (56 bytes)
+        faultString << "--> Vendor-specific binary crash dump (" << faultCounts.vendorBinarySize
+                    << " bytes, in hex):" << std::endl;
+
+        constexpr uint32_t kVendorBinaryDataChunksPerLine = 8;
+        for (uint32_t i = 0; i < vendorBinaryDataChunkCount; i++)
+        {
+            faultString << "0x" << std::hex << std::setw(8) << std::setfill('0')
+                        << vendorBinaryDataChunks[i]
+                        << ((i + 1) % kVendorBinaryDataChunksPerLine != 0 ? " " : "\n");
+        }
+        faultString << std::endl;
+    }
+    else
+    {
+        faultString << "--> Vendor-specific binary crash dump not available." << std::endl;
+    }
+
+    // Output the log stream.
+    WARN() << faultString.str();
+    return VK_SUCCESS;
+}
 }  // namespace
 
 // OneOffCommandPool implementation.
@@ -2024,6 +2202,15 @@ void Renderer::onDestroy(vk::ErrorContext *context)
     {
         DumpPipelineCacheGraph(this, mPipelineCacheGraph);
     }
+}
+
+VkResult Renderer::retrieveDeviceLostDetails() const
+{
+    if (!getFeatures().supportsDeviceFault.enabled)
+    {
+        return VK_SUCCESS;
+    }
+    return RetrieveDeviceLostInfoFromDevice(mDevice, mFaultFeatures);
 }
 
 void Renderer::notifyDeviceLost()
@@ -2717,6 +2904,8 @@ angle::Result Renderer::initializeMemoryAllocator(vk::ErrorContext *context)
 // - VK_EXT_shader_atomic_float                        shaderImageFloat32Atomics (feature)
 // - VK_EXT_image_compression_control                  imageCompressionControl (feature)
 // - VK_EXT_image_compression_control_swapchain        imageCompressionControlSwapchain (feature)
+// - VK_EXT_device_fault                               deviceFault (feature),
+//                                                     deviceFaultVendorBinary (feature)
 //
 void Renderer::appendDeviceExtensionFeaturesNotPromoted(
     const vk::ExtensionNameList &deviceExtensionNames,
@@ -2899,6 +3088,10 @@ void Renderer::appendDeviceExtensionFeaturesNotPromoted(
                        deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceFeatures, &mImageCompressionControlSwapchainFeatures);
+    }
+    if (ExtensionFound(VK_EXT_DEVICE_FAULT_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mFaultFeatures);
     }
 }
 
@@ -3144,6 +3337,9 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mMaintenance3Properties       = {};
     mMaintenance3Properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES;
 
+    mFaultFeatures       = {};
+    mFaultFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FAULT_FEATURES_EXT;
+
     mDriverProperties       = {};
     mDriverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
 
@@ -3380,6 +3576,7 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mTextureCompressionASTCHDRFeatures.pNext          = nullptr;
     mUniformBufferStandardLayoutFeatures.pNext        = nullptr;
     mMaintenance3Properties.pNext                     = nullptr;
+    mFaultFeatures.pNext                              = nullptr;
 #if defined(ANGLE_PLATFORM_ANDROID)
     mExternalFormatResolveFeatures.pNext   = nullptr;
     mExternalFormatResolveProperties.pNext = nullptr;
@@ -3710,6 +3907,12 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
     if (mFeatures.supportsSwapchainMutableFormat.enabled)
     {
         mEnabledDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME);
+    }
+
+    if (mFeatures.supportsDeviceFault.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_EXT_DEVICE_FAULT_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mFaultFeatures);
     }
 
 #if defined(ANGLE_PLATFORM_WINDOWS)
@@ -4051,6 +4254,10 @@ void Renderer::initDeviceExtensionEntryPoints()
     if (mFeatures.supportsSynchronization2.enabled)
     {
         InitSynchronization2Functions(mDevice);
+    }
+    if (mFeatures.supportsDeviceFault.enabled)
+    {
+        InitDeviceFaultFunctions(mDevice);
     }
     // Extensions promoted to Vulkan 1.2
     {
@@ -4910,11 +5117,6 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // VkHostImageCopyDevicePerformanceQueryEXT::identicalMemoryLayout.
     ANGLE_FEATURE_CONDITION(&mFeatures, allowHostImageCopyDespiteNonIdenticalLayout, false);
 
-    // VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL and
-    // VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL are introduced by
-    // VK_KHR_maintenance2 and promoted to Vulkan 1.1.
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsMixedReadWriteDepthStencilLayouts, true);
-
     // VK_EXT_pipeline_creation_feedback is promoted to core in Vulkan 1.3.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsPipelineCreationFeedback,
@@ -5139,6 +5341,12 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
                                 mImage2dViewOf3dFeatures.sampler2DViewOf3D == VK_TRUE);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsMultiview, mMultiviewFeatures.multiview == VK_TRUE);
+
+    // VK_EXT_device_fault can provide more information when the device is lost.
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsDeviceFault,
+        ExtensionFound(VK_EXT_DEVICE_FAULT_EXTENSION_NAME, deviceExtensionNames) &&
+            mFaultFeatures.deviceFault == VK_TRUE);
 
     // TODO: http://anglebug.com/42264464 - drop dependency on customBorderColorWithoutFormat.
     ANGLE_FEATURE_CONDITION(
@@ -5709,50 +5917,61 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
                                 (!isNvidia || driverVersion >= angle::VersionTriple(531, 0, 0)) &&
                                 !isRADV);
 
-    // The following drivers are known to key the pipeline cache blobs with vertex input and
-    // fragment output state, causing draw-time pipeline creation to miss the cache regardless of
-    // warm up:
+    // When VK_EXT_graphics_pipeline_library is not used:
     //
-    // - ARM drivers
-    // - Imagination drivers
+    //   The following drivers are known to key the pipeline cache blobs with vertex input and
+    //   fragment output state, causing draw-time pipeline creation to miss the cache regardless of
+    //   warm up:
     //
-    // The following drivers are instead known to _not_ include said state, and hit the cache at
-    // draw time.
+    //     - ARM drivers
+    //     - Imagination drivers
     //
-    // - SwiftShader
-    // - Open source Qualcomm drivers
+    //   The following drivers are instead known to _not_ include said state, and hit the cache at
+    //   draw time.
     //
-    // The situation is unknown for other drivers.
+    //     - SwiftShader
+    //     - Open source Qualcomm drivers
     //
-    // Additionally, numerous tests that previously never created a Vulkan pipeline fail or crash on
-    // proprietary Qualcomm drivers when they do during cache warm up.  On Intel/Linux, one trace
-    // shows flakiness with this.
+    //   The situation is unknown for other drivers.
+    //
+    //   Additionally, numerous tests that previously never created a Vulkan pipeline fail or crash
+    //   on proprietary Qualcomm drivers when they do during cache warm up.  On Intel/Linux, one
+    //   trace shows flakiness with this.
+    //
+    // When VK_EXT_graphics_pipeline_library is used, warm up is always enabled as the chances of
+    // blobs being reused is very high.
     const bool libraryBlobsAreReusedByMonolithicPipelines = !isARM && !isPowerVR;
-    ANGLE_FEATURE_CONDITION(&mFeatures, warmUpPipelineCacheAtLink,
-                            libraryBlobsAreReusedByMonolithicPipelines && !isQualcommProprietary &&
-                                !(IsLinux() && isIntel) && !(IsChromeOS() && isSwiftShader));
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, warmUpPipelineCacheAtLink,
+        mFeatures.supportsGraphicsPipelineLibrary.enabled ||
+            (libraryBlobsAreReusedByMonolithicPipelines && !isQualcommProprietary &&
+             !(IsLinux() && isIntel) && !(IsChromeOS() && isSwiftShader)));
 
     // On SwiftShader, no data is retrieved from the pipeline cache, so there is no reason to
     // serialize it or put it in the blob cache.
-    // For Windows Nvidia Vulkan driver older than 520, Vulkan pipeline cache will only generate one
-    // single huge cache for one process shared by all graphics pipelines in the same process, which
-    // can be huge.
-    const bool nvVersionLessThan520 = isNvidia && driverVersion < angle::VersionTriple(520, 0, 0);
-    ANGLE_FEATURE_CONDITION(&mFeatures, hasEffectivePipelineCacheSerialization,
-                            !isSwiftShader && !nvVersionLessThan520);
+    // For Windows NVIDIA Vulkan driver, Vulkan pipeline cache will only generate one
+    // single huge cache for one process shared by all graphics pipelines in the same process,
+    // which can be huge. zlib take long time to compress it.
+    ANGLE_FEATURE_CONDITION(&mFeatures, skipPipelineCacheSerialization, isSwiftShader || isNvidia);
 
     // Practically all drivers still prefer to do cross-stage linking.
     // graphicsPipelineLibraryFastLinking allows them to quickly produce working pipelines, but it
     // is typically not as efficient as complete pipelines.
     //
-    // This optimization is disabled on the Intel/windows driver before 31.0.101.5379 due to driver
-    // bugs.
-    // This optimization is disabled for Samsung.
-    ANGLE_FEATURE_CONDITION(
-        &mFeatures, preferMonolithicPipelinesOverLibraries,
-        mFeatures.supportsGraphicsPipelineLibrary.enabled &&
-            !(IsWindows() && isIntel && driverVersion < angle::VersionTriple(101, 5379, 0)) &&
-            !isSamsung);
+    // Unfortunately, the monolithic pipeline is not required to produce the exact same output as
+    // linked-pipelines, which violates OpenGL ES rules:
+    //
+    //   Rule 4 The same vertex or fragment shader will produce the same result when run multiple
+    //   times with the same input. The wording 'the same shader' means a program object that is
+    //   populated with the same source strings, which are compiled and then linked, possibly
+    //   multiple times, and which program object is then executed using the same GL state vector.
+    //   Invariance is relaxed for shaders with side effects, such as image stores, image atomic
+    //   operations, or accessing atomic counters (see section A.5)
+    //
+    // For that reason, this feature is disabled by default.  An application that does not rely on
+    // the above rule and would like to benefit from the gains may override this.
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferMonolithicPipelinesOverLibraries,
+                            mFeatures.supportsGraphicsPipelineLibrary.enabled && false);
 
     // Whether the pipeline caches should merge into the global pipeline cache.  This should only be
     // enabled on platforms if:
@@ -5785,7 +6004,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         mFeatures.preferMonolithicPipelinesOverLibraries.enabled &&
         (!IsAndroid() || mFeatures.enableAsyncPipelineCacheCompression.enabled);
     ANGLE_FEATURE_CONDITION(&mFeatures, syncMonolithicPipelinesToBlobCache,
-                            mFeatures.hasEffectivePipelineCacheSerialization.enabled &&
+                            !mFeatures.skipPipelineCacheSerialization.enabled &&
                                 (hasNoPipelineWarmUp || canSyncLargeMonolithicCache));
 
     // Enable the feature on Samsung by default, because it has big blob cache.
