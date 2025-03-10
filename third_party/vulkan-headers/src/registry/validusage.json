@@ -1,9 +1,9 @@
 {
   "version info": {
     "schema version": 2,
-    "api version": "1.4.309",
-    "comment": "from git branch: github-main commit: 43d153dd7f9f5e8b9f79d26d868c82a82b9ef80b",
-    "date": "2025-02-21 10:19:04Z"
+    "api version": "1.4.310",
+    "comment": "from git branch: github-main commit: ab5fa3690263718c4c4dc8f7110ba4a52528e063",
+    "date": "2025-03-07 12:46:25Z"
   },
   "validation": {
     "vkGetInstanceProcAddr": {
@@ -121,7 +121,7 @@
         },
         {
           "vuid": "VUID-VkInstanceCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkDebugUtilsMessengerCreateInfoEXT\">VkDebugUtilsMessengerCreateInfoEXT</a>, <a href=\"#VkExportMetalObjectCreateInfoEXT\">VkExportMetalObjectCreateInfoEXT</a>, or <a href=\"#VkLayerSettingsCreateInfoEXT\">VkLayerSettingsCreateInfoEXT</a>",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkDebugUtilsMessengerCreateInfoEXT\">VkDebugUtilsMessengerCreateInfoEXT</a>, <a href=\"#VkExportMetalObjectCreateInfoEXT\">VkExportMetalObjectCreateInfoEXT</a>, or <a href=\"#VkLayerSettingsCreateInfoEXT\">VkLayerSettingsCreateInfoEXT</a>",
           "page": "chapters/initialization.html"
         },
         {
@@ -384,7 +384,7 @@
         },
         {
           "vuid": "VUID-VkPhysicalDeviceProperties2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/devsandqueues.html"
         }
       ]
@@ -567,7 +567,7 @@
         },
         {
           "vuid": "VUID-VkQueueFamilyProperties2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/devsandqueues.html"
         }
       ]
@@ -910,7 +910,7 @@
         },
         {
           "vuid": "VUID-VkDeviceCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkDeviceDeviceMemoryReportCreateInfoEXT\">VkDeviceDeviceMemoryReportCreateInfoEXT</a> or <a href=\"#VkDevicePrivateDataCreateInfo\">VkDevicePrivateDataCreateInfo</a>",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkDeviceDeviceMemoryReportCreateInfoEXT\">VkDeviceDeviceMemoryReportCreateInfoEXT</a> or <a href=\"#VkDevicePrivateDataCreateInfo\">VkDevicePrivateDataCreateInfo</a>",
           "page": "chapters/devsandqueues.html"
         },
         {
@@ -1136,7 +1136,7 @@
         },
         {
           "vuid": "VUID-VkDeviceQueueCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/devsandqueues.html"
         },
         {
@@ -1610,7 +1610,7 @@
         },
         {
           "vuid": "VUID-VkCommandBufferBeginInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/cmdbuffers.html"
         },
         {
@@ -1659,7 +1659,7 @@
         },
         {
           "vuid": "VUID-VkCommandBufferInheritanceInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/cmdbuffers.html"
         },
         {
@@ -2046,7 +2046,7 @@
         },
         {
           "vuid": "VUID-VkSubmitInfo2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/cmdbuffers.html"
         },
         {
@@ -2194,7 +2194,7 @@
         },
         {
           "vuid": "VUID-VkCommandBufferSubmitInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/cmdbuffers.html"
         },
         {
@@ -2476,7 +2476,7 @@
         },
         {
           "vuid": "VUID-VkSubmitInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/cmdbuffers.html"
         },
         {
@@ -3148,7 +3148,7 @@
         },
         {
           "vuid": "VUID-VkFenceCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/synchronization.html"
         },
         {
@@ -3718,7 +3718,7 @@
         },
         {
           "vuid": "VUID-VkSemaphoreCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkExportMetalObjectCreateInfoEXT\">VkExportMetalObjectCreateInfoEXT</a>",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkExportMetalObjectCreateInfoEXT\">VkExportMetalObjectCreateInfoEXT</a>",
           "page": "chapters/synchronization.html"
         },
         {
@@ -4489,7 +4489,7 @@
         },
         {
           "vuid": "VUID-VkEventCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkExportMetalObjectCreateInfoEXT\">VkExportMetalObjectCreateInfoEXT</a>",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkExportMetalObjectCreateInfoEXT\">VkExportMetalObjectCreateInfoEXT</a>",
           "page": "chapters/synchronization.html"
         },
         {
@@ -4701,6 +4701,16 @@
     },
     "VkDependencyInfo": {
       "core": [
+        {
+          "vuid": "VUID-VkDependencyInfo-pMemoryBarriers-10605",
+          "text": "For each element of <code>pMemoryBarriers</code>, the <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "page": "chapters/synchronization.html"
+        },
+        {
+          "vuid": "VUID-VkDependencyInfo-pMemoryBarriers-10606",
+          "text": "For each element of <code>pMemoryBarriers</code>, <code>pNext</code> <strong class=\"purple\">must</strong> be either <code>NULL</code> or a pointer to a valid instance of <a href=\"#VkMemoryBarrierAccessFlags3KHR\">VkMemoryBarrierAccessFlags3KHR</a>",
+          "page": "chapters/synchronization.html"
+        },
         {
           "vuid": "VUID-VkDependencyInfo-sType-sType",
           "text": "<code>sType</code> <strong class=\"purple\">must</strong> be <code>VK_STRUCTURE_TYPE_DEPENDENCY_INFO</code>",
@@ -7008,7 +7018,7 @@
         },
         {
           "vuid": "VUID-VkBufferMemoryBarrier2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/synchronization.html"
         },
         {
@@ -7117,7 +7127,7 @@
         },
         {
           "vuid": "VUID-VkBufferMemoryBarrier-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/synchronization.html"
         },
         {
@@ -7921,7 +7931,7 @@
         },
         {
           "vuid": "VUID-VkImageMemoryBarrier2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/synchronization.html"
         },
         {
@@ -8245,7 +8255,7 @@
         },
         {
           "vuid": "VUID-VkImageMemoryBarrier-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/synchronization.html"
         },
         {
@@ -9001,7 +9011,7 @@
         },
         {
           "vuid": "VUID-VkRenderingInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/renderpass.html"
         },
         {
@@ -9649,7 +9659,7 @@
         },
         {
           "vuid": "VUID-VkRenderPassCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/renderpass.html"
         },
         {
@@ -10672,7 +10682,7 @@
         },
         {
           "vuid": "VUID-VkRenderPassCreateInfo2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/renderpass.html"
         },
         {
@@ -10876,7 +10886,7 @@
         },
         {
           "vuid": "VUID-VkAttachmentDescription2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/renderpass.html"
         },
         {
@@ -11224,7 +11234,7 @@
         },
         {
           "vuid": "VUID-VkSubpassDescription2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/renderpass.html"
         },
         {
@@ -11480,7 +11490,7 @@
         },
         {
           "vuid": "VUID-VkAttachmentReference2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/renderpass.html"
         },
         {
@@ -11673,12 +11683,12 @@
         },
         {
           "vuid": "VUID-VkSubpassDependency2-pNext-pNext",
-          "text": "<code>pNext</code> <strong class=\"purple\">must</strong> be <code>NULL</code> or a pointer to a valid instance of <a href=\"#VkMemoryBarrier2\">VkMemoryBarrier2</a>",
+          "text": "Each <code>pNext</code> member of any structure (including this one) in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be either <code>NULL</code> or a pointer to a valid instance of <a href=\"#VkMemoryBarrier2\">VkMemoryBarrier2</a> or <a href=\"#VkMemoryBarrierAccessFlags3KHR\">VkMemoryBarrierAccessFlags3KHR</a>",
           "page": "chapters/renderpass.html"
         },
         {
           "vuid": "VUID-VkSubpassDependency2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/renderpass.html"
         },
         {
@@ -12080,7 +12090,7 @@
         },
         {
           "vuid": "VUID-VkFramebufferCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/renderpass.html"
         },
         {
@@ -12604,7 +12614,7 @@
         },
         {
           "vuid": "VUID-VkRenderPassBeginInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/renderpass.html"
         },
         {
@@ -13110,7 +13120,7 @@
         },
         {
           "vuid": "VUID-VkSubpassEndInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/renderpass.html"
         }
       ]
@@ -13659,7 +13669,7 @@
         },
         {
           "vuid": "VUID-VkShaderCreateInfoEXT-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/shaders.html"
         },
         {
@@ -15078,7 +15088,7 @@
         },
         {
           "vuid": "VUID-VkComputePipelineCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/pipelines.html"
         },
         {
@@ -15282,7 +15292,7 @@
         },
         {
           "vuid": "VUID-VkPipelineShaderStageCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/pipelines.html"
         },
         {
@@ -17368,7 +17378,7 @@
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/pipelines.html"
         },
         {
@@ -17963,7 +17973,7 @@
         },
         {
           "vuid": "VUID-VkRayTracingPipelineCreateInfoNV-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/pipelines.html"
         },
         {
@@ -18232,7 +18242,7 @@
         },
         {
           "vuid": "VUID-VkRayTracingPipelineCreateInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/pipelines.html"
         },
         {
@@ -19861,7 +19871,7 @@
         },
         {
           "vuid": "VUID-VkPhysicalDeviceMemoryProperties2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/memory.html"
         }
       ]
@@ -20208,7 +20218,7 @@
         },
         {
           "vuid": "VUID-VkMemoryAllocateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkExportMetalObjectCreateInfoEXT\">VkExportMetalObjectCreateInfoEXT</a>",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkExportMetalObjectCreateInfoEXT\">VkExportMetalObjectCreateInfoEXT</a>",
           "page": "chapters/memory.html"
         }
       ]
@@ -21035,7 +21045,7 @@
         },
         {
           "vuid": "VUID-VkAndroidHardwareBufferPropertiesANDROID-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/memory.html"
         }
       ]
@@ -21357,7 +21367,7 @@
         },
         {
           "vuid": "VUID-VkExportMetalObjectsInfoEXT-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkExportMetalBufferInfoEXT\">VkExportMetalBufferInfoEXT</a>, <a href=\"#VkExportMetalCommandQueueInfoEXT\">VkExportMetalCommandQueueInfoEXT</a>, <a href=\"#VkExportMetalIOSurfaceInfoEXT\">VkExportMetalIOSurfaceInfoEXT</a>, <a href=\"#VkExportMetalSharedEventInfoEXT\">VkExportMetalSharedEventInfoEXT</a>, or <a href=\"#VkExportMetalTextureInfoEXT\">VkExportMetalTextureInfoEXT</a>",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkExportMetalBufferInfoEXT\">VkExportMetalBufferInfoEXT</a>, <a href=\"#VkExportMetalCommandQueueInfoEXT\">VkExportMetalCommandQueueInfoEXT</a>, <a href=\"#VkExportMetalIOSurfaceInfoEXT\">VkExportMetalIOSurfaceInfoEXT</a>, <a href=\"#VkExportMetalSharedEventInfoEXT\">VkExportMetalSharedEventInfoEXT</a>, or <a href=\"#VkExportMetalTextureInfoEXT\">VkExportMetalTextureInfoEXT</a>",
           "page": "chapters/memory.html"
         }
       ]
@@ -21569,7 +21579,7 @@
         },
         {
           "vuid": "VUID-VkScreenBufferPropertiesQNX-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/memory.html"
         }
       ]
@@ -21957,7 +21967,7 @@
         },
         {
           "vuid": "VUID-VkMemoryMapInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/memory.html"
         },
         {
@@ -22484,7 +22494,7 @@
         },
         {
           "vuid": "VUID-VkBufferCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/resources.html"
         },
         {
@@ -22740,7 +22750,7 @@
         },
         {
           "vuid": "VUID-VkBufferViewCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkExportMetalObjectCreateInfoEXT\">VkExportMetalObjectCreateInfoEXT</a>",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkExportMetalObjectCreateInfoEXT\">VkExportMetalObjectCreateInfoEXT</a>",
           "page": "chapters/resources.html"
         },
         {
@@ -23562,7 +23572,7 @@
         },
         {
           "vuid": "VUID-VkImageCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkExportMetalObjectCreateInfoEXT\">VkExportMetalObjectCreateInfoEXT</a> or <a href=\"#VkImportMetalTextureInfoEXT\">VkImportMetalTextureInfoEXT</a>",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkExportMetalObjectCreateInfoEXT\">VkExportMetalObjectCreateInfoEXT</a> or <a href=\"#VkImportMetalTextureInfoEXT\">VkImportMetalTextureInfoEXT</a>",
           "page": "chapters/resources.html"
         },
         {
@@ -24093,7 +24103,7 @@
         },
         {
           "vuid": "VUID-VkSubresourceLayout2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/resources.html"
         }
       ]
@@ -24780,7 +24790,7 @@
         },
         {
           "vuid": "VUID-VkImageViewCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkExportMetalObjectCreateInfoEXT\">VkExportMetalObjectCreateInfoEXT</a>",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique, with the exception of structures of type <a href=\"#VkExportMetalObjectCreateInfoEXT\">VkExportMetalObjectCreateInfoEXT</a>",
           "page": "chapters/resources.html"
         },
         {
@@ -25305,7 +25315,7 @@
         },
         {
           "vuid": "VUID-VkAccelerationStructureCreateInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/resources.html"
         },
         {
@@ -25445,7 +25455,7 @@
         },
         {
           "vuid": "VUID-VkAccelerationStructureCreateInfoNV-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/resources.html"
         },
         {
@@ -26432,7 +26442,7 @@
         },
         {
           "vuid": "VUID-VkImageMemoryRequirementsInfo2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/resources.html"
         },
         {
@@ -26539,7 +26549,7 @@
         },
         {
           "vuid": "VUID-VkMemoryRequirements2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/resources.html"
         }
       ]
@@ -26820,7 +26830,7 @@
         },
         {
           "vuid": "VUID-VkBindBufferMemoryInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/resources.html"
         },
         {
@@ -27200,7 +27210,7 @@
         },
         {
           "vuid": "VUID-VkBindImageMemoryInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/resources.html"
         },
         {
@@ -27957,7 +27967,7 @@
         },
         {
           "vuid": "VUID-VkSamplerCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/samplers.html"
         },
         {
@@ -28206,7 +28216,7 @@
         },
         {
           "vuid": "VUID-VkSamplerYcbcrConversionCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/samplers.html"
         },
         {
@@ -28489,7 +28499,7 @@
         },
         {
           "vuid": "VUID-VkDescriptorSetLayoutCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/descriptorsets.html"
         },
         {
@@ -28758,7 +28768,7 @@
         },
         {
           "vuid": "VUID-VkDescriptorSetLayoutSupport-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/descriptorsets.html"
         }
       ]
@@ -29260,7 +29270,7 @@
         },
         {
           "vuid": "VUID-VkDescriptorPoolCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/descriptorsets.html"
         },
         {
@@ -29415,7 +29425,7 @@
         },
         {
           "vuid": "VUID-VkDescriptorSetAllocateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/descriptorsets.html"
         },
         {
@@ -29850,7 +29860,7 @@
         },
         {
           "vuid": "VUID-VkWriteDescriptorSet-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/descriptorsets.html"
         },
         {
@@ -30605,7 +30615,7 @@
         },
         {
           "vuid": "VUID-VkBindDescriptorSetsInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/descriptorsets.html"
         },
         {
@@ -30797,7 +30807,7 @@
         },
         {
           "vuid": "VUID-VkPushDescriptorSetInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/descriptorsets.html"
         },
         {
@@ -30999,7 +31009,7 @@
         },
         {
           "vuid": "VUID-VkPushDescriptorSetWithTemplateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/descriptorsets.html"
         },
         {
@@ -31191,7 +31201,7 @@
         },
         {
           "vuid": "VUID-VkPushConstantsInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/descriptorsets.html"
         },
         {
@@ -31809,7 +31819,7 @@
         },
         {
           "vuid": "VUID-VkDescriptorBufferBindingInfoEXT-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/descriptorsets.html"
         }
       ]
@@ -32040,7 +32050,7 @@
         },
         {
           "vuid": "VUID-VkSetDescriptorBufferOffsetsInfoEXT-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/descriptorsets.html"
         },
         {
@@ -32207,7 +32217,7 @@
         },
         {
           "vuid": "VUID-VkBindDescriptorBufferEmbeddedSamplersInfoEXT-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/descriptorsets.html"
         },
         {
@@ -35310,7 +35320,7 @@
         },
         {
           "vuid": "VUID-VkQueryPoolCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/queries.html"
         },
         {
@@ -40242,7 +40252,7 @@
         },
         {
           "vuid": "VUID-VkBufferImageCopy2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/copies.html"
         },
         {
@@ -42230,7 +42240,7 @@
         },
         {
           "vuid": "VUID-VkBlitImageInfo2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/copies.html"
         },
         {
@@ -42318,7 +42328,7 @@
         },
         {
           "vuid": "VUID-VkImageBlit2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/copies.html"
         },
         {
@@ -44509,6 +44519,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDraw-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDraw-None-07639",
           "text": "If the <a href=\"#features-depthClipControl\"><code>depthClipControl</code></a> feature is enabled, and a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT</code> dynamic state enabled, then <a href=\"#vkCmdSetDepthClipNegativeOneToOneEXT\">vkCmdSetDepthClipNegativeOneToOneEXT</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
@@ -46120,6 +46135,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndexed-None-07849",
           "text": "If any of the <a href=\"#features-stippledRectangularLines\"><code>stippledRectangularLines</code></a>, <a href=\"#features-stippledBresenhamLines\"><code>stippledBresenhamLines</code></a> or <a href=\"#features-stippledSmoothLines\"><code>stippledSmoothLines</code></a> features are enabled and     a shader object is bound to any graphics stage, or     a bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_LINE_STIPPLE</code>     dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current     value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the     <a href=\"#dynamic-state-current-value\">current value</a> of     <code>stippledLineEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetLineStipple\">vkCmdSetLineStipple</a>     <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing     command",
+          "page": "chapters/drawing.html"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndexed-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -47744,6 +47764,11 @@
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-None-07849",
           "text": "If any of the <a href=\"#features-stippledRectangularLines\"><code>stippledRectangularLines</code></a>, <a href=\"#features-stippledBresenhamLines\"><code>stippledBresenhamLines</code></a> or <a href=\"#features-stippledSmoothLines\"><code>stippledSmoothLines</code></a> features are enabled and     a shader object is bound to any graphics stage, or     a bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_LINE_STIPPLE</code>     dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current     value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the     <a href=\"#dynamic-state-current-value\">current value</a> of     <code>stippledLineEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetLineStipple\">vkCmdSetLineStipple</a>     <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing     command",
+          "page": "chapters/drawing.html"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMultiEXT-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -49378,6 +49403,11 @@
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-None-07849",
           "text": "If any of the <a href=\"#features-stippledRectangularLines\"><code>stippledRectangularLines</code></a>, <a href=\"#features-stippledBresenhamLines\"><code>stippledBresenhamLines</code></a> or <a href=\"#features-stippledSmoothLines\"><code>stippledSmoothLines</code></a> features are enabled and     a shader object is bound to any graphics stage, or     a bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_LINE_STIPPLE</code>     dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current     value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the     <a href=\"#dynamic-state-current-value\">current value</a> of     <code>stippledLineEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetLineStipple\">vkCmdSetLineStipple</a>     <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing     command",
+          "page": "chapters/drawing.html"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMultiIndexedEXT-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -51027,6 +51057,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndirect-None-07849",
           "text": "If any of the <a href=\"#features-stippledRectangularLines\"><code>stippledRectangularLines</code></a>, <a href=\"#features-stippledBresenhamLines\"><code>stippledBresenhamLines</code></a> or <a href=\"#features-stippledSmoothLines\"><code>stippledSmoothLines</code></a> features are enabled and     a shader object is bound to any graphics stage, or     a bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_LINE_STIPPLE</code>     dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current     value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the     <a href=\"#dynamic-state-current-value\">current value</a> of     <code>stippledLineEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetLineStipple\">vkCmdSetLineStipple</a>     <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing     command",
+          "page": "chapters/drawing.html"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndirect-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -52693,6 +52728,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawIndirectCount-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawIndirectCount-None-07639",
           "text": "If the <a href=\"#features-depthClipControl\"><code>depthClipControl</code></a> feature is enabled, and a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT</code> dynamic state enabled, then <a href=\"#vkCmdSetDepthClipNegativeOneToOneEXT\">vkCmdSetDepthClipNegativeOneToOneEXT</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
@@ -54354,6 +54394,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-None-07849",
           "text": "If any of the <a href=\"#features-stippledRectangularLines\"><code>stippledRectangularLines</code></a>, <a href=\"#features-stippledBresenhamLines\"><code>stippledBresenhamLines</code></a> or <a href=\"#features-stippledSmoothLines\"><code>stippledSmoothLines</code></a> features are enabled and     a shader object is bound to any graphics stage, or     a bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_LINE_STIPPLE</code>     dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current     value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the     <a href=\"#dynamic-state-current-value\">current value</a> of     <code>stippledLineEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetLineStipple\">vkCmdSetLineStipple</a>     <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing     command",
+          "page": "chapters/drawing.html"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndexedIndirect-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -56030,6 +56075,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawIndexedIndirectCount-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-None-07639",
           "text": "If the <a href=\"#features-depthClipControl\"><code>depthClipControl</code></a> feature is enabled, and a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT</code> dynamic state enabled, then <a href=\"#vkCmdSetDepthClipNegativeOneToOneEXT\">vkCmdSetDepthClipNegativeOneToOneEXT</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
@@ -57696,6 +57746,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-None-07849",
           "text": "If any of the <a href=\"#features-stippledRectangularLines\"><code>stippledRectangularLines</code></a>, <a href=\"#features-stippledBresenhamLines\"><code>stippledBresenhamLines</code></a> or <a href=\"#features-stippledSmoothLines\"><code>stippledSmoothLines</code></a> features are enabled and     a shader object is bound to any graphics stage, or     a bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_LINE_STIPPLE</code>     dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current     value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the     <a href=\"#dynamic-state-current-value\">current value</a> of     <code>stippledLineEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetLineStipple\">vkCmdSetLineStipple</a>     <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing     command",
+          "page": "chapters/drawing.html"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -59470,6 +59525,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawMeshTasksNV-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-None-07639",
           "text": "If the <a href=\"#features-depthClipControl\"><code>depthClipControl</code></a> feature is enabled, and a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT</code> dynamic state enabled, then <a href=\"#vkCmdSetDepthClipNegativeOneToOneEXT\">vkCmdSetDepthClipNegativeOneToOneEXT</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
@@ -60971,6 +61031,11 @@
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-None-07849",
           "text": "If any of the <a href=\"#features-stippledRectangularLines\"><code>stippledRectangularLines</code></a>, <a href=\"#features-stippledBresenhamLines\"><code>stippledBresenhamLines</code></a> or <a href=\"#features-stippledSmoothLines\"><code>stippledSmoothLines</code></a> features are enabled and     a shader object is bound to any graphics stage, or     a bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_LINE_STIPPLE</code>     dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current     value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the     <a href=\"#dynamic-state-current-value\">current value</a> of     <code>stippledLineEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetLineStipple\">vkCmdSetLineStipple</a>     <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing     command",
+          "page": "chapters/drawing.html"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -62534,6 +62599,11 @@
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-None-07849",
           "text": "If any of the <a href=\"#features-stippledRectangularLines\"><code>stippledRectangularLines</code></a>, <a href=\"#features-stippledBresenhamLines\"><code>stippledBresenhamLines</code></a> or <a href=\"#features-stippledSmoothLines\"><code>stippledSmoothLines</code></a> features are enabled and     a shader object is bound to any graphics stage, or     a bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_LINE_STIPPLE</code>     dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current     value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the     <a href=\"#dynamic-state-current-value\">current value</a> of     <code>stippledLineEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetLineStipple\">vkCmdSetLineStipple</a>     <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing     command",
+          "page": "chapters/drawing.html"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -64111,6 +64181,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawMeshTasksEXT-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-None-07639",
           "text": "If the <a href=\"#features-depthClipControl\"><code>depthClipControl</code></a> feature is enabled, and a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT</code> dynamic state enabled, then <a href=\"#vkCmdSetDepthClipNegativeOneToOneEXT\">vkCmdSetDepthClipNegativeOneToOneEXT</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
@@ -65647,6 +65722,11 @@
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-None-07849",
           "text": "If any of the <a href=\"#features-stippledRectangularLines\"><code>stippledRectangularLines</code></a>, <a href=\"#features-stippledBresenhamLines\"><code>stippledBresenhamLines</code></a> or <a href=\"#features-stippledSmoothLines\"><code>stippledSmoothLines</code></a> features are enabled and     a shader object is bound to any graphics stage, or     a bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_LINE_STIPPLE</code>     dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current     value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the     <a href=\"#dynamic-state-current-value\">current value</a> of     <code>stippledLineEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetLineStipple\">vkCmdSetLineStipple</a>     <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing     command",
+          "page": "chapters/drawing.html"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -67248,6 +67328,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-None-07639",
           "text": "If the <a href=\"#features-depthClipControl\"><code>depthClipControl</code></a> feature is enabled, and a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT</code> dynamic state enabled, then <a href=\"#vkCmdSetDepthClipNegativeOneToOneEXT\">vkCmdSetDepthClipNegativeOneToOneEXT</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
@@ -68822,6 +68907,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawClusterHUAWEI-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-None-07639",
           "text": "If the <a href=\"#features-depthClipControl\"><code>depthClipControl</code></a> feature is enabled, and a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT</code> dynamic state enabled, then <a href=\"#vkCmdSetDepthClipNegativeOneToOneEXT\">vkCmdSetDepthClipNegativeOneToOneEXT</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
@@ -70341,6 +70431,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-None-07639",
           "text": "If the <a href=\"#features-depthClipControl\"><code>depthClipControl</code></a> feature is enabled, and a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT</code> dynamic state enabled, then <a href=\"#vkCmdSetDepthClipNegativeOneToOneEXT\">vkCmdSetDepthClipNegativeOneToOneEXT</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
@@ -70826,7 +70921,7 @@
         },
         {
           "vuid": "VUID-VkPipelineVertexInputStateCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/fxvertex.html"
         },
         {
@@ -71301,7 +71396,7 @@
         },
         {
           "vuid": "VUID-VkPipelineTessellationStateCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/tessellation.html"
         },
         {
@@ -72053,7 +72148,7 @@
         },
         {
           "vuid": "VUID-VkPipelineViewportStateCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/vertexpostproc.html"
         },
         {
@@ -72338,7 +72433,7 @@
         },
         {
           "vuid": "VUID-VkPipelineRasterizationStateCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/primsrast.html"
         },
         {
@@ -72411,7 +72506,7 @@
         },
         {
           "vuid": "VUID-VkPipelineMultisampleStateCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/primsrast.html"
         },
         {
@@ -73635,7 +73730,7 @@
         },
         {
           "vuid": "VUID-VkDepthBiasInfoEXT-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/primsrast.html"
         }
       ]
@@ -75086,7 +75181,7 @@
         },
         {
           "vuid": "VUID-VkPipelineColorBlendStateCreateInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/framebuffer.html"
         },
         {
@@ -77538,7 +77633,7 @@
         },
         {
           "vuid": "VUID-VkIndirectCommandsLayoutCreateInfoEXT-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/device_generated_commands/generatedcommands.html"
         },
         {
@@ -78248,7 +78343,7 @@
         },
         {
           "vuid": "VUID-VkGeneratedCommandsMemoryRequirementsInfoEXT-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/device_generated_commands/generatedcommands.html"
         },
         {
@@ -79981,6 +80076,11 @@
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-None-07849",
           "text": "If any of the <a href=\"#features-stippledRectangularLines\"><code>stippledRectangularLines</code></a>, <a href=\"#features-stippledBresenhamLines\"><code>stippledBresenhamLines</code></a> or <a href=\"#features-stippledSmoothLines\"><code>stippledSmoothLines</code></a> features are enabled and     a shader object is bound to any graphics stage, or     a bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_LINE_STIPPLE</code>     dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current     value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the     <a href=\"#dynamic-state-current-value\">current value</a> of     <code>stippledLineEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetLineStipple\">vkCmdSetLineStipple</a>     <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing     command",
+          "page": "chapters/device_generated_commands/generatedcommands.html"
+        },
+        {
+          "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
           "page": "chapters/device_generated_commands/generatedcommands.html"
         },
         {
@@ -81831,6 +81931,11 @@
           "page": "chapters/device_generated_commands/generatedcommands.html"
         },
         {
+          "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-None-10608",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT</code> dynamic state enabled, and the current <code>lineRasterizationMode</code> is <code>VK_LINE_RASTERIZATION_MODE_BRESENHAM</code> or <code>VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH</code>, then the current <code>alphaToCoverageEnable</code>, <code>alphaToOneEnable</code> and <code>sampleShadingEnable</code> states <strong class=\"purple\">must</strong> all be <code>VK_FALSE</code>",
+          "page": "chapters/device_generated_commands/generatedcommands.html"
+        },
+        {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-None-07639",
           "text": "If the <a href=\"#features-depthClipControl\"><code>depthClipControl</code></a> feature is enabled, and a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT</code> dynamic state enabled, then <a href=\"#vkCmdSetDepthClipNegativeOneToOneEXT\">vkCmdSetDepthClipNegativeOneToOneEXT</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/device_generated_commands/generatedcommands.html"
@@ -83149,7 +83254,7 @@
         },
         {
           "vuid": "VUID-VkBindSparseInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/sparsemem.html"
         },
         {
@@ -84229,7 +84334,7 @@
         },
         {
           "vuid": "VUID-VkDisplayModeProperties2KHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/VK_KHR_surface/wsi.html"
         }
       ]
@@ -84512,7 +84617,7 @@
         },
         {
           "vuid": "VUID-VkDisplaySurfaceCreateInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/VK_KHR_surface/wsi.html"
         },
         {
@@ -84839,7 +84944,7 @@
         },
         {
           "vuid": "VUID-VkPhysicalDeviceSurfaceInfo2KHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/VK_KHR_surface/wsi.html"
         }
       ]
@@ -84886,7 +84991,7 @@
         },
         {
           "vuid": "VUID-VkSurfaceCapabilities2KHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/VK_KHR_surface/wsi.html"
         }
       ]
@@ -85118,7 +85223,7 @@
         },
         {
           "vuid": "VUID-VkSurfaceFormat2KHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/VK_KHR_surface/wsi.html"
         }
       ]
@@ -85629,7 +85734,7 @@
         },
         {
           "vuid": "VUID-VkSwapchainCreateInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/VK_KHR_surface/wsi.html"
         },
         {
@@ -86294,7 +86399,7 @@
         },
         {
           "vuid": "VUID-VkPresentInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/VK_KHR_surface/wsi.html"
         },
         {
@@ -86714,7 +86819,7 @@
         },
         {
           "vuid": "VUID-VkHdrMetadataEXT-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/VK_KHR_surface/wsi.html"
         }
       ]
@@ -87736,6 +87841,11 @@
           "page": "chapters/accelstructures.html"
         },
         {
+          "vuid": "VUID-vkCmdBuildAccelerationStructuresKHR-pInfos-10607",
+          "text": "For any element of <code>pInfos</code>[i].<code>pGeometries</code> or <code>pInfos</code>[i].<code>ppGeometries</code> with a <code>geometryType</code> of <code>VK_GEOMETRY_TYPE_INSTANCES_KHR</code>, if <code>VK_GEOMETRY_INSTANCE_DISABLE_OPACITY_MICROMAPS_EXT</code> is set in <a href=\"#VkAccelerationStructureInstanceKHR\">VkAccelerationStructureInstanceKHR</a>::<code>flags</code> then <code>geometry.instances.data.deviceAddress</code> <strong class=\"purple\">must</strong> refer to an acceleration structure that was built with <code>VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_DISABLE_OPACITY_MICROMAPS_EXT</code> set in <a href=\"#VkAccelerationStructureBuildGeometryInfoKHR\">VkAccelerationStructureBuildGeometryInfoKHR</a>::<code>flags</code>",
+          "page": "chapters/accelstructures.html"
+        },
+        {
           "vuid": "VUID-vkCmdBuildAccelerationStructuresKHR-commandBuffer-09547",
           "text": "<code>commandBuffer</code> <strong class=\"purple\">must</strong> not be a protected command buffer",
           "page": "chapters/accelstructures.html"
@@ -88100,6 +88210,11 @@
           "page": "chapters/accelstructures.html"
         },
         {
+          "vuid": "VUID-vkCmdBuildAccelerationStructuresIndirectKHR-pInfos-10607",
+          "text": "For any element of <code>pInfos</code>[i].<code>pGeometries</code> or <code>pInfos</code>[i].<code>ppGeometries</code> with a <code>geometryType</code> of <code>VK_GEOMETRY_TYPE_INSTANCES_KHR</code>, if <code>VK_GEOMETRY_INSTANCE_DISABLE_OPACITY_MICROMAPS_EXT</code> is set in <a href=\"#VkAccelerationStructureInstanceKHR\">VkAccelerationStructureInstanceKHR</a>::<code>flags</code> then <code>geometry.instances.data.deviceAddress</code> <strong class=\"purple\">must</strong> refer to an acceleration structure that was built with <code>VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_DISABLE_OPACITY_MICROMAPS_EXT</code> set in <a href=\"#VkAccelerationStructureBuildGeometryInfoKHR\">VkAccelerationStructureBuildGeometryInfoKHR</a>::<code>flags</code>",
+          "page": "chapters/accelstructures.html"
+        },
+        {
           "vuid": "VUID-vkCmdBuildAccelerationStructuresIndirectKHR-commandBuffer-09547",
           "text": "<code>commandBuffer</code> <strong class=\"purple\">must</strong> not be a protected command buffer",
           "page": "chapters/accelstructures.html"
@@ -88319,7 +88434,7 @@
         },
         {
           "vuid": "VUID-VkAccelerationStructureGeometryKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/accelstructures.html"
         },
         {
@@ -88383,7 +88498,7 @@
         },
         {
           "vuid": "VUID-VkAccelerationStructureGeometryTrianglesDataKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/accelstructures.html"
         },
         {
@@ -90068,7 +90183,7 @@
         },
         {
           "vuid": "VUID-VkPartitionedAccelerationStructureInstancesInputNV-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/accelstructures.html"
         },
         {
@@ -94696,7 +94811,7 @@
         },
         {
           "vuid": "VUID-VkVideoCapabilitiesKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         }
       ]
@@ -94744,7 +94859,7 @@
         },
         {
           "vuid": "VUID-VkPhysicalDeviceVideoFormatInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         },
         {
@@ -94773,7 +94888,7 @@
         },
         {
           "vuid": "VUID-VkVideoFormatPropertiesKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         }
       ]
@@ -94936,7 +95051,7 @@
         },
         {
           "vuid": "VUID-VkVideoSessionCreateInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         },
         {
@@ -95324,7 +95439,7 @@
         },
         {
           "vuid": "VUID-VkVideoSessionParametersCreateInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         },
         {
@@ -95565,7 +95680,7 @@
         },
         {
           "vuid": "VUID-VkVideoSessionParametersUpdateInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         }
       ]
@@ -95773,7 +95888,7 @@
         },
         {
           "vuid": "VUID-VkVideoBeginCodingInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         },
         {
@@ -95822,7 +95937,7 @@
         },
         {
           "vuid": "VUID-VkVideoReferenceSlotInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         },
         {
@@ -95968,7 +96083,7 @@
         },
         {
           "vuid": "VUID-VkVideoCodingControlInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         },
         {
@@ -96489,7 +96604,7 @@
         },
         {
           "vuid": "VUID-VkVideoDecodeInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         },
         {
@@ -96955,7 +97070,7 @@
         },
         {
           "vuid": "VUID-VkVideoEncodeQualityLevelPropertiesKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         }
       ]
@@ -97057,7 +97172,7 @@
         },
         {
           "vuid": "VUID-VkVideoEncodeSessionParametersGetInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         },
         {
@@ -97081,7 +97196,7 @@
         },
         {
           "vuid": "VUID-VkVideoEncodeSessionParametersFeedbackInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         }
       ]
@@ -97739,7 +97854,7 @@
         },
         {
           "vuid": "VUID-VkVideoEncodeInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         },
         {
@@ -97882,7 +97997,7 @@
         },
         {
           "vuid": "VUID-VkVideoEncodeRateControlLayerInfoKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/videocoding.html"
         }
       ]
@@ -98936,7 +99051,7 @@
         },
         {
           "vuid": "VUID-VkOpticalFlowSessionCreateInfoNV-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/VK_NV_optical_flow/optical_flow.html"
         },
         {
@@ -99419,7 +99534,7 @@
         },
         {
           "vuid": "VUID-VkExecutionGraphPipelineCreateInfoAMDX-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/executiongraphs.html"
         },
         {
@@ -103259,7 +103374,7 @@
         },
         {
           "vuid": "VUID-VkPhysicalDeviceLayeredApiPropertiesKHR-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/limits.html"
         }
       ]
@@ -103958,7 +104073,7 @@
         },
         {
           "vuid": "VUID-VkFormatProperties2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/formats.html"
         }
       ]
@@ -104155,7 +104270,7 @@
         },
         {
           "vuid": "VUID-VkPhysicalDeviceImageFormatInfo2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/capabilities.html"
         },
         {
@@ -104204,7 +104319,7 @@
         },
         {
           "vuid": "VUID-VkImageFormatProperties2-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/capabilities.html"
         }
       ]
@@ -104368,7 +104483,7 @@
         },
         {
           "vuid": "VUID-VkPhysicalDeviceExternalBufferInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/capabilities.html"
         },
         {
@@ -104430,7 +104545,7 @@
         },
         {
           "vuid": "VUID-VkPhysicalDeviceExternalSemaphoreInfo-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/capabilities.html"
         },
         {
@@ -104900,7 +105015,7 @@
         },
         {
           "vuid": "VUID-VkDebugUtilsMessengerCallbackDataEXT-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "chapters/debugging.html"
         },
         {
@@ -105727,6 +105842,11 @@
         {
           "vuid": "VUID-StandaloneSpirv-OpMemoryBarrier-04733",
           "text": "<code>OpMemoryBarrier</code> <strong class=\"purple\">must</strong> include at least one <code>Storage</code> <code>Class</code>",
+          "page": "appendices/spirvenv.html"
+        },
+        {
+          "vuid": "VUID-StandaloneSpirv-OpControlBarrier-10609",
+          "text": "If the semantics for <code>OpControlBarrier</code> includes at least one <code>Storage</code> <code>Class</code>, then it <strong class=\"purple\">must</strong> include one of <code>Acquire</code>, <code>Release</code>, <code>AcquireRelease</code>, or <code>SequentiallyConsistent</code> memory semantics",
           "page": "appendices/spirvenv.html"
         },
         {
@@ -107745,7 +107865,7 @@
         },
         {
           "vuid": "VUID-VkCuModuleCreateInfoNVX-sType-unique",
-          "text": "The <code>sType</code> value of each struct in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
+          "text": "The <code>sType</code> value of each structure in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be unique",
           "page": "appendices/extensions.html"
         },
         {
