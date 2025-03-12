@@ -60,6 +60,7 @@ INIT_DICT = {
 # These are the only entry points that are allowed while pixel local storage is active.
 PLS_ALLOW_LIST = {
     "ActiveTexture",
+    "BeginTransformFeedback",
     "BindBuffer",
     "BindBufferBase",
     "BindBufferRange",
@@ -83,6 +84,7 @@ PLS_ALLOW_LIST = {
     "DepthRangef",
     "Disable",
     "DisableVertexAttribArray",
+    "DiscardFramebufferEXT",
     "DispatchComputeIndirect",
     "DrawBuffers",
     "Enable",
@@ -95,12 +97,16 @@ PLS_ALLOW_LIST = {
     "FramebufferPixelLocalStorageInterruptANGLE",
     "FramebufferRenderbuffer",
     "FrontFace",
+    "InvalidateFramebuffer",
+    "InvalidateSubFramebuffer",
+    "InvalidateTextureANGLE",
     "MapBufferRange",
     "PixelLocalStorageBarrierANGLE",
     "ProvokingVertexANGLE",
     "ReadBuffer",
     "ReadPixels",
     "Scissor",
+    "StartTilingQCOM",
     "StencilFunc",
     "StencilFuncSeparate",
     "StencilMask",
@@ -143,6 +149,7 @@ PLS_ALLOW_WILDCARDS = [
     "PushDebugGroup*",
     "SamplerParameter*",
     "TexParameter*",
+    "TexSubImage*",
     "Uniform*",
     "VertexAttrib*",
 ]
@@ -150,6 +157,7 @@ PLS_ALLOW_WILDCARDS = [
 # These entry points implicitly disable pixel local storage (if active) before running and before
 # validation.
 PLS_DISABLE_LIST = {
+    "glBeginTransformFeedback",
     "glBlitFramebuffer",
     "glBindFramebuffer",
     "glCopyTexImage2D",
@@ -157,6 +165,7 @@ PLS_DISABLE_LIST = {
     "glFramebufferMemorylessPixelLocalStorageANGLE",
     "glFramebufferRenderbuffer",
     "glReadPixels",
+    "glStartTilingQCOM",
 }
 PLS_DISABLE_WILDCARDS = [
     "glCopyTexSubImage*",

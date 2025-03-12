@@ -2013,7 +2013,7 @@ void PrivateState::getIntegerv(GLenum pname, GLint *params) const
             *params = mStencilRef;
             break;
         case GL_STENCIL_VALUE_MASK:
-            *params = CastMaskValue(mDepthStencil.stencilMask);
+            *params = mDepthStencil.stencilMask;
             break;
         case GL_STENCIL_BACK_FUNC:
             *params = mDepthStencil.stencilBackFunc;
@@ -2022,7 +2022,7 @@ void PrivateState::getIntegerv(GLenum pname, GLint *params) const
             *params = mStencilBackRef;
             break;
         case GL_STENCIL_BACK_VALUE_MASK:
-            *params = CastMaskValue(mDepthStencil.stencilBackMask);
+            *params = mDepthStencil.stencilBackMask;
             break;
         case GL_STENCIL_FAIL:
             *params = mDepthStencil.stencilFail;
@@ -2065,10 +2065,10 @@ void PrivateState::getIntegerv(GLenum pname, GLint *params) const
             *params = ToGLenum(mBlendStateExt.getEquationAlphaIndexed(0));
             break;
         case GL_STENCIL_WRITEMASK:
-            *params = CastMaskValue(mDepthStencil.stencilWritemask);
+            *params = mDepthStencil.stencilWritemask;
             break;
         case GL_STENCIL_BACK_WRITEMASK:
-            *params = CastMaskValue(mDepthStencil.stencilBackWritemask);
+            *params = mDepthStencil.stencilBackWritemask;
             break;
         case GL_STENCIL_CLEAR_VALUE:
             *params = mStencilClearValue;
@@ -2656,6 +2656,29 @@ void State::initializeZeroTextures(const Context *context, const TextureMap &zer
 void State::invalidateTextureBindings(TextureType type)
 {
     mDirtyBits.set(state::DIRTY_BIT_TEXTURE_BINDINGS);
+}
+
+bool State::isTextureBoundToActivePLS(TextureID textureID) const
+{
+    if (getPixelLocalStorageActivePlanes() == 0)
+    {
+        return false;
+    }
+    PixelLocalStorage *pls = getDrawFramebuffer()->peekPixelLocalStorage();
+    if (pls == nullptr)
+    {
+        // Even though there is a nonzero number of active PLS planes, peekPixelLocalStorage() may
+        // still return null if we are in the middle of deleting the active framebuffer.
+        return false;
+    }
+    for (GLuint i = 0; i < getCaps().maxPixelLocalStoragePlanes; ++i)
+    {
+        if (pls->getPlane(i).getTextureID() == textureID)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 void State::setSamplerBinding(const Context *context, GLuint textureUnit, Sampler *sampler)
