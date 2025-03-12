@@ -60,6 +60,7 @@ INIT_DICT = {
 # These are the only entry points that are allowed while pixel local storage is active.
 PLS_ALLOW_LIST = {
     "ActiveTexture",
+    "BeginTransformFeedback",
     "BindBuffer",
     "BindBufferBase",
     "BindBufferRange",
@@ -83,6 +84,7 @@ PLS_ALLOW_LIST = {
     "DepthRangef",
     "Disable",
     "DisableVertexAttribArray",
+    "DiscardFramebufferEXT",
     "DispatchComputeIndirect",
     "DrawBuffers",
     "Enable",
@@ -95,12 +97,16 @@ PLS_ALLOW_LIST = {
     "FramebufferPixelLocalStorageInterruptANGLE",
     "FramebufferRenderbuffer",
     "FrontFace",
+    "InvalidateFramebuffer",
+    "InvalidateSubFramebuffer",
+    "InvalidateTextureANGLE",
     "MapBufferRange",
     "PixelLocalStorageBarrierANGLE",
     "ProvokingVertexANGLE",
     "ReadBuffer",
     "ReadPixels",
     "Scissor",
+    "StartTilingQCOM",
     "StencilFunc",
     "StencilFuncSeparate",
     "StencilMask",
@@ -143,6 +149,7 @@ PLS_ALLOW_WILDCARDS = [
     "PushDebugGroup*",
     "SamplerParameter*",
     "TexParameter*",
+    "TexSubImage*",
     "Uniform*",
     "VertexAttrib*",
 ]
@@ -150,6 +157,7 @@ PLS_ALLOW_WILDCARDS = [
 # These entry points implicitly disable pixel local storage (if active) before running and before
 # validation.
 PLS_DISABLE_LIST = {
+    "glBeginTransformFeedback",
     "glBlitFramebuffer",
     "glBindFramebuffer",
     "glCopyTexImage2D",
@@ -157,6 +165,7 @@ PLS_DISABLE_LIST = {
     "glFramebufferMemorylessPixelLocalStorageANGLE",
     "glFramebufferRenderbuffer",
     "glReadPixels",
+    "glStartTilingQCOM",
 }
 PLS_DISABLE_WILDCARDS = [
     "glCopyTexSubImage*",
@@ -1120,7 +1129,6 @@ FORMAT_DICT = {
     "EGLTimeKHR": UNSIGNED_LONG_LONG_FORMAT,
     "EGLImageKHR": POINTER_FORMAT,
     "EGLStreamKHR": POINTER_FORMAT,
-    "EGLFrameTokenANGLE": HEX_LONG_LONG_FORMAT,
     # CL-specific types
     "size_t": "%zu",
     "cl_char": "%hhd",
@@ -3338,7 +3346,6 @@ def get_prepare_swap_buffers_call(api, cmd_name, params):
     if cmd_name not in [
             "eglSwapBuffers",
             "eglSwapBuffersWithDamageKHR",
-            "eglSwapBuffersWithFrameTokenANGLE",
             "eglQuerySurface",
             "eglQuerySurface64KHR",
     ]:
@@ -3390,9 +3397,8 @@ def get_unlocked_tail_call(api, cmd_name):
     #
     # - eglPrepareSwapBuffersANGLE -> Calls vkAcquireNextImageKHR in tail call
     #
-    # - eglSwapBuffers, eglSwapBuffersWithDamageKHR and
-    #   eglSwapBuffersWithFrameTokenANGLE -> May throttle the CPU in tail call or
-    #   calls native EGL function
+    # - eglSwapBuffers and eglSwapBuffersWithDamageKHR -> May throttle the CPU
+    #   in tail call or calls native EGL function
     #
     # - eglClientWaitSyncKHR, eglClientWaitSync, glClientWaitSync,
     #   glFinishFenceNV -> May wait on fence in tail call or call native EGL function
@@ -3415,8 +3421,8 @@ def get_unlocked_tail_call(api, cmd_name):
     if (cmd_name in [
             'eglDestroySurface', 'eglMakeCurrent', 'eglReleaseThread', 'eglCreateWindowSurface',
             'eglCreatePlatformWindowSurface', 'eglCreatePlatformWindowSurfaceEXT',
-            'eglPrepareSwapBuffersANGLE', 'eglSwapBuffersWithFrameTokenANGLE', 'glFinishFenceNV',
-            'glCompileShader', 'glLinkProgram', 'glShaderBinary', 'glFlush', 'glFinish'
+            'eglPrepareSwapBuffersANGLE', 'glFinishFenceNV', 'glCompileShader', 'glLinkProgram',
+            'glShaderBinary', 'glFlush', 'glFinish'
     ] or cmd_name.startswith('glTexImage2D') or cmd_name.startswith('glTexImage3D') or
             cmd_name.startswith('glTexSubImage2D') or cmd_name.startswith('glTexSubImage3D') or
             cmd_name.startswith('glCompressedTexImage2D') or
