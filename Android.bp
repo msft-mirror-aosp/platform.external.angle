@@ -7317,52 +7317,6 @@ cc_defaults {
 }
 
 cc_defaults {
-    name: "third_party_abseil_cpp_absl_types_bad_variant_access",
-    srcs: [
-        "third_party/abseil-cpp/absl/types/bad_variant_access.cc",
-    ],
-    defaults: [
-        "angle_common_auto_cflags",
-        "angle_common_library_cflags",
-        "buildtools_third_party_libc++_std",
-        "buildtools_third_party_libc++_std_config",
-        "buildtools_third_party_libc++_std_core",
-        "buildtools_third_party_libc++_std_ctype_h",
-        "buildtools_third_party_libc++_std_errno_h",
-        "buildtools_third_party_libc++_std_fenv_h",
-        "buildtools_third_party_libc++_std_float_h",
-        "buildtools_third_party_libc++_std_inttypes_h",
-        "buildtools_third_party_libc++_std_math_h",
-        "buildtools_third_party_libc++_std_private_mbstate_t",
-        "buildtools_third_party_libc++_std_string_h",
-        "buildtools_third_party_libc++_std_uchar_h",
-        "buildtools_third_party_libc++_std_wctype_h",
-        "third_party_abseil_cpp_absl_base_config",
-        "third_party_abseil_cpp_absl_base_raw_logging_internal",
-    ],
-    local_include_dirs: [
-        "",
-        "third_party/abseil-cpp/",
-    ],
-    cflags: [
-        "-DABSL_ALLOCATOR_NOTHROW=1",
-        "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
-        "-Wno-unused-but-set-variable",
-        "-Wno-unused-variable",
-    ],
-    sdk_version: "current",
-    stl: "libc++_static",
-    arch: {
-        arm64: {
-            cflags: [
-                "-D__ARM_NEON__=1",
-            ],
-        },
-    },
-}
-
-cc_defaults {
     name: "third_party_abseil_cpp_absl_types_variant",
     defaults: [
         "angle_common_auto_cflags",
@@ -7380,11 +7334,7 @@ cc_defaults {
         "buildtools_third_party_libc++_std_string_h",
         "buildtools_third_party_libc++_std_uchar_h",
         "buildtools_third_party_libc++_std_wctype_h",
-        "third_party_abseil_cpp_absl_base_base_internal",
         "third_party_abseil_cpp_absl_base_config",
-        "third_party_abseil_cpp_absl_base_core_headers",
-        "third_party_abseil_cpp_absl_meta_type_traits",
-        "third_party_abseil_cpp_absl_types_bad_variant_access",
         "third_party_abseil_cpp_absl_utility_utility",
     ],
     local_include_dirs: [
@@ -7658,6 +7608,7 @@ cc_defaults {
         "buildtools_third_party_libc++_std_uchar_h",
         "buildtools_third_party_libc++_std_wctype_h",
         "third_party_abseil_cpp_absl_base_config",
+        "third_party_abseil_cpp_absl_base_core_headers",
         "third_party_abseil_cpp_absl_base_endian",
         "third_party_abseil_cpp_absl_base_prefetch",
         "third_party_abseil_cpp_absl_numeric_int128",
