@@ -2570,6 +2570,7 @@ class ImageHelper final : public Resource, public angle::Subject
     void clearRenderPassUsageFlag(RenderPassUsage flag);
     void resetRenderPassUsageFlags();
     bool hasRenderPassUsageFlag(RenderPassUsage flag) const;
+    bool hasAnyRenderPassUsageFlags() const;
     bool usedByCurrentRenderPassAsAttachmentAndSampler(RenderPassUsage textureSamplerUsage) const;
 
     static void Copy(Renderer *renderer,
@@ -2969,11 +2970,13 @@ class ImageHelper final : public Resource, public angle::Subject
     bool hasSubresourceDefinedStencilContent(gl::LevelIndex level,
                                              uint32_t layerIndex,
                                              uint32_t layerCount) const;
+    void invalidateEntireLevelContent(vk::ErrorContext *context, gl::LevelIndex level);
     void invalidateSubresourceContent(ContextVk *contextVk,
                                       gl::LevelIndex level,
                                       uint32_t layerIndex,
                                       uint32_t layerCount,
                                       bool *preferToKeepContentsDefinedOut);
+    void invalidateEntireLevelStencilContent(vk::ErrorContext *context, gl::LevelIndex level);
     void invalidateSubresourceStencilContent(ContextVk *contextVk,
                                              gl::LevelIndex level,
                                              uint32_t layerIndex,
@@ -3301,13 +3304,14 @@ class ImageHelper final : public Resource, public angle::Subject
                            uint32_t layerStart,
                            uint32_t layerCount,
                            VkImageAspectFlags aspectFlags);
-    void invalidateSubresourceContentImpl(ContextVk *contextVk,
+    void invalidateSubresourceContentImpl(vk::ErrorContext *context,
                                           gl::LevelIndex level,
                                           uint32_t layerIndex,
                                           uint32_t layerCount,
                                           VkImageAspectFlagBits aspect,
                                           LevelContentDefinedMask *contentDefinedMask,
-                                          bool *preferToKeepContentsDefinedOut);
+                                          bool *preferToKeepContentsDefinedOut,
+                                          bool *layerLimitReachedOut);
     void restoreSubresourceContentImpl(gl::LevelIndex level,
                                        uint32_t layerIndex,
                                        uint32_t layerCount,
