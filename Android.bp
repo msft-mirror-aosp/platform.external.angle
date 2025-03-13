@@ -7472,6 +7472,7 @@ cc_defaults {
         "buildtools_third_party_libc++_std_wctype_h",
         "third_party_abseil_cpp_absl_base_config",
         "third_party_abseil_cpp_absl_base_core_headers",
+        "third_party_abseil_cpp_absl_base_endian",
     ],
     local_include_dirs: [
         "",
