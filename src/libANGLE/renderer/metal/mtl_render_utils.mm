@@ -312,146 +312,36 @@ angle::Result GenTriFanFromClientElements(ContextMtl *contextMtl,
     return angle::Result::Continue;
 }
 
-template <typename T>
-angle::Result GenPrimitiveRestartBuffer(ContextMtl *contextMtl,
-                                        GLsizei count,
-                                        GLsizei indicesPerPrimitive,
-                                        const T *indices,
-                                        const BufferRef &dstBuffer,
-                                        uint32_t dstOffset,
-                                        size_t *indicesGenerated)
+// Converts line loop vertices to line strip vertices.
+// Returns number of vertices written.
+template <typename In, typename Out>
+size_t CopyLineLoopIndices(GLsizei indexCount,
+                           const uint8_t *indices,
+                           bool usePrimitiveRestart,
+                           uint8_t *outIndices)
 {
-    constexpr T kSrcPrimitiveRestartIndex = std::numeric_limits<T>::max();
-    uint32_t *dstPtr     = reinterpret_cast<uint32_t *>(dstBuffer->map(contextMtl) + dstOffset);
-    GLsizei readValueLoc = 0;
-    T readValue          = 0;
-    uint32_t dstIdx      = 0;
-    memcpy(&readValue, indices, sizeof(readValue));
-    while (readValue == kSrcPrimitiveRestartIndex)
+    if (usePrimitiveRestart)
     {
-
-        ++readValueLoc;
-        memcpy(&readValue, indices + readValueLoc, sizeof(readValue));
+        return CopyLineLoopIndicesWithRestart<In, Out>(indexCount, indices, outIndices);
     }
-    while (readValueLoc + indicesPerPrimitive <= count)
+    if (indexCount <= 0)
     {
-
-        uint32_t primIndicies[3];
-        bool foundPrimitive = true;
-        for (int k = 0; k < indicesPerPrimitive; ++k)
-        {
-            memcpy(&readValue, indices + readValueLoc, sizeof(readValue));
-            ++readValueLoc;
-            if (readValue == kSrcPrimitiveRestartIndex)
-            {
-                foundPrimitive = false;
-                break;
-            }
-            else
-            {
-                primIndicies[k] = (uint32_t)readValue;
-            }
-        }
-        if (foundPrimitive)
-        {
-            memcpy(&dstPtr[dstIdx], primIndicies, (indicesPerPrimitive) * sizeof(uint32_t));
-            dstIdx += indicesPerPrimitive;
-        }
+        return 0;
     }
-    if (indicesGenerated)
-        *indicesGenerated = dstIdx;
-    return angle::Result::Continue;
-}
-
-template <typename T>
-angle::Result GenLineLoopFromClientElements(ContextMtl *contextMtl,
-                                            GLsizei count,
-                                            bool primitiveRestartEnabled,
-                                            const T *indices,
-                                            const BufferRef &dstBuffer,
-                                            uint32_t dstOffset,
-                                            uint32_t *indicesGenerated)
-{
-    ASSERT(count >= 2);
-    constexpr T kSrcPrimitiveRestartIndex    = std::numeric_limits<T>::max();
-    const uint32_t kDstPrimitiveRestartIndex = std::numeric_limits<uint32_t>::max();
-
-    uint32_t *dstPtr = reinterpret_cast<uint32_t *>(dstBuffer->map(contextMtl) + dstOffset);
-    // lineLoopFirstIdx: value of of current line loop's first vertex index. Can change when
-    // encounter a primitive restart index.
-    T lineLoopFirstIdx;
-    memcpy(&lineLoopFirstIdx, indices, sizeof(lineLoopFirstIdx));
-
-    if (primitiveRestartEnabled)
+    In firstValue;
+    memcpy(&firstValue, indices, sizeof(In));
+    for (GLsizei i = 0; i < indexCount; ++i)
     {
-        // lineLoopFirstIdxLoc: location of current line loop's first vertex in the source buffer.
-        GLsizei lineLoopFirstIdxLoc = 0;
-        while (lineLoopFirstIdx == kSrcPrimitiveRestartIndex)
-        {
-            memcpy(&dstPtr[lineLoopFirstIdxLoc++], &kDstPrimitiveRestartIndex,
-                   sizeof(kDstPrimitiveRestartIndex));
-            memcpy(&lineLoopFirstIdx, indices + lineLoopFirstIdxLoc, sizeof(lineLoopFirstIdx));
-        }
-
-        // dstIdx : value of index to be written to dest buffer
-        uint32_t dstIdx = lineLoopFirstIdx;
-        memcpy(&dstPtr[lineLoopFirstIdxLoc], &dstIdx, sizeof(dstIdx));
-        // dstWritten: number of indices written to dest buffer
-        uint32_t dstWritten = lineLoopFirstIdxLoc + 1;
-
-        for (GLsizei i = lineLoopFirstIdxLoc + 1; i < count; ++i)
-        {
-            // srcIdx : value of index from source buffer
-            T srcIdx;
-            memcpy(&srcIdx, indices + i, sizeof(srcIdx));
-            if (srcIdx == kSrcPrimitiveRestartIndex)
-            {
-                // breaking line strip
-                dstIdx = lineLoopFirstIdx;
-                memcpy(&dstPtr[dstWritten++], &dstIdx, sizeof(dstIdx));
-                memcpy(&dstPtr[dstWritten++], &kDstPrimitiveRestartIndex,
-                       sizeof(kDstPrimitiveRestartIndex));
-                lineLoopFirstIdxLoc = i + 1;
-            }
-            else
-            {
-                dstIdx = srcIdx;
-                memcpy(&dstPtr[dstWritten++], &dstIdx, sizeof(dstIdx));
-                if (lineLoopFirstIdxLoc == i)
-                {
-                    lineLoopFirstIdx = srcIdx;
-                }
-            }
-        }
-
-        if (lineLoopFirstIdxLoc < count)
-        {
-            // last segment
-            dstIdx = lineLoopFirstIdx;
-            memcpy(&dstPtr[dstWritten++], &dstIdx, sizeof(dstIdx));
-        }
-
-        *indicesGenerated = dstWritten;
+        In value;
+        memcpy(&value, indices, sizeof(In));
+        indices += sizeof(In);
+        Out outValue = value;
+        memcpy(outIndices, &outValue, sizeof(Out));
+        outIndices += sizeof(Out);
     }
-    else
-    {
-        uint32_t dstIdx = lineLoopFirstIdx;
-        memcpy(dstPtr, &dstIdx, sizeof(dstIdx));
-        memcpy(dstPtr + count, &dstIdx, sizeof(dstIdx));
-        for (GLsizei i = 1; i < count; ++i)
-        {
-            T srcIdx;
-            memcpy(&srcIdx, indices + i, sizeof(srcIdx));
-
-            dstIdx = srcIdx;
-            memcpy(dstPtr + i, &dstIdx, sizeof(dstIdx));
-        }
-
-        *indicesGenerated = count + 1;
-    }
-    dstBuffer->unmapAndFlushSubset(contextMtl, dstOffset, (*indicesGenerated) * sizeof(uint32_t));
-
-    return angle::Result::Continue;
+    Out outFirstValue = firstValue;
+    memcpy(outIndices, &outFirstValue, sizeof(Out));
+    return indexCount + 1;
 }
 
 template <typename T>
@@ -924,26 +814,6 @@ angle::Result RenderUtils::generateLineLoopLastSegmentFromElementsArray(
     const IndexGenerationParams &params)
 {
     return mIndexUtils.generateLineLoopLastSegmentFromElementsArray(contextMtl, params);
-}
-angle::Result RenderUtils::generatePrimitiveRestartPointsBuffer(ContextMtl *contextMtl,
-                                                                const IndexGenerationParams &params,
-                                                                size_t *indicesGenerated)
-{
-    return mIndexUtils.generatePrimitiveRestartPointsBuffer(contextMtl, params, indicesGenerated);
-}
-angle::Result RenderUtils::generatePrimitiveRestartLinesBuffer(ContextMtl *contextMtl,
-                                                               const IndexGenerationParams &params,
-                                                               size_t *indicesGenerated)
-{
-    return mIndexUtils.generatePrimitiveRestartLinesBuffer(contextMtl, params, indicesGenerated);
-}
-angle::Result RenderUtils::generatePrimitiveRestartTrianglesBuffer(
-    ContextMtl *contextMtl,
-    const IndexGenerationParams &params,
-    size_t *indicesGenerated)
-{
-    return mIndexUtils.generatePrimitiveRestartTrianglesBuffer(contextMtl, params,
-                                                               indicesGenerated);
 }
 
 void RenderUtils::combineVisibilityResult(
@@ -2089,28 +1959,34 @@ angle::Result IndexGeneratorUtils::generateLineLoopBufferFromElementsArrayCPU(
     const IndexGenerationParams &params,
     uint32_t *indicesGenerated)
 {
+    uint8_t *dstIndices = params.dstBuffer->map(contextMtl, params.dstOffset);
+    if (dstIndices == nullptr)
+    {
+        return angle::Result::Stop;
+    }
+    const uint8_t *indices = static_cast<const uint8_t *>(params.indices);
+    size_t dstIndexCount   = 0;
     switch (params.srcType)
     {
         case gl::DrawElementsType::UnsignedByte:
-            return GenLineLoopFromClientElements(
-                contextMtl, params.indexCount, params.primitiveRestartEnabled,
-                static_cast<const uint8_t *>(params.indices), params.dstBuffer, params.dstOffset,
-                indicesGenerated);
+            dstIndexCount = CopyLineLoopIndices<uint8_t, uint32_t>(
+                params.indexCount, indices, params.primitiveRestartEnabled, dstIndices);
+            break;
         case gl::DrawElementsType::UnsignedShort:
-            return GenLineLoopFromClientElements(
-                contextMtl, params.indexCount, params.primitiveRestartEnabled,
-                static_cast<const uint16_t *>(params.indices), params.dstBuffer, params.dstOffset,
-                indicesGenerated);
+            dstIndexCount = CopyLineLoopIndices<uint16_t, uint32_t>(
+                params.indexCount, indices, params.primitiveRestartEnabled, dstIndices);
+            break;
         case gl::DrawElementsType::UnsignedInt:
-            return GenLineLoopFromClientElements(
-                contextMtl, params.indexCount, params.primitiveRestartEnabled,
-                static_cast<const uint32_t *>(params.indices), params.dstBuffer, params.dstOffset,
-                indicesGenerated);
+            dstIndexCount = CopyLineLoopIndices<uint32_t, uint32_t>(
+                params.indexCount, indices, params.primitiveRestartEnabled, dstIndices);
+            break;
         default:
             UNREACHABLE();
     }
-
-    return angle::Result::Stop;
+    params.dstBuffer->unmapAndFlushSubset(contextMtl, params.dstOffset,
+                                          dstIndexCount * sizeof(uint32_t));
+    *indicesGenerated = static_cast<uint32_t>(dstIndexCount);
+    return angle::Result::Continue;
 }
 
 angle::Result IndexGeneratorUtils::generateLineLoopLastSegment(ContextMtl *contextMtl,
@@ -2185,56 +2061,6 @@ angle::Result IndexGeneratorUtils::generateLineLoopLastSegmentFromElementsArrayC
     }
 
     return generateLineLoopLastSegment(contextMtl, first, last, params.dstBuffer, params.dstOffset);
-}
-
-angle::Result IndexGeneratorUtils::generatePrimitiveRestartBuffer(
-    ContextMtl *contextMtl,
-    unsigned numVerticesPerPrimitive,
-    const IndexGenerationParams &params,
-    size_t *indicesGenerated)
-{
-    switch (params.srcType)
-    {
-        case gl::DrawElementsType::UnsignedByte:
-            return GenPrimitiveRestartBuffer(contextMtl, params.indexCount, numVerticesPerPrimitive,
-                                             static_cast<const uint8_t *>(params.indices),
-                                             params.dstBuffer, params.dstOffset, indicesGenerated);
-        case gl::DrawElementsType::UnsignedShort:
-            return GenPrimitiveRestartBuffer(contextMtl, params.indexCount, numVerticesPerPrimitive,
-                                             static_cast<const uint16_t *>(params.indices),
-                                             params.dstBuffer, params.dstOffset, indicesGenerated);
-        case gl::DrawElementsType::UnsignedInt:
-            return GenPrimitiveRestartBuffer(contextMtl, params.indexCount, numVerticesPerPrimitive,
-                                             static_cast<const uint32_t *>(params.indices),
-                                             params.dstBuffer, params.dstOffset, indicesGenerated);
-        default:
-            UNREACHABLE();
-            return angle::Result::Stop;
-    }
-}
-
-angle::Result IndexGeneratorUtils::generatePrimitiveRestartTrianglesBuffer(
-    ContextMtl *contextMtl,
-    const IndexGenerationParams &params,
-    size_t *indicesGenerated)
-{
-    return generatePrimitiveRestartBuffer(contextMtl, 3, params, indicesGenerated);
-}
-
-angle::Result IndexGeneratorUtils::generatePrimitiveRestartLinesBuffer(
-    ContextMtl *contextMtl,
-    const IndexGenerationParams &params,
-    size_t *indicesGenerated)
-{
-    return generatePrimitiveRestartBuffer(contextMtl, 2, params, indicesGenerated);
-}
-
-angle::Result IndexGeneratorUtils::generatePrimitiveRestartPointsBuffer(
-    ContextMtl *contextMtl,
-    const IndexGenerationParams &params,
-    size_t *indicesGenerated)
-{
-    return generatePrimitiveRestartBuffer(contextMtl, 1, params, indicesGenerated);
 }
 
 angle::Result VisibilityResultUtils::getVisibilityResultCombinePipeline(

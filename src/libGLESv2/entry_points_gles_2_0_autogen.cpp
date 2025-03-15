@@ -494,11 +494,7 @@ void GL_APIENTRY GL_Clear(GLbitfield mask)
     {
         SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
-            (context->skipValidation() ||
-             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
-                                                context->getMutableErrorSetForValidation(),
-                                                angle::EntryPoint::GLClear) &&
-              ValidateClear(context, angle::EntryPoint::GLClear, mask)));
+            (context->skipValidation() || ValidateClear(context, angle::EntryPoint::GLClear, mask));
         if (isCallValid)
         {
             context->clear(mask);
@@ -523,12 +519,9 @@ void GL_APIENTRY GL_ClearColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat
     {
         bool isCallValid =
             (context->skipValidation() ||
-             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
-                                                context->getMutableErrorSetForValidation(),
-                                                angle::EntryPoint::GLClearColor) &&
-              ValidateClearColor(context->getPrivateState(),
-                                 context->getMutableErrorSetForValidation(),
-                                 angle::EntryPoint::GLClearColor, red, green, blue, alpha)));
+             ValidateClearColor(context->getPrivateState(),
+                                context->getMutableErrorSetForValidation(),
+                                angle::EntryPoint::GLClearColor, red, green, blue, alpha));
         if (isCallValid)
         {
             ContextPrivateClearColor(context->getMutablePrivateState(),
@@ -3450,11 +3443,8 @@ void GL_APIENTRY GL_TexSubImage2D(GLenum target,
         SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
-             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
-                                                context->getMutableErrorSetForValidation(),
-                                                angle::EntryPoint::GLTexSubImage2D) &&
-              ValidateTexSubImage2D(context, angle::EntryPoint::GLTexSubImage2D, targetPacked,
-                                    level, xoffset, yoffset, width, height, format, type, pixels)));
+             ValidateTexSubImage2D(context, angle::EntryPoint::GLTexSubImage2D, targetPacked, level,
+                                   xoffset, yoffset, width, height, format, type, pixels));
         if (isCallValid)
         {
             context->texSubImage2D(targetPacked, level, xoffset, yoffset, width, height, format,
