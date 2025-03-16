@@ -1175,26 +1175,13 @@ void Context::deleteProgram(ShaderProgramID program)
 
 void Context::deleteTexture(TextureID textureID)
 {
-    // If a texture object is deleted while its image is bound to a pixel local storage plane on the
-    // currently bound draw framebuffer, and pixel local storage is active, then it is as if
-    // EndPixelLocalStorageANGLE() had been called with <n>=PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_ANGLE
-    // and <storeops> of STORE_OP_STORE_ANGLE.
-    if (mState.getPixelLocalStorageActivePlanes() != 0)
+    if (mState.isTextureBoundToActivePLS(textureID))
     {
-        PixelLocalStorage *pls = mState.getDrawFramebuffer()->peekPixelLocalStorage();
-        // Even though there is a nonzero number of active PLS planes, peekPixelLocalStorage() may
-        // still return null if we are in the middle of deleting the active framebuffer.
-        if (pls != nullptr)
-        {
-            for (GLuint i = 0; i < mState.getCaps().maxPixelLocalStoragePlanes; ++i)
-            {
-                if (pls->getPlane(i).getTextureID() == textureID)
-                {
-                    endPixelLocalStorageImplicit();
-                    break;
-                }
-            }
-        }
+        // If a texture object is deleted while its image is bound to a pixel local storage plane on
+        // the currently bound draw framebuffer, and pixel local storage is active, then it is as if
+        // EndPixelLocalStorageANGLE() had been called with
+        // <n>=PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_ANGLE and <storeops> of STORE_OP_STORE_ANGLE.
+        endPixelLocalStorageImplicit();
     }
 
     Texture *texture = mState.mTextureManager->getTexture(textureID);
@@ -7091,7 +7078,8 @@ void Context::getProgramPipelineiv(ProgramPipelineID pipeline, GLenum pname, GLi
     ProgramPipeline *programPipeline = nullptr;
     if (!isContextLost())
     {
-        programPipeline = getProgramPipeline(pipeline);
+        programPipeline = mState.mProgramPipelineManager->checkProgramPipelineAllocation(
+            mImplementation.get(), pipeline);
     }
     QueryProgramPipelineiv(this, programPipeline, pname, params);
 }
@@ -7128,8 +7116,14 @@ void Context::getProgramPipelineInfoLog(ProgramPipelineID pipeline,
     }
     else
     {
-        *length  = 0;
-        *infoLog = '\0';
+        if (length)
+        {
+            *length = 0;
+        }
+        if (infoLog)
+        {
+            *infoLog = '\0';
+        }
     }
 }
 
@@ -7580,14 +7574,6 @@ void Context::validateProgramPipeline(ProgramPipelineID pipeline)
     // pipeline is the program pipeline object name. The resulting program pipeline
     // object is a new state vector, comprising all the state and with the same initial values
     // listed in table 21.20.
-    //
-    // If we do not have a pipeline object that's been created with glBindProgramPipeline, we leave
-    // VALIDATE_STATUS at it's default false value without generating a pipeline object.
-    if (!getProgramPipeline(pipeline))
-    {
-        return;
-    }
-
     ProgramPipeline *programPipeline =
         mState.mProgramPipelineManager->checkProgramPipelineAllocation(mImplementation.get(),
                                                                        pipeline);

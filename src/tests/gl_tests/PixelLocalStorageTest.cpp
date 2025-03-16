@@ -3067,6 +3067,87 @@ TEST_P(PixelLocalStorageTest, BlitFramebuffer)
     EXPECT_PIXEL_RECT32UI_EQ(0, 0, W, H, GLColor32UI(123, 0, 0, 1));
 }
 
+// Check that GL_RASTERIZER_DISCARD disables renders to PLS, but not PLS clear operations.
+TEST_P(PixelLocalStorageTest, RasterizerDiscard)
+{
+    ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_ANGLE_shader_pixel_local_storage"));
+
+    PLSTestTexture tex(GL_RGBA8);
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexturePixelLocalStorageANGLE(0, tex, 0, 0);
+    glFramebufferPixelLocalClearValuefvANGLE(0, ClearF(1, 0, 0, 1));
+
+    mProgram.compile(R"(
+        layout(binding=0, rgba8) uniform lowp pixelLocalANGLE tex;
+        void main()
+        {
+            pixelLocalStoreANGLE(tex, vec4(0, 1, 0, 1));
+        })");
+
+    // PLS clears still pass when RASTERIZER_DISCARD is disabled.
+    glDisable(GL_RASTERIZER_DISCARD);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferPixelLocalClearValuefvANGLE(0, ClearF(0, 0, 1, 1));
+    glBeginPixelLocalStorageANGLE(1, GLenumArray({GL_LOAD_OP_CLEAR_ANGLE}));
+    glEndPixelLocalStorageANGLE(1, GLenumArray({GL_STORE_OP_STORE_ANGLE}));
+    attachTexture2DToScratchFBO(tex);
+    EXPECT_PIXEL_RECT_EQ(0, 0, W, H, GLColor::blue);
+    ASSERT_GL_NO_ERROR();
+
+    // PLS clears still pass when RASTERIZER_DISCARD is enabled.
+    glEnable(GL_RASTERIZER_DISCARD);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glBeginPixelLocalStorageANGLE(1, GLenumArray({GL_LOAD_OP_ZERO_ANGLE}));
+    glEndPixelLocalStorageANGLE(1, GLenumArray({GL_STORE_OP_STORE_ANGLE}));
+    attachTexture2DToScratchFBO(tex);
+    EXPECT_PIXEL_RECT_EQ(0, 0, W, H, GLColor::transparentBlack);
+    ASSERT_GL_NO_ERROR();
+
+    // Rasterization passes when RASTERIZER_DISCARD is disabled.
+    glDisable(GL_RASTERIZER_DISCARD);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferPixelLocalClearValuefvANGLE(0, ClearF(1, 0, 0, 1));
+    glBeginPixelLocalStorageANGLE(1, GLenumArray({GL_LOAD_OP_CLEAR_ANGLE}));
+    mProgram.drawBoxes({{{FULLSCREEN}}});
+    glEndPixelLocalStorageANGLE(1, GLenumArray({GL_STORE_OP_STORE_ANGLE}));
+    attachTexture2DToScratchFBO(tex);
+    EXPECT_PIXEL_RECT_EQ(0, 0, W, H, GLColor::green);
+    ASSERT_GL_NO_ERROR();
+
+    // Rasterization fails when RASTERIZER_DISCARD is enabled (but PLS still clears).
+    glEnable(GL_RASTERIZER_DISCARD);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glBeginPixelLocalStorageANGLE(1, GLenumArray({GL_LOAD_OP_CLEAR_ANGLE}));
+    mProgram.drawBoxes({{{FULLSCREEN}}});
+    glEndPixelLocalStorageANGLE(1, GLenumArray({GL_STORE_OP_STORE_ANGLE}));
+    attachTexture2DToScratchFBO(tex);
+    EXPECT_PIXEL_RECT_EQ(0, 0, W, H, GLColor::red);
+    ASSERT_GL_NO_ERROR();
+
+    // RASTERIZER_DISCARD can be disabled while PLS is active.
+    glEnable(GL_RASTERIZER_DISCARD);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glBeginPixelLocalStorageANGLE(1, GLenumArray({GL_LOAD_OP_CLEAR_ANGLE}));
+    glDisable(GL_RASTERIZER_DISCARD);
+    mProgram.drawBoxes({{{FULLSCREEN}}});
+    glEndPixelLocalStorageANGLE(1, GLenumArray({GL_STORE_OP_STORE_ANGLE}));
+    attachTexture2DToScratchFBO(tex);
+    EXPECT_PIXEL_RECT_EQ(0, 0, W, H, GLColor::green);
+    ASSERT_GL_NO_ERROR();
+
+    // RASTERIZER_DISCARD can be enabled while PLS is active.
+    glDisable(GL_RASTERIZER_DISCARD);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glBeginPixelLocalStorageANGLE(1, GLenumArray({GL_LOAD_OP_CLEAR_ANGLE}));
+    glEnable(GL_RASTERIZER_DISCARD);
+    mProgram.drawBoxes({{{FULLSCREEN}}});
+    glEndPixelLocalStorageANGLE(1, GLenumArray({GL_STORE_OP_STORE_ANGLE}));
+    attachTexture2DToScratchFBO(tex);
+    EXPECT_PIXEL_RECT_EQ(0, 0, W, H, GLColor::red);
+    ASSERT_GL_NO_ERROR();
+}
+
 // Check that PLS and EXT_shader_framebuffer_fetch can be used together.
 TEST_P(PixelLocalStorageTest, ParallelFramebufferFetch)
 {
@@ -3505,6 +3586,48 @@ TEST_P(PixelLocalStorageTest, DeleteAttachments_read_framebuffer)
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, readFBO);
     EXPECT_PLS_INTEGER(0, GL_PIXEL_LOCAL_TEXTURE_NAME_ANGLE, 0);
     EXPECT_PLS_INTEGER(1, GL_PIXEL_LOCAL_TEXTURE_NAME_ANGLE, 0);
+}
+
+// Check that glBeginPixelLocalStorageANGLE() is banned while tiled rendering is
+// active, and that glStartTilingQCOM() implicitly disables PLS.
+TEST_P(PixelLocalStorageTest, TiledRenderingInteractions)
+{
+    ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_ANGLE_shader_pixel_local_storage"));
+    ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_QCOM_tiled_rendering"));
+    ANGLE_SKIP_TEST_IF(MAX_COLOR_ATTACHMENTS_WITH_ACTIVE_PIXEL_LOCAL_STORAGE < 1);
+
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    PLSTestTexture pls0(GL_RGBA8, 100, 100);
+    glFramebufferTexturePixelLocalStorageANGLE(0, pls0, 0, 0);
+
+    PLSTestTexture color0(GL_RGBA8, 100, 100);
+    glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color0, 0);
+
+    glStartTilingQCOM(8, 8, 8, 8, GL_COLOR_BUFFER_BIT0_QCOM);
+    ASSERT_GL_NO_ERROR();
+
+    glBeginPixelLocalStorageANGLE(1, GLenumArray({GL_LOAD_OP_ZERO_ANGLE}));
+    EXPECT_GL_SINGLE_ERROR(GL_INVALID_OPERATION);
+    EXPECT_GL_INTEGER(GL_PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_ANGLE, 0);
+
+    glEndTilingQCOM(GL_COLOR_BUFFER_BIT0_QCOM);
+    ASSERT_GL_NO_ERROR();
+
+    glBeginPixelLocalStorageANGLE(1, GLenumArray({GL_LOAD_OP_ZERO_ANGLE}));
+    EXPECT_GL_NO_ERROR();
+    EXPECT_GL_INTEGER(GL_PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_ANGLE, 1);
+
+    // glStartTilingQCOM implicitly disables PLS.
+    glStartTilingQCOM(8, 8, 8, 8, GL_COLOR_BUFFER_BIT0_QCOM);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_GL_INTEGER(GL_PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_ANGLE, 0);
+
+    glEndPixelLocalStorageANGLE(1, GLenumArray({GL_DONT_CARE}));
+    EXPECT_GL_SINGLE_ERROR(GL_INVALID_OPERATION);
+
+    glEndTilingQCOM(GL_COLOR_BUFFER_BIT0_QCOM);
 }
 
 // Checks that draw commands validate current PLS state against the shader's PLS uniforms.
@@ -4723,20 +4846,11 @@ TEST_P(PixelLocalStorageValidationTest, BeginPixelLocalStorageANGLE_context_stat
             "Attempted to begin pixel local storage with GL_DITHER enabled.");
         ASSERT_GL_INTEGER(GL_PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_ANGLE, 0);
     }
-
-    // INVALID_OPERATION is generated if RASTERIZER_DISCARD is enabled.
-    {
-        ScopedEnable scopedEnable(GL_RASTERIZER_DISCARD);
-        glBeginPixelLocalStorageANGLE(1, GLenumArray({GL_LOAD_OP_ZERO_ANGLE}));
-        EXPECT_GL_SINGLE_ERROR(GL_INVALID_OPERATION);
-        EXPECT_GL_SINGLE_ERROR_MSG(
-            "Attempted to begin pixel local storage with GL_RASTERIZER_DISCARD enabled.");
-        ASSERT_GL_INTEGER(GL_PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_ANGLE, 0);
-    }
 }
 
-// Check that transform feedback is banned when PLS is active.
-TEST_P(PixelLocalStorageValidationTest, PLSActive_bans_transform_feedback)
+// Check that glBeginPixelLocalStorageANGLE() is banned while transform feedback
+// is active, and that glBeginTransformFeedback() implicitly disables PLS.
+TEST_P(PixelLocalStorageValidationTest, TransformFeedbackInteractions)
 {
     GLFramebuffer fbo;
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -4777,14 +4891,20 @@ TEST_P(PixelLocalStorageValidationTest, PLSActive_bans_transform_feedback)
     EXPECT_GL_NO_ERROR();
     EXPECT_GL_INTEGER(GL_PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_ANGLE, 1);
 
-    // glBeginTransformFeedback is not on the PLS allow list.
-    EXPECT_BANNED_DEFAULT_MSG(glBeginTransformFeedback(GL_TRIANGLES))
-    ASSERT_GL_INTEGER(GL_TRANSFORM_FEEDBACK_ACTIVE, 0);
-
-    glUseProgram(0);
+    // glBeginTransformFeedback implicitly disables PLS.
+    glBeginTransformFeedback(GL_TRIANGLES);
     EXPECT_GL_NO_ERROR();
+    EXPECT_GL_INTEGER(GL_TRANSFORM_FEEDBACK_ACTIVE, 1);
+    EXPECT_GL_INTEGER(GL_PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_ANGLE, 0);
 
     glEndPixelLocalStorageANGLE(1, GLenumArray({GL_DONT_CARE}));
+    EXPECT_GL_SINGLE_ERROR(GL_INVALID_OPERATION);
+    EXPECT_GL_SINGLE_ERROR_MSG("Pixel local storage is not active.");
+
+    glEndTransformFeedback();
+    EXPECT_GL_NO_ERROR();
+
+    glUseProgram(0);
     EXPECT_GL_NO_ERROR();
 }
 
@@ -5854,8 +5974,6 @@ TEST_P(PixelLocalStorageValidationTest, BannedCommands)
     EXPECT_BANNED_DEFAULT_MSG(glFlush());
     EXPECT_BANNED_DEFAULT_MSG(glFinish());
     EXPECT_BANNED_DEFAULT_MSG(glClientWaitSync(nullptr, 0, 0));
-    EXPECT_BANNED_DEFAULT_MSG(
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
 
     // INVALID_OPERATION is generated by Enable(), Disable() if <cap> is not one of: CULL_FACE,
     // DEPTH_CLAMP_EXT, DEPTH_TEST, POLYGON_OFFSET_POINT_NV, POLYGON_OFFSET_LINE_NV,
@@ -5895,6 +6013,7 @@ TEST_P(PixelLocalStorageValidationTest, BannedCommands)
     }
     EXPECT_ALLOWED_CAP(GL_POLYGON_OFFSET_FILL);
     EXPECT_ALLOWED_CAP(GL_PRIMITIVE_RESTART_FIXED_INDEX);
+    EXPECT_ALLOWED_CAP(GL_RASTERIZER_DISCARD);
     EXPECT_ALLOWED_CAP(GL_SCISSOR_TEST);
     EXPECT_ALLOWED_CAP(GL_STENCIL_TEST);
     if (EnsureGLExtensionEnabled("GL_EXT_clip_cull_distance"))
@@ -5907,7 +6026,6 @@ TEST_P(PixelLocalStorageValidationTest, BannedCommands)
     EXPECT_BANNED_CAP(GL_SAMPLE_ALPHA_TO_COVERAGE);
     EXPECT_BANNED_CAP(GL_SAMPLE_COVERAGE);
     EXPECT_BANNED_CAP(GL_DITHER);
-    EXPECT_BANNED_CAP(GL_RASTERIZER_DISCARD);
     if (isContextVersionAtLeast(3, 1))
     {
         EXPECT_BANNED_CAP(GL_SAMPLE_MASK);
@@ -6131,6 +6249,90 @@ TEST_P(PixelLocalStorageValidationTest, BlendFuncDuringPLS)
         EXPECT_EQ(blendSrcAlpha, GL_DST_ALPHA);
         EXPECT_EQ(blendDstAlpha, GL_SRC_COLOR);
     }
+}
+
+// Check that glGetFramebufferAttachmentParameteriv() generates errors when
+// querying overridden PLS attachments.
+TEST_P(PixelLocalStorageValidationTest, FramebufferQueries)
+{
+    ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_ANGLE_shader_pixel_local_storage"));
+
+    PLSTestTexture pls0(GL_RGBA8);
+    PLSTestTexture pls1(GL_RGBA8);
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexturePixelLocalStorageANGLE(0, pls0, 0, 0);
+    glFramebufferTexturePixelLocalStorageANGLE(1, pls1, 0, 0);
+
+    glBeginPixelLocalStorageANGLE(2, GLenumArray({GL_DONT_CARE, GL_DONT_CARE}));
+    EXPECT_GL_NO_ERROR();
+
+    int firstOverriddenDrawBuffer =
+        std::min(MAX_COLOR_ATTACHMENTS_WITH_ACTIVE_PIXEL_LOCAL_STORAGE,
+                 MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES - 2);
+    GLint intValue;
+
+    glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER,
+                                          GL_COLOR_ATTACHMENT0 + firstOverriddenDrawBuffer,
+                                          GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &intValue);
+    EXPECT_GL_SINGLE_ERROR(GL_INVALID_OPERATION);
+    EXPECT_GL_SINGLE_ERROR_MSG("Color attachment is actively reserved for pixel local storage.");
+
+    glGetFramebufferAttachmentParameteriv(
+        GL_FRAMEBUFFER,
+        GL_COLOR_ATTACHMENT0 + MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES - 2,
+        GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &intValue);
+    EXPECT_GL_SINGLE_ERROR(GL_INVALID_OPERATION);
+    EXPECT_GL_SINGLE_ERROR_MSG("Color attachment is actively reserved for pixel local storage.");
+
+    glGetFramebufferAttachmentParameteriv(
+        GL_FRAMEBUFFER,
+        GL_COLOR_ATTACHMENT0 + MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES - 1,
+        GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &intValue);
+    EXPECT_GL_SINGLE_ERROR(GL_INVALID_OPERATION);
+    EXPECT_GL_SINGLE_ERROR_MSG("Color attachment is actively reserved for pixel local storage.");
+
+    glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER,
+                                          GL_COLOR_ATTACHMENT0 + MAX_COLOR_ATTACHMENTS - 1,
+                                          GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &intValue);
+    EXPECT_GL_SINGLE_ERROR(GL_INVALID_OPERATION);
+    EXPECT_GL_SINGLE_ERROR_MSG("Color attachment is actively reserved for pixel local storage.");
+
+    if (firstOverriddenDrawBuffer != 0)
+    {
+        glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                                              GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &intValue);
+        EXPECT_GL_NO_ERROR();
+        glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER,
+                                              GL_COLOR_ATTACHMENT0 + firstOverriddenDrawBuffer - 1,
+                                              GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &intValue);
+        EXPECT_GL_NO_ERROR();
+    }
+
+    glEndPixelLocalStorageANGLE(2, GLenumArray({GL_DONT_CARE, GL_DONT_CARE}));
+    EXPECT_GL_NO_ERROR();
+
+    glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER,
+                                          GL_COLOR_ATTACHMENT0 + firstOverriddenDrawBuffer,
+                                          GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &intValue);
+    EXPECT_GL_NO_ERROR();
+
+    glGetFramebufferAttachmentParameteriv(
+        GL_FRAMEBUFFER,
+        GL_COLOR_ATTACHMENT0 + MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES - 2,
+        GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &intValue);
+    EXPECT_GL_NO_ERROR();
+
+    glGetFramebufferAttachmentParameteriv(
+        GL_FRAMEBUFFER,
+        GL_COLOR_ATTACHMENT0 + MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES - 1,
+        GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &intValue);
+    EXPECT_GL_NO_ERROR();
+
+    glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER,
+                                          GL_COLOR_ATTACHMENT0 + MAX_COLOR_ATTACHMENTS - 1,
+                                          GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &intValue);
+    EXPECT_GL_NO_ERROR();
 }
 
 // Check that glEnable(GL_BLEND) and glColorMask() do not generate errors, and are ignored for
@@ -6378,6 +6580,210 @@ TEST_P(PixelLocalStorageValidationTest, BlendMaskDuringPLS)
 #undef EXPECT_NON_OVERRIDDEN_COLOR_MASK
 #undef CHECK_OVERRIDDEN_BLEND_MASKS_INDEXED
 #undef EXPECT_NON_OVERRIDDEN_BLEND_MASK
+}
+
+// Check that modifications to PLS textures bounce while it's active.
+TEST_P(PixelLocalStorageValidationTest, ModifyTextureDuringPLS)
+{
+    GLTexture pls2d;
+    glBindTexture(GL_TEXTURE_2D, pls2d);
+    glTexStorage2D(GL_TEXTURE_2D, 3, GL_RGBA8, W, H);
+
+    GLTexture nonpls2d;
+    glBindTexture(GL_TEXTURE_2D, nonpls2d);
+    glTexStorage2D(GL_TEXTURE_2D, 3, GL_RGBA8, W, H);
+
+    GLTexture pls2darray;
+    glBindTexture(GL_TEXTURE_2D_ARRAY, pls2darray);
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 3, GL_RGBA8, W, H, 5);
+
+    GLTexture nonpls2darray;
+    glBindTexture(GL_TEXTURE_2D_ARRAY, nonpls2darray);
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 3, GL_RGBA8, W, H, 5);
+
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+    glFramebufferTexturePixelLocalStorageANGLE(0, pls2d, 1, 0);
+    glFramebufferTexturePixelLocalStorageANGLE(1, pls2darray, 1, 4);
+
+    glBeginPixelLocalStorageANGLE(2, GLenumArray({GL_DONT_CARE, GL_DONT_CARE}));
+    ASSERT_GL_NO_ERROR();
+
+#define CHECK_TEXTURE_2D_MODIFICATION(FN)                                            \
+    glBindTexture(GL_TEXTURE_2D, pls2d);                                             \
+    FN;                                                                              \
+    EXPECT_GL_SINGLE_ERROR(GL_INVALID_OPERATION);                                    \
+    EXPECT_GL_SINGLE_ERROR_MSG(                                                      \
+        "Operation not permitted on an active pixel local storage backing texture.") \
+    glBindTexture(GL_TEXTURE_2D, nonpls2d);                                          \
+    FN;                                                                              \
+    EXPECT_GL_NO_ERROR();
+
+#define CHECK_TEXTURE_2D_ARRAY_MODIFICATION(FN)                                      \
+    glBindTexture(GL_TEXTURE_2D_ARRAY, pls2darray);                                  \
+    FN;                                                                              \
+    EXPECT_GL_SINGLE_ERROR(GL_INVALID_OPERATION);                                    \
+    EXPECT_GL_SINGLE_ERROR_MSG(                                                      \
+        "Operation not permitted on an active pixel local storage backing texture.") \
+    glBindTexture(GL_TEXTURE_2D_ARRAY, nonpls2darray);                               \
+    FN;                                                                              \
+    EXPECT_GL_NO_ERROR();
+
+    std::vector<uint8_t> imageData(H * W * 4);
+
+    CHECK_TEXTURE_2D_MODIFICATION(
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, W, H, GL_RGBA, GL_UNSIGNED_BYTE, imageData.data()));
+
+    CHECK_TEXTURE_2D_ARRAY_MODIFICATION(glTexSubImage3D(
+        GL_TEXTURE_2D_ARRAY, 0, 0, 0, 1, W, H, 1, GL_RGBA, GL_UNSIGNED_BYTE, imageData.data()));
+
+    CHECK_TEXTURE_2D_MODIFICATION(glGenerateMipmap(GL_TEXTURE_2D));
+
+    CHECK_TEXTURE_2D_ARRAY_MODIFICATION(glGenerateMipmap(GL_TEXTURE_2D_ARRAY));
+
+    if (EnsureGLExtensionEnabled("GL_ANGLE_robust_client_memory"))
+    {
+        CHECK_TEXTURE_2D_MODIFICATION(
+            glTexSubImage2DRobustANGLE(GL_TEXTURE_2D, 0, 0, 0, W, H, GL_RGBA, GL_UNSIGNED_BYTE,
+                                       imageData.size(), imageData.data()));
+
+        CHECK_TEXTURE_2D_ARRAY_MODIFICATION(
+            glTexSubImage3DRobustANGLE(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 1, W, H, 1, GL_RGBA,
+                                       GL_UNSIGNED_BYTE, imageData.size(), imageData.data()));
+    }
+
+    if (IsGLExtensionEnabled("GL_OES_texture_3D"))
+    {
+        CHECK_TEXTURE_2D_ARRAY_MODIFICATION(glTexSubImage3DOES(
+            GL_TEXTURE_2D_ARRAY, 0, 0, 0, 1, W, H, 1, GL_RGBA, GL_UNSIGNED_BYTE, imageData.data()));
+    }
+
+    if (EnsureGLExtensionEnabled("GL_ANGLE_texture_external_update"))
+    {
+        CHECK_TEXTURE_2D_MODIFICATION(glInvalidateTextureANGLE(GL_TEXTURE_2D));
+
+        CHECK_TEXTURE_2D_ARRAY_MODIFICATION(glInvalidateTextureANGLE(GL_TEXTURE_2D_ARRAY));
+    }
+
+    GLfloat zerof[4] = {};
+    GLint zeroi[4]   = {};
+    GLuint zeroui[4] = {};
+    CHECK_TEXTURE_2D_MODIFICATION(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
+    CHECK_TEXTURE_2D_MODIFICATION(glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, zeroi));
+    CHECK_TEXTURE_2D_MODIFICATION(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0.f));
+    CHECK_TEXTURE_2D_MODIFICATION(glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, zerof));
+
+    CHECK_TEXTURE_2D_ARRAY_MODIFICATION(
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 0));
+    CHECK_TEXTURE_2D_ARRAY_MODIFICATION(
+        glTexParameteriv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, zeroi));
+    CHECK_TEXTURE_2D_ARRAY_MODIFICATION(
+        glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LOD, 0.f));
+    CHECK_TEXTURE_2D_ARRAY_MODIFICATION(
+        glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LOD, zerof));
+
+    if (EnsureGLExtensionEnabled("GL_ANGLE_robust_client_memory"))
+    {
+        CHECK_TEXTURE_2D_MODIFICATION(
+            glTexParameterivRobustANGLE(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 1, zeroi));
+        CHECK_TEXTURE_2D_MODIFICATION(
+            glTexParameterfvRobustANGLE(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 1, zerof));
+
+        CHECK_TEXTURE_2D_ARRAY_MODIFICATION(
+            glTexParameterfvRobustANGLE(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LOD, 1, zerof));
+        CHECK_TEXTURE_2D_ARRAY_MODIFICATION(
+            glTexParameterivRobustANGLE(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 1, zeroi));
+
+        // TODO: Re-enable these tests once glTexParameterI(u?)ivRobustANGLE are implemented.
+#if 0
+        CHECK_TEXTURE_2D_MODIFICATION(
+            glTexParameterIivRobustANGLE(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, 4, zeroi));
+        CHECK_TEXTURE_2D_MODIFICATION(
+            glTexParameterIuivRobustANGLE(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, 4, zeroui));
+
+        CHECK_TEXTURE_2D_ARRAY_MODIFICATION(
+            glTexParameterIivRobustANGLE(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, 4, zeroi));
+        CHECK_TEXTURE_2D_ARRAY_MODIFICATION(
+            glTexParameterIuivRobustANGLE(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, 4, zeroui));
+#endif
+    }
+
+    if (EnsureGLExtensionEnabled("GL_EXT_texture_border_clamp"))
+    {
+        CHECK_TEXTURE_2D_MODIFICATION(
+            glTexParameterIivEXT(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, zeroi));
+        CHECK_TEXTURE_2D_MODIFICATION(
+            glTexParameterIuivEXT(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, zeroui));
+
+        CHECK_TEXTURE_2D_ARRAY_MODIFICATION(
+            glTexParameterIivEXT(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, zeroi));
+        CHECK_TEXTURE_2D_ARRAY_MODIFICATION(
+            glTexParameterIuivEXT(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, zeroui));
+    }
+
+    if (EnsureGLExtensionEnabled("GL_OES_texture_border_clamp"))
+    {
+        CHECK_TEXTURE_2D_MODIFICATION(
+            glTexParameterIivOES(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, zeroi));
+        CHECK_TEXTURE_2D_MODIFICATION(
+            glTexParameterIuivOES(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, zeroui));
+
+        CHECK_TEXTURE_2D_ARRAY_MODIFICATION(
+            glTexParameterIivOES(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, zeroi));
+        CHECK_TEXTURE_2D_ARRAY_MODIFICATION(
+            glTexParameterIuivOES(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, zeroui));
+    }
+
+#undef CHECK_TEXTURE_2D_MODIFICATION
+#undef CHECK_TEXTURE_2D_ARRAY_MODIFICATION
+
+    glEndPixelLocalStorageANGLE(2, GLenumArray({GL_DONT_CARE, GL_DONT_CARE}));
+    ASSERT_GL_NO_ERROR();
+}
+
+// Check that framebuffer invalidations bounce while PLS is active.
+TEST_P(PixelLocalStorageValidationTest, InvalidateFramebufferDuringPLS)
+{
+
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    PLSTestTexture pls0(GL_RGBA8, 100, 100);
+    glFramebufferTexturePixelLocalStorageANGLE(0, pls0, 0, 0);
+    glBeginPixelLocalStorageANGLE(1, GLenumArray({GL_DONT_CARE}));
+    EXPECT_GL_NO_ERROR();
+
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, 0, nullptr);
+    EXPECT_GL_SINGLE_ERROR(GL_INVALID_OPERATION);
+    EXPECT_GL_SINGLE_ERROR_MSG("Operation not permitted while pixel local storage is active.");
+
+    glInvalidateSubFramebuffer(GL_FRAMEBUFFER, 0, nullptr, 0, 0, 10, 10);
+    EXPECT_GL_SINGLE_ERROR(GL_INVALID_OPERATION);
+    EXPECT_GL_SINGLE_ERROR_MSG("Operation not permitted while pixel local storage is active.");
+
+    if (EnsureGLExtensionEnabled("GL_EXT_discard_framebuffer"))
+    {
+        glDiscardFramebufferEXT(GL_FRAMEBUFFER, 0, nullptr);
+        EXPECT_GL_SINGLE_ERROR(GL_INVALID_OPERATION);
+        EXPECT_GL_SINGLE_ERROR_MSG("Operation not permitted while pixel local storage is active.");
+    }
+
+    glEndPixelLocalStorageANGLE(1, GLenumArray({GL_DONT_CARE}));
+    EXPECT_GL_NO_ERROR();
+
+    // Framebuffer invalidations become legal again after PLS is done.
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, 0, nullptr);
+    EXPECT_GL_NO_ERROR();
+
+    glInvalidateSubFramebuffer(GL_FRAMEBUFFER, 0, nullptr, 0, 0, 10, 10);
+    EXPECT_GL_NO_ERROR();
+
+    if (EnsureGLExtensionEnabled("GL_EXT_discard_framebuffer"))
+    {
+        glDiscardFramebufferEXT(GL_FRAMEBUFFER, 0, nullptr);
+        EXPECT_GL_NO_ERROR();
+    }
+
+    ASSERT_GL_NO_ERROR();
 }
 
 // Check that glReadPixels and glCopyTex*Image* end PLS before running.
