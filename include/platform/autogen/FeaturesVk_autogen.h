@@ -98,12 +98,6 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
-    FeatureInfo supportsGGPFrameToken = {
-        "supportsGGPFrameToken",
-        FeatureCategory::VulkanFeatures,
-        &members,
-    };
-
     FeatureInfo supportsExternalMemoryFd = {
         "supportsExternalMemoryFd",
         FeatureCategory::VulkanFeatures,
@@ -436,6 +430,12 @@ struct FeaturesVk : FeatureSetBase
 
     FeatureInfo waitIdleBeforeSwapchainRecreation = {
         "waitIdleBeforeSwapchainRecreation",
+        FeatureCategory::VulkanWorkarounds,
+        &members,
+    };
+
+    FeatureInfo destroyOldSwapchainInSharedPresentMode = {
+        "destroyOldSwapchainInSharedPresentMode",
         FeatureCategory::VulkanWorkarounds,
         &members,
     };

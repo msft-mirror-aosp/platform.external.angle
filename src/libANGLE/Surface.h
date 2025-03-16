@@ -84,7 +84,6 @@ class Surface : public LabeledObject, public gl::FramebufferAttachmentObject
     Error prepareSwap(const gl::Context *context);
     Error swap(gl::Context *context);
     Error swapWithDamage(gl::Context *context, const EGLint *rects, EGLint n_rects);
-    Error swapWithFrameToken(gl::Context *context, EGLFrameTokenANGLE frameToken);
     Error postSubBuffer(const gl::Context *context,
                         EGLint x,
                         EGLint y,
@@ -166,6 +165,7 @@ class Surface : public LabeledObject, public gl::FramebufferAttachmentObject
     EGLint isFixedSize() const;
 
     // FramebufferAttachmentObject implementation
+    bool isAttachmentSpecified(const gl::ImageIndex &imageIndex) const override;
     gl::Extents getAttachmentSize(const gl::ImageIndex &imageIndex) const override;
     gl::Format getAttachmentFormat(GLenum binding, const gl::ImageIndex &imageIndex) const override;
     GLsizei getAttachmentSamples(const gl::ImageIndex &imageIndex) const override;

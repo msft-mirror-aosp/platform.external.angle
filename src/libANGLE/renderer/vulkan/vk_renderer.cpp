@@ -348,47 +348,6 @@ constexpr const char *kSkippedMessagesWithDynamicRendering[] = {
 // those, ANGLE makes no further attempt to resolve them and expects vendor support for the
 // extensions instead.  The list of skipped messages is split based on this support.
 constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
-    // These errors are caused by a feedback loop tests that don't produce correct Vulkan to begin
-    // with.
-    // http://anglebug.com/42264930
-    // http://anglebug.com/42265542
-    //
-    // Occasionally, this is due to VVL's lack of support for some extensions.  For example,
-    // syncval doesn't properly account for VK_EXT_fragment_shader_interlock, which gives
-    // synchronization guarantees without the need for an image barrier.
-    // https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/4387
-    {
-        "SYNC-HAZARD-READ-AFTER-WRITE",
-        "imageLayout: VK_IMAGE_LAYOUT_GENERAL",
-        "usage: SYNC_FRAGMENT_SHADER_SHADER_",
-    },
-    // http://anglebug.com/42265049
-    {
-        "SYNC-HAZARD-WRITE-AFTER-WRITE",
-        "Access info (usage: SYNC_IMAGE_LAYOUT_TRANSITION, prior_usage: "
-        "SYNC_COLOR_ATTACHMENT_OUTPUT_COLOR_ATTACHMENT_WRITE, write_barriers: "
-        "SYNC_EARLY_FRAGMENT_TESTS_DEPTH_STENCIL_ATTACHMENT_READ|SYNC_EARLY_FRAGMENT_TESTS_DEPTH_"
-        "STENCIL_ATTACHMENT_WRITE|SYNC_LATE_FRAGMENT_TESTS_DEPTH_STENCIL_ATTACHMENT_READ|SYNC_LATE_"
-        "FRAGMENT_TESTS_DEPTH_STENCIL_ATTACHMENT_WRITE|SYNC_COLOR_ATTACHMENT_OUTPUT_COLOR_"
-        "ATTACHMENT_"
-        "READ|SYNC_COLOR_ATTACHMENT_OUTPUT_COLOR_ATTACHMENT_WRITE",
-    },
-    {"SYNC-HAZARD-WRITE-AFTER-WRITE",
-     "Access info (usage: SYNC_IMAGE_LAYOUT_TRANSITION, prior_usage: "
-     "SYNC_COLOR_ATTACHMENT_OUTPUT_COLOR_ATTACHMENT_WRITE, write_barriers: "
-     "SYNC_COLOR_ATTACHMENT_OUTPUT_COLOR_ATTACHMENT_READ|SYNC_COLOR_ATTACHMENT_OUTPUT_COLOR_"
-     "ATTACHMENT_WRITE",
-     "",
-     false,
-     {
-         "message_type = RenderPassLayoutTransitionError",
-         "access = SYNC_IMAGE_LAYOUT_TRANSITION",  // probably not needed, message_type implies this
-         "prior_access = "
-         "VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT(VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT)",
-         "write_barriers = "
-         "VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT(VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT|VK_"
-         "ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT)",
-     }},
     // From: TraceTest.manhattan_31 with SwiftShader and
     // VulkanPerformanceCounterTest.NewTextureDoesNotBreakRenderPass for both depth and stencil
     // aspect. http://anglebug.com/42265196.
@@ -3587,11 +3546,11 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
 // here which don't have feature structs:
 //
 // - VK_KHR_shared_presentable_image
+// - VK_EXT_device_memory_report
 // - VK_EXT_memory_budget
 // - VK_KHR_incremental_present
 // - VK_EXT_queue_family_foreign
 // - VK_ANDROID_external_memory_android_hardware_buffer
-// - VK_GGP_frame_token
 // - VK_KHR_external_memory_fd
 // - VK_KHR_external_memory_fuchsia
 // - VK_KHR_external_semaphore_fd
@@ -3640,15 +3599,6 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
     }
 #else
     ASSERT(!mFeatures.supportsAndroidHardwareBuffer.enabled);
-#endif
-
-#if defined(ANGLE_PLATFORM_GGP)
-    if (mFeatures.supportsGGPFrameToken.enabled)
-    {
-        mEnabledDeviceExtensions.push_back(VK_GGP_FRAME_TOKEN_EXTENSION_NAME);
-    }
-#else
-    ASSERT(!mFeatures.supportsGGPFrameToken.enabled);
 #endif
 
     if (mFeatures.supportsExternalMemoryFd.enabled)
@@ -3748,6 +3698,7 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
     {
         ASSERT(mMemoryReportFeatures.deviceMemoryReport);
         mEnabledDeviceExtensions.push_back(VK_EXT_DEVICE_MEMORY_REPORT_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mMemoryReportFeatures);
     }
 
     if (mFeatures.supportsExternalMemoryDmaBufAndModifiers.enabled)
@@ -5168,12 +5119,6 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
             ExtensionFound(VK_EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME, deviceExtensionNames));
 #endif
 
-#if defined(ANGLE_PLATFORM_GGP)
-    ANGLE_FEATURE_CONDITION(
-        &mFeatures, supportsGGPFrameToken,
-        ExtensionFound(VK_GGP_FRAME_TOKEN_EXTENSION_NAME, deviceExtensionNames));
-#endif
-
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsExternalMemoryFd,
         ExtensionFound(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME, deviceExtensionNames));
@@ -5532,6 +5477,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // Android mistakenly destroys the old swapchain when creating a new one.
     ANGLE_FEATURE_CONDITION(&mFeatures, waitIdleBeforeSwapchainRecreation, IsAndroid() && isARM);
+
+    ANGLE_FEATURE_CONDITION(&mFeatures, destroyOldSwapchainInSharedPresentMode, IsAndroid());
 
     // vkCmdClearAttachments races with draw calls on Qualcomm hardware as observed on Pixel2 and
     // Pixel4.  https://issuetracker.google.com/issues/166809097

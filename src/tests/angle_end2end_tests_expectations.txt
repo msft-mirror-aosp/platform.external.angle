@@ -128,6 +128,8 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 234602034 WIN INTEL D3D9 : ImageTest.SourceCubeAndSameTargetTextureWithEachCubeFace/* = SKIP
 234602034 WIN NVIDIA D3D9 : ImageTest.SourceCubeAndSameTargetTextureWithEachCubeFace/* = SKIP
 42266127 WIN INTEL OPENGL : StateChangeTestES3.LogicOp/* = SKIP
+402532204 WIN OPENGL : PbufferTest.ZeroSizedSurfaceFormatQuery/* = SKIP
+402532204 WIN GLES : PbufferTest.ZeroSizedSurfaceFormatQuery/* = SKIP
 
 // Failures on Intel Comet Lake S UHD Graphics 630 (8086:9bc5-31.0.101.2111)
 40644896 WIN INTEL OPENGL : D3DImageFormatConversionTest.WriteColorFunctionR8G8B8A8/* = SKIP
@@ -225,7 +227,6 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 374790899 LINUX INTEL OPENGL : GeometryShaderTest.GLLayerIneffectiveWithoutLayeredFramebuffer/* = SKIP
 
 379758210 LINUX INTEL OPENGL : GLSLTest_ES3.SwizzledToBoolCoercion/* = SKIP
-383164783 LINUX NVIDIA VULKAN : MultithreadingTest.ProgramLinkAndBind/* = SKIP
 
 // Nvidia
 42264645 NVIDIA OPENGL : GLSLTestLoops.DoWhileContinue/* = SKIP
@@ -654,6 +655,7 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 
 42266150 PIXEL4ORXL VULKAN : PixelLocalStorageTest.MaxCombinedDrawBuffersAndPLSPlanes/* = SKIP
 42266150 PIXEL4ORXL VULKAN : PixelLocalStorageTest.BlendColorMaskAndClear/* = SKIP
+42266150 PIXEL4ORXL VULKAN : PixelLocalStorageTest.ClearWithActivePLS/* = SKIP
 42266150 PIXEL4ORXL VULKAN : PixelLocalStorageTest.CopyTexSubImage/* = SKIP
 42266151 PIXEL4ORXL VULKAN : PixelLocalStorageTest.MipMapLevels/* = SKIP
 42266242 PIXEL4ORXL VULKAN : PixelLocalStorageTest.DrawStateReset/* = SKIP
@@ -959,6 +961,9 @@ b/330697097 PIXEL6 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachmen
 
 // Metal internal compiler error
 42265076 MAC AMD METAL : ProgramBinaryES3Test.SaveAndLoadDetachedShaders/* = SKIP
+
+// Issue with the ANGLE workaround for a driver bug.
+402810076 MAC AMD METAL : PixelLocalStorageTest.ColorAttachment0Workaround/* = SKIP
 
 // GLES1 failures introduced during ubershader optimization
 42265148 MAC INTEL OPENGL : BootAnimationTest.DefaultBootAnimation/* = SKIP
@@ -1628,6 +1633,13 @@ b/292285899 PIXEL4ORXL GLES : EGLSurfaceTest.DestroyAndRecreateWhileCurrent/* = 
 42263645 : GLSLTest.VerifyMaxVertexUniformVectors* = TIMEOUT
 42263645 : GLSLTest.VerifyMaxFragmentUniformVectors* = TIMEOUT
 42264781 : MultithreadingTest* = TIMEOUT
+
+// Some GLES drivers don't accept BGRA as internal format for renderbuffers
+42267264 GLES : FramebufferFormatsTest.Renderbuffer_BGRA_EXT/* = SKIP
+42267264 GLES : FramebufferFormatsTest.Renderbuffer_BGRA8_EXT/* = SKIP
+
+// WebGPU does not support BGRA
+42267264 WGPU : ClearTest.*BGRA* = SKIP
 
 // Please do not add expectations below this line,
 // so that TIMEOUT expectations above don't override more precise SKIP expectations

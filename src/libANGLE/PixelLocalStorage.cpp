@@ -82,7 +82,35 @@ class ScopedDisableScissor : angle::NonCopyable
 
   private:
     Context *const mContext;
-    const GLint mScissorTestEnabled;
+    const bool mScissorTestEnabled;
+};
+
+class ScopedDisableRasterizerDiscard : angle::NonCopyable
+{
+  public:
+    ScopedDisableRasterizerDiscard(Context *context)
+        : mContext(context),
+          mRasterizerDiscardEnabled(mContext->getState().isRasterizerDiscardEnabled())
+    {
+        if (mRasterizerDiscardEnabled)
+        {
+            ContextPrivateDisable(mContext->getMutablePrivateState(),
+                                  mContext->getMutablePrivateStateCache(), GL_RASTERIZER_DISCARD);
+        }
+    }
+
+    ~ScopedDisableRasterizerDiscard()
+    {
+        if (mRasterizerDiscardEnabled)
+        {
+            ContextPrivateEnable(mContext->getMutablePrivateState(),
+                                 mContext->getMutablePrivateStateCache(), GL_RASTERIZER_DISCARD);
+        }
+    }
+
+  private:
+    Context *const mContext;
+    const bool mRasterizerDiscardEnabled;
 };
 
 class ScopedEnableColorMask : angle::NonCopyable
@@ -664,7 +692,7 @@ class PixelLocalStorageImageLoadStore : public PixelLocalStorage
             // to a PLS plane and attaching it to the draw framebuffer. Enabling this workaround on
             // any other platform would yield incorrect results.
             // This flag is set to true iff the framebuffer has an attachment 0 and it is enabled.
-            mHadColorAttachment0 = framebuffer->getDrawBufferMask().test(0);
+            mHadColorAttachment0 = framebuffer->getColorAttachment(0) != nullptr;
             if (!mHadColorAttachment0)
             {
                 // Indexed color masks are always available on Metal.
@@ -729,6 +757,7 @@ class PixelLocalStorageImageLoadStore : public PixelLocalStorage
             context->bindFramebuffer(GL_DRAW_FRAMEBUFFER, mScratchFramebufferForClearing);
         }
         ScopedDisableScissor scopedDisableScissor(context);
+        ScopedDisableRasterizerDiscard scopedDisableRasterizerDiscard(context);
 
         // Bind and clear the PLS planes.
         size_t maxClearedAttachments = 0;
@@ -914,6 +943,7 @@ class PixelLocalStorageFramebufferFetch : public PixelLocalStorage
         if (needsClear)
         {
             ScopedDisableScissor scopedDisableScissor(context);
+            ScopedDisableRasterizerDiscard scopedDisableRasterizerDiscard(context);
             ClearBufferCommands clearBufferCommands(context);
             for (GLsizei i = 0; i < n; ++i)
             {
