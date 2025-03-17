@@ -95,7 +95,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r27_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-21-init-1655-g7b473dfe-1\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-21-init-5118-g52cd27e6-1\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -9042,6 +9042,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_std_config",
     ],
     local_include_dirs: [
         "",
@@ -9070,6 +9071,7 @@ cc_defaults {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "buildtools_third_party_libc++__Builtin_stddef",
+        "buildtools_third_party_libc++_std_config",
     ],
     local_include_dirs: [
         "",
@@ -9098,6 +9100,7 @@ cc_defaults {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "buildtools_third_party_libc++__Builtin_stddef",
+        "buildtools_third_party_libc++_std_config",
     ],
     local_include_dirs: [
         "",
@@ -9125,6 +9128,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_std_config",
     ],
     local_include_dirs: [
         "",
@@ -9217,6 +9221,8 @@ cc_defaults {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "buildtools_third_party_libc++__Builtin_inttypes",
+        "buildtools_third_party_libc++__Builtin_stdint",
+        "buildtools_third_party_libc++_std_config",
     ],
     local_include_dirs: [
         "",
@@ -9279,6 +9285,7 @@ cc_defaults {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "buildtools_third_party_libc++__Builtin_float",
+        "buildtools_third_party_libc++_std_config",
     ],
     local_include_dirs: [
         "",
@@ -9306,6 +9313,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_std_config",
     ],
     local_include_dirs: [
         "",
@@ -9333,6 +9341,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_std_config",
     ],
     local_include_dirs: [
         "",
@@ -9360,6 +9369,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_std_config",
     ],
     local_include_dirs: [
         "",
@@ -9457,6 +9467,7 @@ cc_defaults {
         "angle_common_library_cflags",
         "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++__Builtin_stdint",
+        "buildtools_third_party_libc++_std_config",
     ],
     local_include_dirs: [
         "",
