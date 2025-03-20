@@ -95,7 +95,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r27_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-21-init-5118-g52cd27e6-1\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-21-init-5118-g52cd27e6-2\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -5102,48 +5102,6 @@ cc_defaults {
 }
 
 cc_defaults {
-    name: "third_party_abseil_cpp_absl_container_common_policy_traits",
-    defaults: [
-        "angle_common_auto_cflags",
-        "angle_common_library_cflags",
-        "buildtools_third_party_libc++_std",
-        "buildtools_third_party_libc++_std_config",
-        "buildtools_third_party_libc++_std_core",
-        "buildtools_third_party_libc++_std_ctype_h",
-        "buildtools_third_party_libc++_std_errno_h",
-        "buildtools_third_party_libc++_std_fenv_h",
-        "buildtools_third_party_libc++_std_float_h",
-        "buildtools_third_party_libc++_std_inttypes_h",
-        "buildtools_third_party_libc++_std_math_h",
-        "buildtools_third_party_libc++_std_private_mbstate_t",
-        "buildtools_third_party_libc++_std_string_h",
-        "buildtools_third_party_libc++_std_uchar_h",
-        "buildtools_third_party_libc++_std_wctype_h",
-        "third_party_abseil_cpp_absl_meta_type_traits",
-    ],
-    local_include_dirs: [
-        "",
-        "third_party/abseil-cpp/",
-    ],
-    cflags: [
-        "-DABSL_ALLOCATOR_NOTHROW=1",
-        "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
-        "-Wno-unused-but-set-variable",
-        "-Wno-unused-variable",
-    ],
-    sdk_version: "current",
-    stl: "libc++_static",
-    arch: {
-        arm64: {
-            cflags: [
-                "-D__ARM_NEON__=1",
-            ],
-        },
-    },
-}
-
-cc_defaults {
     name: "third_party_abseil_cpp_absl_container_raw_hash_set",
     srcs: [
         "third_party/abseil-cpp/absl/container/internal/raw_hash_set.cc",
@@ -5210,6 +5168,48 @@ cc_defaults {
 }
 
 cc_defaults {
+    name: "third_party_abseil_cpp_absl_container_common_policy_traits",
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "buildtools_third_party_libc++_std",
+        "buildtools_third_party_libc++_std_config",
+        "buildtools_third_party_libc++_std_core",
+        "buildtools_third_party_libc++_std_ctype_h",
+        "buildtools_third_party_libc++_std_errno_h",
+        "buildtools_third_party_libc++_std_fenv_h",
+        "buildtools_third_party_libc++_std_float_h",
+        "buildtools_third_party_libc++_std_inttypes_h",
+        "buildtools_third_party_libc++_std_math_h",
+        "buildtools_third_party_libc++_std_private_mbstate_t",
+        "buildtools_third_party_libc++_std_string_h",
+        "buildtools_third_party_libc++_std_uchar_h",
+        "buildtools_third_party_libc++_std_wctype_h",
+        "third_party_abseil_cpp_absl_meta_type_traits",
+    ],
+    local_include_dirs: [
+        "",
+        "third_party/abseil-cpp/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-Wno-c++11-narrowing",
+        "-Wno-misleading-indentation",
+        "-Wno-unused-but-set-variable",
+        "-Wno-unused-variable",
+    ],
+    sdk_version: "current",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
     name: "third_party_abseil_cpp_absl_container_raw_hash_map",
     defaults: [
         "angle_common_auto_cflags",
@@ -5230,8 +5230,10 @@ cc_defaults {
         "third_party_abseil_cpp_absl_base_config",
         "third_party_abseil_cpp_absl_base_core_headers",
         "third_party_abseil_cpp_absl_base_throw_delegate",
+        "third_party_abseil_cpp_absl_container_common_policy_traits",
         "third_party_abseil_cpp_absl_container_container_memory",
         "third_party_abseil_cpp_absl_container_raw_hash_set",
+        "third_party_abseil_cpp_absl_meta_type_traits",
     ],
     local_include_dirs: [
         "",
