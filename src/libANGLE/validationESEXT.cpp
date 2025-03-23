@@ -2130,11 +2130,14 @@ bool ValidatePLSCommon(const Context *context,
             return false;
         }
     }
-    else
+    else if (expectedStatus == PLSExpectedStatus::Inactive)
     {
-        // PLSExpectedStatus::Inactive is validated by the allow list.
-        ASSERT(expectedStatus != PLSExpectedStatus::Inactive ||
-               context->getState().getPixelLocalStorageActivePlanes() == 0);
+        // INVALID_OPERATION is generated if PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_ANGLE is nonzero.
+        if (context->getState().getPixelLocalStorageActivePlanes() != 0)
+        {
+            ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kPLSActive);
+            return false;
+        }
     }
 
     return true;
@@ -2526,28 +2529,11 @@ bool ValidateBeginPixelLocalStorageANGLE(const Context *context,
     // INVALID_FRAMEBUFFER_OPERATION is generated if the draw framebuffer has an image attached to
     // any color attachment point on or after:
     //
-    //   COLOR_ATTACHMENT0 +
-    //   MAX_COLOR_ATTACHMENTS_WITH_ACTIVE_PIXEL_LOCAL_STORAGE_ANGLE
-    //
-    const Caps &caps = context->getCaps();
-    for (int i = caps.maxColorAttachmentsWithActivePixelLocalStorage; i < caps.maxColorAttachments;
-         ++i)
-    {
-        if (framebuffer->getColorAttachment(i))
-        {
-            ANGLE_VALIDATION_ERROR(GL_INVALID_FRAMEBUFFER_OPERATION,
-                                   kPLSMaxColorAttachmentsExceded);
-            return false;
-        }
-    }
-
-    // INVALID_FRAMEBUFFER_OPERATION is generated if the draw framebuffer has an image attached to
-    // any color attachment point on or after:
-    //
     //   COLOR_ATTACHMENT0 + MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES_ANGLE - <n>
     //
-    for (GLuint i = caps.maxCombinedDrawBuffersAndPixelLocalStoragePlanes - n;
-         i < caps.maxColorAttachmentsWithActivePixelLocalStorage; ++i)
+    const Caps &caps = context->getCaps();
+    for (int i = caps.maxCombinedDrawBuffersAndPixelLocalStoragePlanes - n; i < caps.maxDrawBuffers;
+         ++i)
     {
         if (framebuffer->getColorAttachment(i))
         {
@@ -2609,13 +2595,62 @@ bool ValidateBeginPixelLocalStorageANGLE(const Context *context,
         }
         else
         {
-            // INVALID_OPERATION is generated if <loadops>[0..<n>-1] is
-            // LOAD_OP_LOAD_ANGLE and the pixel local storage plane at that same
-            // index is memoryless.
+            // INVALID_OPERATION is generated if <loadops>[0..<n>-1] is LOAD_OP_LOAD_ANGLE and the
+            // pixel local storage plane at that same index is memoryless.
             if (loadops[i] == GL_LOAD_OP_LOAD_ANGLE)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kPLSKeepingMemorylessPlane);
                 return false;
+            }
+        }
+
+        if (!plane.isMemoryless())
+        {
+            ASSERT(plane.getTextureID() != TextureID());
+
+            const ImageIndex &planeImageIdx = plane.getTextureImageIndex();
+            ASSERT(planeImageIdx.getLayerCount() == 1);
+            ASSERT(planeImageIdx.getLevelIndex() >= 0);
+
+            // INVALID_OPERATION is generated if a single texture slice is bound to more than one
+            // active pixel local storage plane.
+            for (GLsizei j = i + 1; j < n; ++j)
+            {
+                const PixelLocalStoragePlane &otherPlane = pls->getPlane(j);
+                if (!otherPlane.isMemoryless() &&
+                    plane.getTextureID() == otherPlane.getTextureID() &&
+                    planeImageIdx == otherPlane.getTextureImageIndex())
+                {
+                    ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kPLSSingleTexImageMultiplePlanes);
+                    return false;
+                }
+            }
+
+            // INVALID_OPERATION is generated if a single texture slice is simultaneously bound to
+            // an active pixel local storage plane and attached to an enabled drawbuffer.
+            const GLuint maxDrawBuffersWithPLSPlanes = std::min<GLuint>(
+                caps.maxCombinedDrawBuffersAndPixelLocalStoragePlanes - n, caps.maxDrawBuffers);
+            for (GLuint j = 0; j < maxDrawBuffersWithPLSPlanes; ++j)
+            {
+                if (framebuffer->getDrawBufferMask().test(j) &&
+                    framebuffer->getColorAttachment(j)->isTextureWithId(plane.getTextureID()))
+                {
+                    // Compare the ImageIndex values for the PLS plane and framebuffer attachment
+                    // manually; the framebuffer uses a layer index of -1 for texture2d attachments,
+                    // whereas PLS uses a layer index of 0.
+                    const ImageIndex &attachmentImageIdx =
+                        framebuffer->getColorAttachment(j)->getTextureImageIndex();
+                    ASSERT(attachmentImageIdx.getLayerCount() == 1);
+                    if (planeImageIdx.getType() == attachmentImageIdx.getType() &&
+                        planeImageIdx.getLevelIndex() == attachmentImageIdx.getLevelIndex() &&
+                        planeImageIdx.getLayerIndex() ==
+                            std::max(attachmentImageIdx.getLayerIndex(), 0))
+                    {
+                        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION,
+                                               kPLSSingleTexImagePLSAndAttachment);
+                        return false;
+                    }
+                }
             }
         }
     }
@@ -2644,18 +2679,6 @@ bool ValidateBeginPixelLocalStorageANGLE(const Context *context,
             return false;
         }
     }
-
-    // INVALID_OPERATION is generated if a single texture image is bound to more than one pixel
-    // local storage plane.
-    //
-    //   TODO(anglebug.com/40096838): Block feedback loops
-    //
-
-    // INVALID_OPERATION is generated if a single texture image is simultaneously bound to a pixel
-    // local storage plane and attached to the draw framebuffer.
-    //
-    //   TODO(anglebug.com/40096838): Block feedback loops
-    //
 
     return true;
 }
