@@ -832,6 +832,8 @@ b/330697097 PIXEL6 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachmen
 40096874 IOS METAL : PixelLocalStorageTest.BlendColorMaskAndClear/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.ClearValues_r32/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.Coherency/ES3_Metal_EmulatePixelLocalStorage* = SKIP
+40096838 IOS METAL : PixelLocalStorageTest.ColorAttachment0Workaround/ES3_Metal_EmulatePixelLocalStorage* = SKIP
+40096838 IOS METAL : PixelLocalStorageTest.CopyTexSubImage/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.ForgetBarrier/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.FragmentReject_depth/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.FragmentReject_stencil/ES3_Metal_EmulatePixelLocalStorage* = SKIP
@@ -848,6 +850,7 @@ b/330697097 PIXEL6 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachmen
 40096874 IOS METAL : PixelLocalStorageTest.ProgramCache/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.R32/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.RGBA8/ES3_Metal_EmulatePixelLocalStorage* = SKIP
+40096838 IOS METAL : PixelLocalStorageTest.RasterizerDiscard/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.TextureLevelsAndLayers/* = SKIP
 40096874 IOS METAL : PointSpritesTest.PointSizeAboveMaxIsClamped/* = SKIP
 40096874 IOS METAL : RobustBufferAccessWebGL2ValidationStateChangeTest.BindZeroSizeBufferThenDeleteBufferBug/* = SKIP
@@ -885,6 +888,7 @@ b/330697097 PIXEL6 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachmen
 40096874 IOS METAL : UniformBlockWithOneLargeArrayMemberTest.TwoUniformBlocksInSameProgram/* = SKIP
 40096879 IOS METAL : FramebufferTest_ES3.RenderSharedExponent/* = SKIP
 40096883 IOS METAL : Texture2DDepthStencilTestES3.TexSampleModes*Swizzled/* = SKIP
+375244081 IOS METAL : GLSLTest_ES3.MaxVaryingWithFeedbackAndGLline/* = SKIP
 
 // Simulator does not support compare functions in the sampler state
 365066518 IOS METAL : ShadowSamplerFunctionTexture2DTest.Test/* = SKIP
@@ -1613,6 +1617,27 @@ b/292285899 PIXEL4ORXL GLES : EGLSurfaceTest.DestroyAndRecreateWhileCurrent/* = 
 
 // Metal backend doesn't support different sized attachments.
 42261786 METAL : MultisampledRenderToTextureES3Test.MultipleLevelsMultisampleMRTDraw2DColor/* = SKIP
+
+// Blit on out-of-bounds regions failures on NVIDIA, INTEL and AMD
+404959030 METAL : BlitFramebufferTest.BlitWithDifferentSizesColorAttachments/* = SKIP
+404959030 METAL : BlitFramebufferTest.BlitLargeColorSmallDepthAttachments/* = SKIP
+404959030 METAL : BlitFramebufferTest.BlitSmallColorLargeDepthAttachments/* = SKIP
+404958318 D3D11 : BlitFramebufferTest.BlitWithDifferentSizesColorAttachments/* = SKIP
+404958318 D3D11 : BlitFramebufferTest.BlitLargeColorSmallDepthAttachments/* = SKIP
+404958318 D3D11 : BlitFramebufferTest.BlitSmallColorLargeDepthAttachments/* = SKIP
+404958319 LINUX NVIDIA OPENGL : BlitFramebufferTest.BlitLargeColorSmallDepthAttachments/* = SKIP
+404958319 LINUX NVIDIA OPENGL : BlitFramebufferTest.BlitSmallColorLargeDepthAttachments/* = SKIP
+404983220 LINUX NVIDIA VULKAN : BlitFramebufferTest.BlitLargeColorSmallDepthAttachments/* = SKIP
+404983220 LINUX NVIDIA VULKAN : BlitFramebufferTest.BlitSmallColorLargeDepthAttachments/* = SKIP
+404983220 LINUX INTEL VULKAN : BlitFramebufferTest.BlitLargeColorSmallDepthAttachments/* = SKIP
+404983220 LINUX INTEL VULKAN : BlitFramebufferTest.BlitSmallColorLargeDepthAttachments/* = SKIP
+404959032 MAC AMD OPENGL : BlitFramebufferTest.BlitLargeColorSmallDepthAttachments/* = SKIP
+404959032 MAC AMD OPENGL : BlitFramebufferTest.BlitSmallColorLargeDepthAttachments/* = SKIP
+404959032 MAC INTEL OPENGL : BlitFramebufferTest.BlitLargeColorSmallDepthAttachments/* = SKIP
+404958320 WIN INTEL VULKAN : BlitFramebufferTest.BlitLargeColorSmallDepthAttachments/* = SKIP
+404958320 WIN INTEL VULKAN : BlitFramebufferTest.BlitSmallColorLargeDepthAttachments/* = SKIP
+404958320 WIN NVIDIA VULKAN : BlitFramebufferTest.BlitLargeColorSmallDepthAttachments/* = SKIP
+404958320 WIN NVIDIA VULKAN : BlitFramebufferTest.BlitSmallColorLargeDepthAttachments/* = SKIP
 
 // EGLImage colorspace renderbuffer failures on NVIDIA, INTEL and ANDROID
 40644776 D3D11                : ImageTest.SourceRenderbufferTargetTexture* = SKIP
