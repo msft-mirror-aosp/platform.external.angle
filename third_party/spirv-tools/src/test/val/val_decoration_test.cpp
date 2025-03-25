@@ -10394,7 +10394,7 @@ TEST_F(ValidateDecorations, ComponentMultipleArrays) {
                OpDecorate %gl_PerVertex Block
                OpDecorate %FOO Component 2
                OpDecorate %FOO Location 1
-               OpDecorate %FOO0 Location 1
+               OpDecorate %FOO0 Location 4
                OpDecorate %FOO0 Component 0
        %void = OpTypeVoid
           %3 = OpTypeFunction %void
@@ -10996,6 +10996,73 @@ OpFunctionEnd
 
   CompileSuccessfully(spirv, SPV_ENV_UNIVERSAL_1_5);
   EXPECT_EQ(SPV_SUCCESS, ValidateInstructions(SPV_ENV_VULKAN_1_2));
+}
+
+TEST_F(ValidateDecorations, RuntimeArrayNotLargestOffsetInBlock) {
+  const std::string spirv = R"(
+OpCapability Shader
+OpExtension "SPV_KHR_storage_buffer_storage_class"
+OpMemoryModel Logical GLSL450
+OpEntryPoint GLCompute %main "main"
+OpExecutionMode %main LocalSize 1 1 1
+OpDecorate %var DescriptorSet 0
+OpDecorate %var Binding 0
+OpDecorate %block Block
+OpMemberDecorate %block 0 Offset 16
+OpMemberDecorate %block 1 Offset 0
+%void = OpTypeVoid
+%void_fn = OpTypeFunction %void
+%int = OpTypeInt 32 0
+%array = OpTypeRuntimeArray %int
+%block = OpTypeStruct %int %array
+%ptr = OpTypePointer StorageBuffer %block
+%var = OpVariable %ptr StorageBuffer
+%main = OpFunction %void None %void_fn
+%entry = OpLabel
+OpReturn
+OpFunctionEnd
+)";
+
+  CompileSuccessfully(spirv, SPV_ENV_VULKAN_1_0);
+  EXPECT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions(SPV_ENV_VULKAN_1_0));
+  EXPECT_THAT(getDiagnosticString(),
+              HasSubstr("has a runtime array at offset 0, but other members at "
+                        "larger offsets"));
+  EXPECT_THAT(getDiagnosticString(),
+              AnyVUID("VUID-StandaloneSpirv-OpTypeRuntimeArray-04680"));
+}
+
+TEST_F(ValidateDecorations, RuntimeArrayNotLargestOffsetInBufferBlock) {
+  const std::string spirv = R"(
+OpCapability Shader
+OpMemoryModel Logical GLSL450
+OpEntryPoint GLCompute %main "main"
+OpExecutionMode %main LocalSize 1 1 1
+OpDecorate %var DescriptorSet 0
+OpDecorate %var Binding 0
+OpDecorate %block BufferBlock
+OpMemberDecorate %block 0 Offset 16
+OpMemberDecorate %block 1 Offset 0
+%void = OpTypeVoid
+%void_fn = OpTypeFunction %void
+%int = OpTypeInt 32 0
+%array = OpTypeRuntimeArray %int
+%block = OpTypeStruct %int %array
+%ptr = OpTypePointer Uniform %block
+%var = OpVariable %ptr Uniform
+%main = OpFunction %void None %void_fn
+%entry = OpLabel
+OpReturn
+OpFunctionEnd
+)";
+
+  CompileSuccessfully(spirv, SPV_ENV_VULKAN_1_0);
+  EXPECT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions(SPV_ENV_VULKAN_1_0));
+  EXPECT_THAT(getDiagnosticString(),
+              HasSubstr("has a runtime array at offset 0, but other members at "
+                        "larger offsets"));
+  EXPECT_THAT(getDiagnosticString(),
+              AnyVUID("VUID-StandaloneSpirv-OpTypeRuntimeArray-04680"));
 }
 
 }  // namespace
