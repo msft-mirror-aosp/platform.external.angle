@@ -11107,6 +11107,17 @@ void main()
     EXPECT_NE(shader, 0u);
 }
 
+// Test that output variables declared after main work in combination with initOutputVariables
+// (which is enabled on WebGL).
+TEST_P(WebGLGLSLTest, OutputAfterMain)
+{
+    constexpr char kVS[] = R"(void main(){}
+varying float r;)";
+
+    GLuint shader = CompileShader(GL_VERTEX_SHADER, kVS);
+    EXPECT_NE(shader, 0u);
+}
+
 // Test that clamp applied on non-literal indices is correct on es 100 shaders.
 TEST_P(GLSLTest, ValidIndexClampES100)
 {
@@ -20705,6 +20716,23 @@ TEST_P(GLSLTest_ES3, StructWithSamplerRHSOfCommaWithSideEffect)
 void main()
 {
     ++gl_Position, u[0];
+})";
+
+    GLuint shader = CompileShader(GL_VERTEX_SHADER, kVS);
+    EXPECT_NE(0u, shader);
+    glDeleteShader(shader);
+}
+
+// Regression test for a bug where the sampler-in-struct rewrite transformation did not take a
+// specific pattern of side_effect,struct_with_only_samplers into account.
+TEST_P(GLSLTest_ES3, StructWithOnlySamplersRHSOfCommaWithSideEffect)
+{
+    constexpr char kVS[] = R"(uniform struct S {
+    sampler2D s;
+} u;
+void main()
+{
+    ++gl_Position, u;
 })";
 
     GLuint shader = CompileShader(GL_VERTEX_SHADER, kVS);
