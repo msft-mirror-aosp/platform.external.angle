@@ -381,17 +381,6 @@ constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
          "prior_command = vkCmdPipelineBarrier",
          "load_op = VK_ATTACHMENT_LOAD_OP_DONT_CARE",
      }},
-    // From various tests. The validation layer does not calculate the exact vertexCounts that's
-    // being accessed. http://anglebug.com/42265220
-    {"SYNC-HAZARD-READ-AFTER-WRITE",
-     "Hazard READ_AFTER_WRITE for vertex",
-     "usage: SYNC_VERTEX_ATTRIBUTE_INPUT_VERTEX_ATTRIBUTE_READ",
-     false,
-     {
-         "message_type = DrawVertexBufferError",
-         "access = "
-         "VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT(VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT)",
-     }},
     {
         "SYNC-HAZARD-READ-AFTER-WRITE",
         "Hazard READ_AFTER_WRITE for index",
@@ -5374,7 +5363,12 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, preferSkippingInvalidateForEmulatedFormats,
                             isImmediateModeRenderer);
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, asyncCommandBufferResetAndGarbageCleanup, true);
+    ANGLE_FEATURE_CONDITION(&mFeatures, asyncGarbageCleanup, true);
+    // reset sometimes gets blocked by mutex lock inside vulkan driver and runs in small core while
+    // main thread gets blocked by command pool lock. FOr now dont call reset in garbage clean up
+    // thread on ARM.
+    ANGLE_FEATURE_CONDITION(&mFeatures, asyncCommandBufferReset,
+                            mFeatures.asyncGarbageCleanup.enabled && !isARM);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsYUVSamplerConversion,
                             mSamplerYcbcrConversionFeatures.samplerYcbcrConversion != VK_FALSE);

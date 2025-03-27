@@ -114,6 +114,7 @@
 42266168 WIN INTEL D3D11 : FramebufferTest_ES31.ChangeFBOSizeAndAttachmentsCount/* = SKIP
 42266132 WIN NVIDIA D3D11 : FramebufferTest_ES31.ChangeFBOSizeAndAttachmentsCount/* = SKIP
 42266165 WIN INTEL VULKAN : FramebufferTest_ES31.ChangeFBOSizeAndAttachmentsCount/* = SKIP
+42266132 WIN INTEL OPENGL : FramebufferTest_ES31.ChangeFBOSizeWithNoAttachments/* = SKIP
 42266165 WIN INTEL VULKAN : FramebufferTest_ES31.ChangeFBOSizeWithNoAttachments/* = SKIP
 42266165 WIN INTEL VULKAN : FramebufferTest_ES31.CreateNoAttachmentFBOWithDifferentSize/* = SKIP
 42266165 WIN INTEL VULKAN : FramebufferTest_ES31.RenderingLimitToDefaultFBOSizeWithNoAttachments/* = SKIP
@@ -851,6 +852,7 @@ b/330697097 PIXEL6 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachmen
 40096874 IOS METAL : PixelLocalStorageTest.R32/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.RGBA8/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096838 IOS METAL : PixelLocalStorageTest.RasterizerDiscard/ES3_Metal_EmulatePixelLocalStorage* = SKIP
+40096838 IOS METAL : PixelLocalStorageTest.TextureCubeFaces/* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.TextureLevelsAndLayers/* = SKIP
 40096874 IOS METAL : PointSpritesTest.PointSizeAboveMaxIsClamped/* = SKIP
 40096874 IOS METAL : RobustBufferAccessWebGL2ValidationStateChangeTest.BindZeroSizeBufferThenDeleteBufferBug/* = SKIP
