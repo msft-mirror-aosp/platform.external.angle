@@ -381,11 +381,8 @@ constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
          "prior_command = vkCmdPipelineBarrier",
          "load_op = VK_ATTACHMENT_LOAD_OP_DONT_CARE",
      }},
-    {
-        "SYNC-HAZARD-READ-AFTER-WRITE",
-        "Hazard READ_AFTER_WRITE for index",
-        "usage: SYNC_INDEX_INPUT_INDEX_READ",
-    },
+    // From various tests. The validation layer does not calculate the exact vertexCounts that's
+    // being accessed. http://anglebug.com/42265220
     {
         "SYNC-HAZARD-WRITE-AFTER-READ",
         "Hazard WRITE_AFTER_READ for",
@@ -5289,10 +5286,14 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsMultiDrawIndirect,
                             mPhysicalDeviceFeatures.multiDrawIndirect == VK_TRUE);
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, perFrameWindowSizeQuery,
-                            IsAndroid() || isIntel || (IsWindows() && (isAMD || isNvidia)) ||
-                                IsFuchsia() || isSamsung ||
-                                nativeWindowSystem == angle::NativeWindowSystem::Wayland);
+    // The |WindowSurfaceVk::getWindowVisibility| method must be implemented.
+    // When enabled, surface will be resized only if window is visible.
+    // Notes:
+    // - Enable for NVIDIA on Linux X11 because of the possible driver bug, when acquire next image
+    //   continuously returns OUT_OF_DATE if recreate the swapchain while window is not visible
+    //   (http://anglebug.com/397848903).
+    ANGLE_FEATURE_CONDITION(&mFeatures, avoidInvisibleWindowSwapchainRecreate,
+                            (isNvidia && nativeWindowSystem == angle::NativeWindowSystem::X11));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, padBuffersToMaxVertexAttribStride, isAMD || isSamsung);
     mMaxVertexAttribStride = std::min(static_cast<uint32_t>(gl::limits::kMaxVertexAttribStride),

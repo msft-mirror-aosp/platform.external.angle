@@ -108,7 +108,6 @@ cc_defaults {
         "-Wno-cast-function-type",
         "-Wno-invalid-offsetof",
         "-Wno-missing-field-initializers",
-        "-Wno-missing-template-arg-list-after-template-kw",
         "-Wno-nontrivial-memcall",
         "-Wno-nullability-completeness",
         "-Wno-psabi",
