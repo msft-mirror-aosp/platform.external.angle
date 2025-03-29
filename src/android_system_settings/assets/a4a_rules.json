@@ -14,12 +14,6 @@
           "choice": "native",
           "apps": [
               {
-                  "packageName": "com.linecorp.b612.android"
-              },
-              {
-                  "packageName": "com.campmobile.snow"
-              },
-              {
                   "packageName": "com.google.android.apps.tachyon"
               }
           ]

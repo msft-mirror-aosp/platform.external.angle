@@ -1274,7 +1274,7 @@ void ContextVk::onDestroy(const gl::Context *context)
     // Must release all Vulkan secondary command buffers before destroying the pools.
     if ((!vk::OutsideRenderPassCommandBuffer::ExecutesInline() ||
          !vk::RenderPassCommandBuffer::ExecutesInline()) &&
-        mRenderer->isAsyncCommandBufferResetAndGarbageCleanupEnabled())
+        mRenderer->getFeatures().asyncGarbageCleanup.enabled)
     {
         // This will also reset Primary command buffers which is REQUIRED on some buggy Vulkan
         // implementations.
@@ -4626,8 +4626,8 @@ angle::Result ContextVk::optimizeRenderPassForPresent(vk::ImageViewHelper *color
                                vk::ImageLayout::ColorWrite, colorImage);
 
         // Invalidate the surface.
-        // See comment in WindowSurfaceVk::doDeferredAcquireNextImageWithUsableSwapchain on why this
-        // is not done when in shared present mode.
+        // See comment in WindowSurfaceVk::acquireNextSwapchainImage on why this is not done when
+        // in shared present mode.
         if (!isSharedPresentMode)
         {
             commandBufferHelper.invalidateRenderPassColorAttachment(

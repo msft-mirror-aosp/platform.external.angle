@@ -1339,7 +1339,8 @@ angle::Result GetVertexRangeInfo(const gl::Context *context,
     {
         gl::IndexRange indexRange;
         ANGLE_TRY(context->getState().getVertexArray()->getIndexRange(
-            context, indexTypeOrInvalid, vertexOrIndexCount, indices, &indexRange));
+            context, indexTypeOrInvalid, vertexOrIndexCount, indices,
+            context->getState().isPrimitiveRestartEnabled(), &indexRange));
         ANGLE_TRY(ComputeStartVertex(context->getImplementation(), indexRange, baseVertex,
                                      startVertexOut));
         *vertexCountOut = indexRange.vertexCount();
@@ -1408,6 +1409,35 @@ void ApplyFeatureOverrides(angle::FeatureSetBase *features,
     if (!featureStream.str().empty())
     {
         INFO() << featureStream.str();
+    }
+}
+
+void StreamEmulatedLineLoopIndices(gl::DrawElementsType glIndexType,
+                                   GLsizei indexCount,
+                                   const uint8_t *srcPtr,
+                                   uint8_t *outPtr,
+                                   bool shouldConvertUint8)
+{
+    switch (glIndexType)
+    {
+        case gl::DrawElementsType::UnsignedByte:
+            if (shouldConvertUint8)
+            {
+                CopyLineLoopIndicesWithRestart<uint8_t, uint16_t>(indexCount, srcPtr, outPtr);
+            }
+            else
+            {
+                CopyLineLoopIndicesWithRestart<uint8_t, uint8_t>(indexCount, srcPtr, outPtr);
+            }
+            break;
+        case gl::DrawElementsType::UnsignedShort:
+            CopyLineLoopIndicesWithRestart<uint16_t, uint16_t>(indexCount, srcPtr, outPtr);
+            break;
+        case gl::DrawElementsType::UnsignedInt:
+            CopyLineLoopIndicesWithRestart<uint32_t, uint32_t>(indexCount, srcPtr, outPtr);
+            break;
+        default:
+            UNREACHABLE();
     }
 }
 

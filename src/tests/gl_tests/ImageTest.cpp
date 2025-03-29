@@ -2577,6 +2577,68 @@ TEST_P(ImageTestES3, SourceAHBTarget2DGenerateMipmapColorspaceBlend)
     destroyAndroidHardwareBuffer(aHardwareBuffer);
 }
 
+// Test interaction between AHB, GL_OES_EGL_image_external and glGenerateMipmap.
+TEST_P(ImageTestES3, SourceAHBTargetTexture2DGenerateMipmap)
+{
+    EGLWindow *window = getEGLWindow();
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+    ANGLE_SKIP_TEST_IF(!hasAndroidImageNativeBufferExt() || !hasAndroidHardwareBufferSupport());
+
+    GLubyte red_data[16] = {255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255};
+
+    AHardwareBuffer *source;
+    EGLImageKHR image;
+    createEGLImageAndroidHardwareBufferSource(2, 2, 1, AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM,
+                                              kDefaultAHBUsage, kDefaultAttribs, {{red_data, 16}},
+                                              &source, &image);
+
+    // Create a texture target to bind the egl image.
+    GLTexture tex1;
+    createEGLImageTargetTexture2D(image, tex1);
+
+    // Draw to the tex1.
+    GLFramebuffer fbo1;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo1);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex1, 0);
+    ASSERT_GL_NO_ERROR();
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    ANGLE_GL_PROGRAM(drawGreen, essl1_shaders::vs::Simple(), essl1_shaders::fs::Green());
+    drawQuad(drawGreen, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+
+    // Generate mipmap for texture.
+    glBindTexture(GL_TEXTURE_2D, tex1);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    ASSERT_GL_NO_ERROR();
+
+    // Attach the texture to fbo2.
+    GLTexture tex2;
+    glBindTexture(GL_TEXTURE_2D, tex2);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    GLFramebuffer fbo2;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo2);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex2, 0);
+    ASSERT_GL_NO_ERROR();
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    // Sample tex1.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, tex1);
+    ANGLE_GL_PROGRAM(drawTexture, essl1_shaders::vs::Texture2D(), essl1_shaders::fs::Texture2D());
+    glUseProgram(drawTexture);
+    GLint texLocation = glGetUniformLocation(drawTexture, essl1_shaders::Texture2DUniform());
+    ASSERT_NE(-1, texLocation);
+    glUniform1i(texLocation, 0);
+    drawQuad(drawTexture, essl1_shaders::PositionAttrib(), 0.5f);
+
+    // Verify results.
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // Clean up.
+    eglDestroyImageKHR(window->getDisplay(), image);
+    destroyAndroidHardwareBuffer(source);
+}
+
 // Test that drawing to an AHB works.
 TEST_P(ImageTestES3, SourceAHBTarget2DDraw)
 {
@@ -3138,6 +3200,49 @@ TEST_P(ImageTest, SourceBadAccess)
         EXPECT_NE(validImage, EGL_NO_IMAGE_KHR);
         eglDestroyImageKHR(window->getDisplay(), validImage);
     }
+}
+
+// Testing GLES resources when creating EGL image, if the client buffer itself is an EGL target,
+// eglCreateImageKHR should return NO_IMAGE and generate error EGL_BAD_ACCESS.
+TEST_P(ImageTest, ImageSiblingAsSourceTarget)
+{
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !IsVulkan() || !has2DTextureExt() ||
+                       !hasRenderbufferExt());
+    EGLWindow *window = getEGLWindow();
+
+    // Validate gles texture
+    GLRenderbuffer renderBufferSource;
+    EGLImageKHR image1;
+    createEGLImageRenderbufferSource(1, 1, GL_RGBA8_OES, kDefaultAttribs, renderBufferSource,
+                                     &image1);
+    GLTexture texture;
+    createEGLImageTargetTexture2D(image1, texture);
+
+    // Texture is both an EGL target and an EGL source. EGL_BAD_ACCESS should be returned
+    EGLImageKHR invalidImage =
+        eglCreateImageKHR(window->getDisplay(), window->getContext(), EGL_GL_TEXTURE_2D,
+                          reinterpretHelper<EGLClientBuffer>(texture), kDefaultAttribs);
+    ASSERT_EGL_ERROR(EGL_BAD_ACCESS);
+    EXPECT_EQ(invalidImage, EGL_NO_IMAGE_KHR);
+
+    // Validate gles renderbuffer
+    GLTexture textureSource;
+    EGLImageKHR image2;
+    createEGLImage2DTextureSource(1, 1, GL_RGBA, GL_UNSIGNED_BYTE, kDefaultAttribs,
+                                  static_cast<void *>(&kLinearColor), textureSource, &image2);
+    GLRenderbuffer renderBuffer;
+    createEGLImageTargetRenderbuffer(image2, renderBuffer);
+
+    // Renderbuffer is both an EGL target and an EGL source. EGL_BAD_ACCESS should be returned
+    invalidImage =
+        eglCreateImageKHR(window->getDisplay(), window->getContext(), EGL_GL_RENDERBUFFER_KHR,
+                          reinterpretHelper<EGLClientBuffer>(renderBuffer), kDefaultAttribs);
+    ASSERT_EGL_ERROR(EGL_BAD_ACCESS);
+    EXPECT_EQ(invalidImage, EGL_NO_IMAGE_KHR);
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image1);
+    eglDestroyImageKHR(window->getDisplay(), image2);
 }
 
 // Testing source AHB EGL image, target 2D texture and delete when in use
@@ -4474,6 +4579,68 @@ TEST_P(ImageTestES3, ClearYUVAHBWithDepth)
 
     // ReadPixels returns the RGB converted color
     EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(255, 159, 212, 255), 1.0);
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
+    destroyAndroidHardwareBuffer(source);
+}
+
+// Test partial clearing to a YUV AHB using EXT_yuv_target
+TEST_P(ImageTestES3, PartialClearYUVAHB)
+{
+    EGLWindow *window = getEGLWindow();
+
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt() || !hasYUVTargetExt());
+    ANGLE_SKIP_TEST_IF(!hasAndroidImageNativeBufferExt() || !hasAndroidHardwareBufferSupport());
+
+    // Create the Image without data so we don't need ANGLE_AHARDWARE_BUFFER_LOCK_PLANES_SUPPORT
+    GLubyte dataY[4]  = {0, 0, 0, 0};
+    GLubyte dataCb[1] = {
+        0,
+    };
+    GLubyte dataCr[1] = {
+        0,
+    };
+
+    AHardwareBuffer *source;
+    EGLImageKHR image;
+    createEGLImageAndroidHardwareBufferSource(
+        8, 8, 1, AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420, kDefaultAHBUsage, kDefaultAttribs,
+        {{dataY, 64}, {dataCb, 64}, {dataCr, 64}}, &source, &image);
+
+    // Create a texture target to bind the egl image
+    GLTexture target;
+    createEGLImageTargetTextureExternal(image, target);
+
+    // Set up a framebuffer to render into the AHB
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_EXTERNAL_OES, target,
+                           0);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    // Full clear the background
+    GLubyte clearColorFull[4] = {40, 240, 109, 255};
+    glClearColor(clearColorFull[0] / 255.0f, clearColorFull[1] / 255.0f, clearColorFull[2] / 255.0f,
+                 clearColorFull[3] / 255.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(0, 0, 255, 255), 2.0);
+
+    // Partial clear the corner with another color
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(0, 0, 4, 4);
+
+    GLubyte clearColor[4] = {197, 128, 192, 255};
+    glClearColor(clearColor[0] / 255.0f, clearColor[1] / 255.0f, clearColor[2] / 255.0f,
+                 clearColor[3] / 255.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    ASSERT_GL_NO_ERROR();
+
+    // ReadPixels returns the RGB converted color
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(255, 159, 212, 255), 2.0);
+    EXPECT_PIXEL_COLOR_NEAR(4, 4, GLColor(0, 0, 255, 255), 2.0);
 
     // Clean up
     eglDestroyImageKHR(window->getDisplay(), image);
