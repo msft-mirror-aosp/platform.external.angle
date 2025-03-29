@@ -36,6 +36,12 @@ constexpr angle::PackedEnumMap<PrimitiveMode, GLsizei> kMinimumPrimitiveCounts =
     {PrimitiveMode::TriangleStripAdjacency, 3},
 }};
 
+// All bits except |DIRTY_BIT_READ_FRAMEBUFFER_BINDING| because |mDrawDirtyObjects| does not contain
+// |DIRTY_OBJECT_READ_FRAMEBUFFER|, to avoid synchronizing with invalid read framebuffer state.
+constexpr state::DirtyBits kDrawDirtyBits =
+    ~state::DirtyBits{state::DIRTY_BIT_READ_FRAMEBUFFER_BINDING};
+constexpr state::ExtendedDirtyBits kDrawExtendedDirtyBits = state::ExtendedDirtyBits().set();
+
 ANGLE_INLINE void MarkTransformFeedbackBufferUsage(const Context *context,
                                                    GLsizei count,
                                                    GLsizei instanceCount)
@@ -75,35 +81,45 @@ ANGLE_INLINE void MarkShaderStorageUsage(const Context *context)
 //  an error. ANGLE will treat this as a no-op.
 //  A no-op draw occurs if the count of vertices is less than the minimum required to
 //  have a valid primitive for this mode (0 for points, 0-1 for lines, 0-2 for tris).
-ANGLE_INLINE bool Context::noopDraw(PrimitiveMode mode, GLsizei count) const
+ANGLE_INLINE bool Context::noopDrawProgram() const
 {
     // Make sure any pending link is done before checking whether draw is allowed.
     mState.ensureNoPendingLink(this);
 
-    if (!mStateCache.getCanDraw())
+    // No-op when there is no active vertex shader
+    return !mStateCache.getCanDraw();
+}
+
+ANGLE_INLINE bool Context::noopDraw(PrimitiveMode mode, GLsizei count) const
+{
+    if (ANGLE_UNLIKELY(count < kMinimumPrimitiveCounts[mode]))
     {
         return true;
     }
 
-    return count < kMinimumPrimitiveCounts[mode];
+    return noopDrawProgram();
+}
+
+ANGLE_INLINE bool Context::noopDrawInstanced(PrimitiveMode mode,
+                                             GLsizei count,
+                                             GLsizei instanceCount) const
+{
+    if (ANGLE_UNLIKELY(instanceCount < 1))
+    {
+        return true;
+    }
+
+    return noopDraw(mode, count);
 }
 
 ANGLE_INLINE bool Context::noopMultiDraw(GLsizei drawcount) const
 {
-    return drawcount == 0 || !mStateCache.getCanDraw();
-}
+    if (ANGLE_UNLIKELY(drawcount < 1))
+    {
+        return true;
+    }
 
-ANGLE_INLINE angle::Result Context::syncAllDirtyBits(Command command)
-{
-    constexpr state::DirtyBits kAllDirtyBits                 = state::DirtyBits().set();
-    constexpr state::ExtendedDirtyBits kAllExtendedDirtyBits = state::ExtendedDirtyBits().set();
-    const state::DirtyBits dirtyBits                         = mState.getDirtyBits();
-    const state::ExtendedDirtyBits extendedDirtyBits         = mState.getExtendedDirtyBits();
-    ANGLE_TRY(mImplementation->syncState(this, dirtyBits, kAllDirtyBits, extendedDirtyBits,
-                                         kAllExtendedDirtyBits, command));
-    mState.clearDirtyBits();
-    mState.clearExtendedDirtyBits();
-    return angle::Result::Continue;
+    return noopDrawProgram();
 }
 
 ANGLE_INLINE angle::Result Context::syncDirtyBits(const state::DirtyBits bitMask,
@@ -136,7 +152,7 @@ ANGLE_INLINE angle::Result Context::prepareForDraw(PrimitiveMode mode)
     ANGLE_TRY(syncDirtyObjects(mDrawDirtyObjects, Command::Draw));
     ASSERT(!isRobustResourceInitEnabled() ||
            !mState.getDrawFramebuffer()->hasResourceThatNeedsInit());
-    return syncAllDirtyBits(Command::Draw);
+    return syncDirtyBits(kDrawDirtyBits, kDrawExtendedDirtyBits, Command::Draw);
 }
 
 ANGLE_INLINE void Context::drawArrays(PrimitiveMode mode, GLint first, GLsizei count)
