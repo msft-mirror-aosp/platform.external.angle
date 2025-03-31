@@ -9043,6 +9043,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std_config",
     ],
     local_include_dirs: [
@@ -9100,6 +9101,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_stdarg",
         "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std_config",
     ],
@@ -9129,6 +9131,8 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std_config",
     ],
     local_include_dirs: [
@@ -9186,6 +9190,8 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++__Builtin_stdint",
     ],
     local_include_dirs: [
@@ -9370,6 +9376,8 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std_config",
     ],
     local_include_dirs: [
@@ -9466,6 +9474,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_stdarg",
         "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++__Builtin_stdint",
         "buildtools_third_party_libc++_std_config",

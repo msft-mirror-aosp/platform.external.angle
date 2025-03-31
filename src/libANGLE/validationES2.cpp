@@ -4438,7 +4438,7 @@ bool ValidateDeleteProgram(const Context *context,
 {
     if (program.value == 0)
     {
-        return false;
+        return true;  // no-op
     }
 
     if (!context->getProgramResolveLink(program))
@@ -4464,7 +4464,7 @@ bool ValidateDeleteShader(const Context *context,
 {
     if (shader.value == 0)
     {
-        return false;
+        return true;  // no-op
     }
 
     if (!context->getShaderNoResolveCompile(shader))
@@ -5119,6 +5119,7 @@ bool ValidatePixelStorei(const PrivateState &state,
             if (!state.getExtensions().packReverseRowOrderANGLE)
             {
                 errors->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, pname);
+                return false;
             }
             break;
 
