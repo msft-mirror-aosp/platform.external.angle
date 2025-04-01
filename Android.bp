@@ -104,7 +104,6 @@ cc_defaults {
         "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_NONE",
         "-D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__",
         "-Wno-builtin-macro-redefined",
-        "-Wno-c++11-narrowing-const-reference",
         "-Wno-cast-function-type",
         "-Wno-invalid-offsetof",
         "-Wno-missing-field-initializers",
