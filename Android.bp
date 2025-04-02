@@ -4851,7 +4851,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -4896,7 +4895,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -4953,7 +4951,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -4995,7 +4992,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5040,7 +5036,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5083,7 +5078,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5149,7 +5143,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5191,7 +5184,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5239,7 +5231,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5285,7 +5276,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5327,7 +5317,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5370,7 +5359,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5424,7 +5412,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5469,7 +5456,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5527,7 +5513,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5576,7 +5561,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5626,7 +5610,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5671,7 +5654,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5714,7 +5696,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5762,7 +5743,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5809,7 +5789,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5859,7 +5838,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5913,7 +5891,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5959,7 +5936,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6009,7 +5985,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6079,7 +6054,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6127,7 +6101,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6173,7 +6146,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6221,7 +6193,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6272,7 +6243,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6321,7 +6291,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6379,7 +6348,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6441,7 +6409,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6484,7 +6451,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6532,7 +6498,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6583,7 +6548,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6626,7 +6590,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6698,7 +6661,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6740,7 +6702,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6803,7 +6764,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6850,7 +6810,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6892,7 +6851,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6936,7 +6894,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6989,7 +6946,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7036,7 +6992,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7092,7 +7047,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7139,7 +7093,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7187,7 +7140,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7235,7 +7187,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7301,7 +7252,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7344,7 +7294,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7393,7 +7342,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7437,7 +7385,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7481,7 +7428,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7529,7 +7475,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7572,7 +7517,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7621,7 +7565,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7668,7 +7611,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7713,7 +7655,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7757,7 +7698,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7799,7 +7739,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7845,7 +7784,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7888,7 +7826,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7937,7 +7874,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7984,7 +7920,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8026,7 +7961,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8075,7 +8009,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8121,7 +8054,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8164,7 +8096,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8207,7 +8138,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8250,7 +8180,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8309,7 +8238,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8354,7 +8282,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8412,7 +8339,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8455,7 +8381,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8498,7 +8423,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8546,7 +8470,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8589,7 +8512,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8632,7 +8554,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8676,7 +8597,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8719,7 +8639,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8764,7 +8683,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8807,7 +8725,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8851,7 +8768,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8893,7 +8809,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8934,7 +8849,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -8976,7 +8890,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9022,7 +8935,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9051,7 +8963,6 @@ cc_defaults {
     cflags: [
         "-D_LIBCPP_BUILDING_LIBRARY",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9080,7 +8991,6 @@ cc_defaults {
     cflags: [
         "-D_LIBCPP_BUILDING_LIBRARY",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9110,7 +9020,6 @@ cc_defaults {
     cflags: [
         "-D_LIBCPP_BUILDING_LIBRARY",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9140,7 +9049,6 @@ cc_defaults {
     cflags: [
         "-D_LIBCPP_BUILDING_LIBRARY",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9169,7 +9077,6 @@ cc_defaults {
     cflags: [
         "-D_LIBCPP_BUILDING_LIBRARY",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9236,7 +9143,6 @@ cc_defaults {
     cflags: [
         "-D_LIBCPP_BUILDING_LIBRARY",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9299,7 +9205,6 @@ cc_defaults {
     cflags: [
         "-D_LIBCPP_BUILDING_LIBRARY",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9327,7 +9232,6 @@ cc_defaults {
     cflags: [
         "-D_LIBCPP_BUILDING_LIBRARY",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9355,7 +9259,6 @@ cc_defaults {
     cflags: [
         "-D_LIBCPP_BUILDING_LIBRARY",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9385,7 +9288,6 @@ cc_defaults {
     cflags: [
         "-D_LIBCPP_BUILDING_LIBRARY",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9484,7 +9386,6 @@ cc_defaults {
     cflags: [
         "-D_LIBCPP_BUILDING_LIBRARY",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9511,7 +9412,6 @@ cc_defaults {
     cflags: [
         "-D_LIBCPP_BUILDING_LIBRARY",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9655,7 +9555,6 @@ cc_defaults {
     cflags: [
         "-D_LIBCPP_BUILDING_LIBRARY",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -9702,7 +9601,6 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-misleading-indentation",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
