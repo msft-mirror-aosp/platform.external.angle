@@ -644,10 +644,12 @@ ANGLE_INLINE const char *ValidateProgramDrawStates(const Context *context,
     if (extensions.multiviewOVR || extensions.multiview2OVR)
     {
         const int programNumViews     = executable.usesMultiview() ? executable.getNumViews() : 1;
+        const bool hasVertexShader    = executable.hasLinkedShaderStage(ShaderType::Vertex);
         Framebuffer *framebuffer      = state.getDrawFramebuffer();
         const int framebufferNumViews = framebuffer->getNumViews();
 
-        if (framebufferNumViews != programNumViews)
+        // num_views layout qualifiers are allowed only in vertex shaders.
+        if (hasVertexShader && (framebufferNumViews != programNumViews))
         {
             return gl::err::kMultiviewMismatch;
         }
@@ -745,7 +747,7 @@ ANGLE_INLINE const char *ValidateProgramDrawStates(const Context *context,
     // Enabled blend equation validation
     const char *errorString = nullptr;
 
-    if (extensions.blendEquationAdvancedKHR)
+    if (extensions.blendEquationAdvancedKHR || context->getClientVersion() >= ES_3_2)
     {
         errorString = ValidateProgramDrawAdvancedBlendState(context, executable);
     }
@@ -2970,9 +2972,16 @@ bool ValidateUniform(const Context *context,
 {
     const LinkedUniform *uniform = nullptr;
     Program *programObject       = context->getActiveLinkedProgram();
-    return ValidateUniformCommonBase(context, entryPoint, programObject, location, count,
-                                     &uniform) &&
-           ValidateUniformValue(context, entryPoint, valueType, uniform->getType());
+    if (!ValidateUniformCommonBase(context, entryPoint, programObject, location, count, &uniform))
+    {
+        // Error already generated.
+        return false;
+    }
+    if (uniform == nullptr)
+    {
+        return true;  // no-op
+    }
+    return ValidateUniformValue(context, entryPoint, valueType, uniform->getType());
 }
 
 bool ValidateUniform1iv(const Context *context,
@@ -2983,9 +2992,16 @@ bool ValidateUniform1iv(const Context *context,
 {
     const LinkedUniform *uniform = nullptr;
     Program *programObject       = context->getActiveLinkedProgram();
-    return ValidateUniformCommonBase(context, entryPoint, programObject, location, count,
-                                     &uniform) &&
-           ValidateUniform1ivValue(context, entryPoint, uniform->getType(), count, value);
+    if (!ValidateUniformCommonBase(context, entryPoint, programObject, location, count, &uniform))
+    {
+        // Error already generated.
+        return false;
+    }
+    if (uniform == nullptr)
+    {
+        return true;  // no-op
+    }
+    return ValidateUniform1ivValue(context, entryPoint, uniform->getType(), count, value);
 }
 
 bool ValidateUniformMatrix(const Context *context,
@@ -3003,9 +3019,16 @@ bool ValidateUniformMatrix(const Context *context,
 
     const LinkedUniform *uniform = nullptr;
     Program *programObject       = context->getActiveLinkedProgram();
-    return ValidateUniformCommonBase(context, entryPoint, programObject, location, count,
-                                     &uniform) &&
-           ValidateUniformMatrixValue(context, entryPoint, valueType, uniform->getType());
+    if (!ValidateUniformCommonBase(context, entryPoint, programObject, location, count, &uniform))
+    {
+        // Error already generated.
+        return false;
+    }
+    if (uniform == nullptr)
+    {
+        return true;  // no-op
+    }
+    return ValidateUniformMatrixValue(context, entryPoint, valueType, uniform->getType());
 }
 
 bool ValidateStateQuery(const Context *context,
@@ -4477,7 +4500,7 @@ const char *ValidateDrawStates(const Context *context, GLenum *outErrorCode)
             }
 
             // Validate that we are rendering with a linked program.
-            if (!program->isLinked())
+            if (program != nullptr && !program->isLinked())
             {
                 return kProgramNotLinked;
             }
@@ -4765,12 +4788,13 @@ bool ValidateGetUniformBase(const Context *context,
     }
 
     Program *programObject = GetValidProgram(context, entryPoint, program);
-    if (!programObject)
+    if (programObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
-    if (!programObject || !programObject->isLinked())
+    if (!programObject->isLinked())
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
         return false;
@@ -5174,6 +5198,7 @@ bool ValidateEGLImageTargetTexture2DOES(const Context *context,
             if (!context->getExtensions().EGLImageOES)
             {
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, ToGLenum(type));
+                return false;
             }
             break;
 
@@ -5181,6 +5206,7 @@ bool ValidateEGLImageTargetTexture2DOES(const Context *context,
             if (!context->getExtensions().EGLImageArrayEXT)
             {
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, ToGLenum(type));
+                return false;
             }
             break;
 
@@ -5188,6 +5214,7 @@ bool ValidateEGLImageTargetTexture2DOES(const Context *context,
             if (!context->getExtensions().EGLImageExternalOES)
             {
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, ToGLenum(type));
+                return false;
             }
             break;
 
@@ -5261,6 +5288,7 @@ bool ValidateProgramBinaryBase(const Context *context,
     Program *programObject = GetValidProgram(context, entryPoint, program);
     if (programObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -5293,6 +5321,7 @@ bool ValidateGetProgramBinaryBase(const Context *context,
     Program *programObject = GetValidProgram(context, entryPoint, program);
     if (programObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -6132,8 +6161,9 @@ bool ValidateGetProgramivBase(const Context *context,
     Program *programObject = (pname == GL_COMPLETION_STATUS_KHR)
                                  ? GetValidProgramNoResolve(context, entryPoint, program)
                                  : GetValidProgram(context, entryPoint, program);
-    if (!programObject)
+    if (programObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -6863,6 +6893,7 @@ bool ValidateRobustCompressedTexImageBase(const Context *context,
         if (dataSize < imageSize)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kCompressedDataSizeTooSmall);
+            return false;
         }
     }
     return true;
@@ -7088,8 +7119,10 @@ bool ValidateGetShaderivBase(const Context *context,
         }
     }
 
-    if (GetValidShader(context, entryPoint, shader) == nullptr)
+    Shader *shaderObject = GetValidShader(context, entryPoint, shader);
+    if (shaderObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -7809,6 +7842,7 @@ bool ValidateTexParameterBase(const Context *context,
             if (target == TextureType::VideoImage && !context->getExtensions().videoTextureWEBGL)
             {
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
+                return false;
             }
             break;
 
@@ -8185,8 +8219,9 @@ bool ValidateGetActiveUniformBlockivBase(const Context *context,
     }
 
     Program *programObject = GetValidProgram(context, entryPoint, program);
-    if (!programObject)
+    if (programObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -8898,6 +8933,7 @@ bool ValidateLoseContextCHROMIUM(const Context *context,
 
         default:
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidResetStatus);
+            return false;
     }
 
     switch (other)
@@ -8909,6 +8945,7 @@ bool ValidateLoseContextCHROMIUM(const Context *context,
 
         default:
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidResetStatus);
+            return false;
     }
 
     return true;

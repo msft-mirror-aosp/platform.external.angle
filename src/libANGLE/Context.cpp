@@ -910,6 +910,8 @@ egl::Error Context::onDestroy(const egl::Display *display)
     // that still have it current.
     ASSERT(mIsDestroyed == true && mRefCount == 0);
 
+    ANGLE_TRY(unMakeCurrent(display));
+
     // Dump frame capture if enabled.
     getShareGroup()->getFrameCaptureShared()->onDestroyContext(this);
 
@@ -920,8 +922,6 @@ egl::Error Context::onDestroy(const egl::Display *display)
     {
         mGLES1Renderer->onDestroy(this, &mState);
     }
-
-    ANGLE_TRY(unMakeCurrent(display));
 
     mDefaultFramebuffer->onDestroy(this);
     mDefaultFramebuffer.reset();
@@ -3791,6 +3791,7 @@ Extensions Context::generateSupportedExtensions() const
         supportedExtensions.textureMultisampleANGLE      = false;
         supportedExtensions.textureQueryLodEXT           = false;
         supportedExtensions.textureShadowLodEXT          = false;
+        supportedExtensions.textureStorageCompressionEXT = false;
         supportedExtensions.textureStencil8OES           = false;
         supportedExtensions.conservativeDepthEXT         = false;
         supportedExtensions.drawBuffersIndexedEXT        = false;
@@ -5997,18 +5998,6 @@ void Context::disableVertexAttribArray(GLuint index)
 void Context::enableVertexAttribArray(GLuint index)
 {
     mState.setEnableVertexAttribArray(index, true);
-    mStateCache.onVertexArrayStateChange(this);
-}
-
-void Context::vertexAttribPointer(GLuint index,
-                                  GLint size,
-                                  VertexAttribType type,
-                                  GLboolean normalized,
-                                  GLsizei stride,
-                                  const void *ptr)
-{
-    mState.setVertexAttribPointer(this, index, mState.getTargetBuffer(BufferBinding::Array), size,
-                                  type, ConvertToBool(normalized), stride, ptr);
     mStateCache.onVertexArrayStateChange(this);
 }
 
@@ -8996,11 +8985,6 @@ void Context::eGLImageTargetTexStorage(GLenum target, egl::ImageID image, const 
                                                         imageObject, attrib_list));
 }
 
-void Context::eGLImageTargetTextureStorage(GLuint texture,
-                                           egl::ImageID image,
-                                           const GLint *attrib_list)
-{}
-
 void Context::eGLImageTargetTexture2D(TextureType target, egl::ImageID image)
 {
     Texture *texture        = getTextureByType(target);
@@ -9018,11 +9002,6 @@ void Context::eGLImageTargetRenderbufferStorage(GLenum target, egl::ImageID imag
 void Context::framebufferFetchBarrier()
 {
     mImplementation->framebufferFetchBarrier();
-}
-
-void Context::texStorage1D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width)
-{
-    UNIMPLEMENTED();
 }
 
 bool Context::getQueryParameterInfo(GLenum pname, GLenum *type, unsigned int *numParams) const

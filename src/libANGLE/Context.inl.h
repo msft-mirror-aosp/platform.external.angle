@@ -18,7 +18,7 @@
 #define ANGLE_HANDLE_ERR(X) \
     (void)(X);              \
     return;
-#define ANGLE_CONTEXT_TRY(EXPR) ANGLE_TRY_TEMPLATE(EXPR, ANGLE_HANDLE_ERR)
+#define ANGLE_CONTEXT_TRY(EXPR) ANGLE_TRY_TEMPLATE(EXPR, static_cast<void>(0), ANGLE_HANDLE_ERR)
 
 namespace gl
 {
@@ -432,6 +432,18 @@ ANGLE_INLINE void Context::uniformMatrix4x3fv(UniformLocation location,
 {
     Program *program = getActiveLinkedProgram();
     program->getExecutable().setUniformMatrix4x3fv(location, count, transpose, value);
+}
+
+ANGLE_INLINE void Context::vertexAttribPointer(GLuint index,
+                                               GLint size,
+                                               VertexAttribType type,
+                                               GLboolean normalized,
+                                               GLsizei stride,
+                                               const void *ptr)
+{
+    mState.setVertexAttribPointer(this, index, mState.getTargetBuffer(BufferBinding::Array), size,
+                                  type, normalized != GL_FALSE, stride, ptr);
+    mStateCache.onVertexArrayStateChange(this);
 }
 
 }  // namespace gl

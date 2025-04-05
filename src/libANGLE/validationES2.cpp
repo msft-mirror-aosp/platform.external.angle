@@ -701,8 +701,7 @@ bool ValidCapUncommon(const PrivateState &state, ErrorSet *errors, GLenum cap, b
             return queryOnly && state.getExtensions().shaderFramebufferFetchARM;
 
         case GL_BLEND_ADVANCED_COHERENT_KHR:
-            return state.getClientVersion() >= Version(2, 0) &&
-                   state.getExtensions().blendEquationAdvancedCoherentKHR;
+            return state.getExtensions().blendEquationAdvancedCoherentKHR;
 
         default:
             break;
@@ -3363,8 +3362,9 @@ bool ValidateBindUniformLocationCHROMIUM(const Context *context,
     }
 
     Program *programObject = GetValidProgram(context, entryPoint, program);
-    if (!programObject)
+    if (programObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -3994,14 +3994,16 @@ bool ValidateAttachShader(const Context *context,
                           ShaderProgramID shader)
 {
     Program *programObject = GetValidProgram(context, entryPoint, program);
-    if (!programObject)
+    if (programObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
     Shader *shaderObject = GetValidShader(context, entryPoint, shader);
-    if (!shaderObject)
+    if (shaderObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -4057,7 +4059,14 @@ bool ValidateBindAttribLocation(const Context *context,
         }
     }
 
-    return GetValidProgram(context, entryPoint, program) != nullptr;
+    Program *programObject = GetValidProgram(context, entryPoint, program);
+    if (programObject == nullptr)
+    {
+        // Error already generated.
+        return false;
+    }
+
+    return true;
 }
 
 bool ValidateBindFramebuffer(const Context *context,
@@ -4438,7 +4447,7 @@ bool ValidateDeleteProgram(const Context *context,
 {
     if (program.value == 0)
     {
-        return false;
+        return true;  // no-op
     }
 
     if (!context->getProgramResolveLink(program))
@@ -4464,7 +4473,7 @@ bool ValidateDeleteShader(const Context *context,
 {
     if (shader.value == 0)
     {
-        return false;
+        return true;  // no-op
     }
 
     if (!context->getShaderNoResolveCompile(shader))
@@ -4523,14 +4532,16 @@ bool ValidateDetachShader(const Context *context,
                           ShaderProgramID shader)
 {
     Program *programObject = GetValidProgram(context, entryPoint, program);
-    if (!programObject)
+    if (programObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
     Shader *shaderObject = GetValidShader(context, entryPoint, shader);
-    if (!shaderObject)
+    if (shaderObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -4627,9 +4638,9 @@ bool ValidateGetActiveAttrib(const Context *context,
     }
 
     Program *programObject = GetValidProgram(context, entryPoint, program);
-
-    if (!programObject)
+    if (programObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -4659,10 +4670,9 @@ bool ValidateGetActiveUniform(const Context *context,
     }
 
     Program *programObject = GetValidProgram(context, entryPoint, program);
-
-    if (!programObject)
+    if (programObject == nullptr)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotValid);
+        // Error already generated.
         return false;
     }
 
@@ -4701,9 +4711,9 @@ bool ValidateGetAttachedShaders(const Context *context,
     }
 
     Program *programObject = GetValidProgram(context, entryPoint, program);
-
-    if (!programObject)
+    if (programObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -4746,10 +4756,9 @@ bool ValidateGetAttribLocation(const Context *context,
     }
 
     Program *programObject = GetValidProgram(context, entryPoint, program);
-
-    if (!programObject)
+    if (programObject == nullptr)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotBound);
+        // Error already generated.
         return false;
     }
 
@@ -4832,8 +4841,9 @@ bool ValidateGetProgramInfoLog(const Context *context,
     }
 
     Program *programObject = GetValidProgram(context, entryPoint, program);
-    if (!programObject)
+    if (programObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -4854,8 +4864,9 @@ bool ValidateGetShaderInfoLog(const Context *context,
     }
 
     Shader *shaderObject = GetValidShader(context, entryPoint, shader);
-    if (!shaderObject)
+    if (shaderObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -4920,8 +4931,9 @@ bool ValidateGetShaderSource(const Context *context,
     }
 
     Shader *shaderObject = GetValidShader(context, entryPoint, shader);
-    if (!shaderObject)
+    if (shaderObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -4953,9 +4965,9 @@ bool ValidateGetUniformLocation(const Context *context,
     }
 
     Program *programObject = GetValidProgram(context, entryPoint, program);
-
-    if (!programObject)
+    if (programObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -5119,6 +5131,7 @@ bool ValidatePixelStorei(const PrivateState &state,
             if (!state.getExtensions().packReverseRowOrderANGLE)
             {
                 errors->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, pname);
+                return false;
             }
             break;
 
@@ -5218,8 +5231,9 @@ bool ValidateShaderBinary(const Context *context,
     }
 
     Shader *shaderObject = GetValidShader(context, entryPoint, shaders[0]);
-    if (!shaderObject)
+    if (shaderObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -5260,8 +5274,9 @@ bool ValidateShaderSource(const Context *context,
     }
 
     Shader *shaderObject = GetValidShader(context, entryPoint, shader);
-    if (!shaderObject)
+    if (shaderObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -5380,9 +5395,9 @@ bool ValidateValidateProgram(const Context *context,
                              ShaderProgramID program)
 {
     Program *programObject = GetValidProgram(context, entryPoint, program);
-
-    if (!programObject)
+    if (programObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -5816,8 +5831,9 @@ bool ValidateLinkProgram(const Context *context,
     }
 
     Program *programObject = GetValidProgram(context, entryPoint, program);
-    if (!programObject)
+    if (programObject == nullptr)
     {
+        // Error already generated.
         return false;
     }
 
@@ -6179,18 +6195,6 @@ bool ValidatePopGroupMarkerEXT(const Context *context, angle::EntryPoint entryPo
     return true;
 }
 
-bool ValidateTexStorage1DEXT(const Context *context,
-                             angle::EntryPoint entryPoint,
-                             GLenum target,
-                             GLsizei levels,
-                             GLenum internalformat,
-                             GLsizei width)
-{
-    UNIMPLEMENTED();
-    ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExtensionNotEnabled);
-    return false;
-}
-
 bool ValidateTexStorage3DEXT(const Context *context,
                              angle::EntryPoint entryPoint,
                              TextureType target,
@@ -6288,15 +6292,10 @@ bool ValidateFramebufferTexture2DMultisampleEXT(const Context *context,
         return false;
     }
 
-    if (samples < 0)
-    {
-        return false;
-    }
-
     // EXT_multisampled_render_to_texture states that the value of samples
     // must be less than or equal to MAX_SAMPLES_EXT (Context::getCaps().maxSamples)
     // otherwise GL_INVALID_VALUE is generated.
-    if (samples > context->getCaps().maxSamples)
+    if (samples < 0 || samples > context->getCaps().maxSamples)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kSamplesOutOfRange);
         return false;

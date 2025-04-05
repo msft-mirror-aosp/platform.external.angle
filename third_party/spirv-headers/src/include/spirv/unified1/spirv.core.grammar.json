@@ -9999,7 +9999,6 @@
       "operands" : [
         { "kind" : "IdResultType" },
         { "kind" : "IdResult" },
-        { "kind" : "IdRef", "name" : "'Result'" },
         { "kind" : "IdRef", "name" : "'Input'" }
       ],
       "capabilities" : [ "FPGARegINTEL" ],
@@ -10637,6 +10636,21 @@
         { "kind" : "MatrixMultiplyAccumulateOperands", "quantifier" : "?" }
       ],
       "capabilities" : [ "SubgroupMatrixMultiplyAccumulateINTEL" ],
+      "version" : "None"
+    },
+    {
+      "opname" : "OpBitwiseFunctionINTEL",
+      "class"  : "Bit",
+      "opcode" : 6242,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdRef", "name" : "'A'" },
+        { "kind" : "IdRef", "name" : "'B'" },
+        { "kind" : "IdRef", "name" : "'C'" },
+        { "kind" : "IdRef", "name" : "'LUTIndex'" }
+      ],
+      "capabilities" : [ "TernaryBitwiseFunctionINTEL" ],
       "version" : "None"
     },
     {
@@ -17244,6 +17258,12 @@
           "enumerant" : "SubgroupMatrixMultiplyAccumulateINTEL",
           "value" : 6236,
           "extensions": [ "SPV_INTEL_subgroup_matrix_multiply_accumulate" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "TernaryBitwiseFunctionINTEL",
+          "value" : 6241,
+          "extensions" : [ "SPV_INTEL_ternary_bitwise_function"],
           "version" : "None"
         },
         {

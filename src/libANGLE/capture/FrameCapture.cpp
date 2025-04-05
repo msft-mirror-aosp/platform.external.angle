@@ -7088,6 +7088,10 @@ void FrameCaptureShared::maybeCapturePreCallUpdates(
             // If we're capturing, track which programs have been deleted
             const ParamCapture &param =
                 call.params.getParam("programPacked", ParamType::TShaderProgramID, 0);
+            if (param.value.ShaderProgramIDVal.value == 0)
+            {
+                break;  // no-op
+            }
             handleDeletedResource(context, param.value.ShaderProgramIDVal);
 
             // If this assert fires, it means a ShaderProgramID has changed from program to shader
@@ -7113,6 +7117,10 @@ void FrameCaptureShared::maybeCapturePreCallUpdates(
             // If we're capturing, track which shaders have been deleted
             const ParamCapture &param =
                 call.params.getParam("shaderPacked", ParamType::TShaderProgramID, 0);
+            if (param.value.ShaderProgramIDVal.value == 0)
+            {
+                break;  // no-op
+            }
             handleDeletedResource(context, param.value.ShaderProgramIDVal);
 
             // If this assert fires, it means a ShaderProgramID has changed from shader to program
@@ -7761,6 +7769,10 @@ void FrameCaptureShared::maybeCapturePostCallUpdates(const gl::Context *context)
         {
             const ParamCapture &param =
                 lastCall.params.getParam("programPacked", ParamType::TShaderProgramID, 0);
+            if (param.value.ShaderProgramIDVal.value == 0)
+            {
+                break;  // no-op
+            }
             CaptureDeleteUniformLocations(param.value.ShaderProgramIDVal, &mFrameCalls);
             break;
         }
@@ -8545,8 +8557,16 @@ void ResourceTracker::onShaderProgramAccess(gl::ShaderProgramID shaderProgramID)
 // ... etc ...
 void FrameCaptureShared::writeJSON(const gl::Context *context)
 {
+    SurfaceParams noSurface;
+    noSurface.extents.width  = 16;
+    noSurface.extents.height = 9;
+    noSurface.colorSpace     = egl::ColorSpace::sRGB;
+
     const gl::ContextID contextId           = context->id();
-    const SurfaceParams &surfaceParams      = mDrawSurfaceParams.at(contextId);
+    const SurfaceParams &surfaceParams =
+        mDrawSurfaceParams.find(contextId) != mDrawSurfaceParams.end()
+            ? mDrawSurfaceParams.at(contextId)
+            : noSurface;
     const gl::State &glState                = context->getState();
     const egl::Config *config               = context->getConfig();
     const egl::AttributeMap &displayAttribs = context->getDisplay()->getAttributeMap();

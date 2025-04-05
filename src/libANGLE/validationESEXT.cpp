@@ -73,7 +73,7 @@ bool IsValidImageLayout(ImageLayout layout)
     }
 }
 
-bool IsValidMemoryObjectParamater(const Context *context,
+bool IsValidMemoryObjectParameter(const Context *context,
                                   angle::EntryPoint entryPoint,
                                   GLenum pname)
 {
@@ -806,15 +806,10 @@ bool ValidateDrawRangeElementsBaseVertexOES(const Context *context,
 // GL_KHR_blend_equation_advanced
 bool ValidateBlendBarrierKHR(const Context *context, angle::EntryPoint entryPoint)
 {
-    if (context->getClientVersion() < ES_2_0)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES2Required);
-        return false;
-    }
-
     if (!context->getExtensions().blendEquationAdvancedKHR)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kAdvancedBlendExtensionNotEnabled);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kAdvancedBlendExtensionNotEnabled);
+        return false;
     }
 
     return true;
@@ -1386,9 +1381,10 @@ bool ValidateGetMemoryObjectParameterivEXT(const Context *context,
     if (memory == nullptr)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kInvalidMemoryObject);
+        return false;
     }
 
-    if (!IsValidMemoryObjectParamater(context, entryPoint, pname))
+    if (!IsValidMemoryObjectParameter(context, entryPoint, pname))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidMemoryObjectParameter);
         return false;
@@ -1466,7 +1462,7 @@ bool ValidateMemoryObjectParameterivEXT(const Context *context,
         return false;
     }
 
-    if (!IsValidMemoryObjectParamater(context, entryPoint, pname))
+    if (!IsValidMemoryObjectParameter(context, entryPoint, pname))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidMemoryObjectParameter);
         return false;
@@ -1761,6 +1757,7 @@ bool ValidateGetTexParameterIivOES(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampOES)
@@ -1780,11 +1777,13 @@ bool ValidateGetTexParameterIuivOES(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampOES)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExtensionNotEnabled);
+        return false;
     }
     return ValidateGetTexParameterBase(context, entryPoint, target, pname, nullptr);
 }
@@ -1798,6 +1797,7 @@ bool ValidateTexParameterIivOES(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampOES)
@@ -1817,6 +1817,7 @@ bool ValidateTexParameterIuivOES(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampOES)
@@ -1837,6 +1838,7 @@ bool ValidateGetSamplerParameterIivOES(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampOES)
@@ -1856,6 +1858,7 @@ bool ValidateGetSamplerParameterIuivOES(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampOES)
@@ -1875,6 +1878,7 @@ bool ValidateSamplerParameterIivOES(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampOES)
@@ -1894,6 +1898,7 @@ bool ValidateSamplerParameterIuivOES(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampOES)
@@ -1913,6 +1918,7 @@ bool ValidateGetSamplerParameterIivEXT(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampEXT)
@@ -1933,6 +1939,7 @@ bool ValidateGetSamplerParameterIuivEXT(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampEXT)
@@ -1953,6 +1960,7 @@ bool ValidateGetTexParameterIivEXT(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampEXT)
@@ -1972,6 +1980,7 @@ bool ValidateGetTexParameterIuivEXT(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampEXT)
@@ -1991,6 +2000,7 @@ bool ValidateSamplerParameterIivEXT(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampEXT)
@@ -2010,6 +2020,7 @@ bool ValidateSamplerParameterIuivEXT(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampEXT)
@@ -2029,6 +2040,7 @@ bool ValidateTexParameterIivEXT(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampEXT)
@@ -2048,6 +2060,7 @@ bool ValidateTexParameterIuivEXT(const Context *context,
     if (context->getClientMajorVersion() < 3)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
     }
 
     if (!context->getExtensions().textureBorderClampEXT)
@@ -2244,7 +2257,8 @@ bool ValidatePLSActiveBlendEquation(const Context *context,
 {
     // INVALID_OPERATION is generated if BLEND_EQUATION_RGB and/or BLEND_EQUATION_ALPHA is an
     // advanced blend equation defined in KHR_blend_equation_advanced.
-    ASSERT(context->getState().getExtensions().blendEquationAdvancedKHR);
+    ASSERT(context->getState().getExtensions().blendEquationAdvancedKHR ||
+           context->getClientVersion() >= ES_3_2);
     switch (blendEquation)
     {
         case gl::BlendEquationType::Multiply:
@@ -2514,7 +2528,7 @@ bool ValidateBeginPixelLocalStorageANGLE(const Context *context,
 
     // INVALID_OPERATION is generated if BLEND_EQUATION_RGB and/or BLEND_EQUATION_ALPHA is an
     // advanced blend equation defined in KHR_blend_equation_advanced.
-    if (state.getExtensions().blendEquationAdvancedKHR)
+    if (state.getExtensions().blendEquationAdvancedKHR || context->getClientVersion() >= ES_3_2)
     {
         if (!ValidatePLSActiveBlendEquation(context, entryPoint,
                                             state.getBlendStateExt().getEquationColorIndexed(0)) ||
@@ -4089,16 +4103,6 @@ bool ValidateLabelObjectEXT(const Context *context,
     return ValidateObjectIdentifierAndName(context, entryPoint, type, object);
 }
 
-bool ValidateEGLImageTargetTextureStorageEXT(const Context *context,
-                                             angle::EntryPoint entryPoint,
-                                             GLuint texture,
-                                             egl::ImageID image,
-                                             const GLint *attrib_list)
-{
-    UNREACHABLE();
-    return false;
-}
-
 bool ValidateEGLImageTargetTexStorageEXT(const Context *context,
                                          angle::EntryPoint entryPoint,
                                          GLenum target,
@@ -4118,12 +4122,15 @@ bool ValidateEGLImageTargetTexStorageEXT(const Context *context,
             if (!context->getExtensions().EGLImageExternalOES)
             {
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, ToGLenum(targetType));
+                return false;
             }
             break;
         case TextureType::CubeMapArray:
-            if (!context->getExtensions().textureCubeMapArrayAny())
+            if (!context->getExtensions().textureCubeMapArrayAny() &&
+                context->getClientVersion() < ES_3_2)
             {
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, ToGLenum(targetType));
+                return false;
             }
             break;
         case TextureType::_2D:
@@ -4819,31 +4826,20 @@ bool ValidateTexStorageAttribs2DEXT(const Context *context,
                                     GLsizei height,
                                     const GLint *attrib_list)
 {
-    gl::TextureType targetType = FromGLenum<TextureType>(target);
     if (!context->getExtensions().textureStorageCompressionEXT)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExtensionNotEnabled);
         return false;
     }
 
-    if (ValidateTexStorageAttribs(attrib_list) == false)
+    if (!ValidateTexStorageAttribs(attrib_list))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kInvalidAttribList);
+        return false;
     }
 
-    if (context->getClientMajorVersion() < 3)
-    {
-        return ValidateES2TexStorageParametersBase(context, entryPoint, targetType, levels,
-                                                   internalformat, width, height);
-    }
-
-    if (context->getClientMajorVersion() >= 3)
-    {
-        return ValidateES3TexStorage2DParameters(context, entryPoint, targetType, levels,
-                                                 internalformat, width, height, 1);
-    }
-
-    return true;
+    return ValidateES3TexStorage2DParameters(context, entryPoint, FromGLenum<TextureType>(target),
+                                             levels, internalformat, width, height, 1);
 }
 
 bool ValidateTexStorageAttribs3DEXT(const Context *context,
@@ -4856,31 +4852,20 @@ bool ValidateTexStorageAttribs3DEXT(const Context *context,
                                     GLsizei depth,
                                     const GLint *attrib_list)
 {
-    gl::TextureType targetType = FromGLenum<TextureType>(target);
     if (!context->getExtensions().textureStorageCompressionEXT)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExtensionNotEnabled);
         return false;
     }
 
-    if (ValidateTexStorageAttribs(attrib_list) == false)
+    if (!ValidateTexStorageAttribs(attrib_list))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kInvalidAttribList);
+        return false;
     }
 
-    if (context->getClientMajorVersion() < 3)
-    {
-        return ValidateES2TexStorageParametersBase(context, entryPoint, targetType, levels,
-                                                   internalformat, width, height);
-    }
-
-    if (context->getClientMajorVersion() >= 3)
-    {
-        return ValidateES3TexStorage3DParameters(context, entryPoint, targetType, levels,
-                                                 internalformat, width, height, depth);
-    }
-
-    return true;
+    return ValidateES3TexStorage3DParameters(context, entryPoint, FromGLenum<TextureType>(target),
+                                             levels, internalformat, width, height, depth);
 }
 
 }  // namespace gl
