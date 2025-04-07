@@ -314,8 +314,8 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
-    FeatureInfo enablePreRotateSurfaces = {
-        "enablePreRotateSurfaces",
+    FeatureInfo warmUpPreRotatePipelineVariations = {
+        "warmUpPreRotatePipelineVariations",
         FeatureCategory::VulkanFeatures,
         &members,
     };
