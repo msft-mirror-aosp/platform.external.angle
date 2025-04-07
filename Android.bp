@@ -3518,7 +3518,6 @@ cc_genrule {
         "src/libANGLE/cl_types.h",
         "src/libANGLE/context_private_call.inl.h",
         "src/libANGLE/context_private_call_autogen.h",
-        "src/libANGLE/entry_points_utils.cpp",
         "src/libANGLE/entry_points_utils.h",
         "src/libANGLE/es3_copy_conversion_table_autogen.cpp",
         "src/libANGLE/features.h",
@@ -9711,9 +9710,6 @@ cc_library_static {
 
 cc_defaults {
     name: "angle_libANGLE_headers",
-    srcs: [
-        "src/libANGLE/entry_points_utils.cpp",
-    ],
     static_libs: [
         "angle_common",
     ],
