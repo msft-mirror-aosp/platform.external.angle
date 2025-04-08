@@ -1276,8 +1276,7 @@ bool ValidateES3CopyTexImageParametersBase(const Context *context,
         }
     }
 
-    // If width or height is zero, it is a no-op.  Return false without setting an error.
-    return (width > 0 && height > 0);
+    return true;
 }
 
 bool ValidateES3CopyTexImage2DParameters(const Context *context,
@@ -3790,22 +3789,21 @@ bool ValidateGetSynciv(const Context *context,
 
     if (context->isContextLost())
     {
-        ANGLE_VALIDATION_ERROR(GL_CONTEXT_LOST, kContextLost);
-
         if (pname == GL_SYNC_STATUS)
         {
-            // Generate an error but still return true, the context still needs to return a
-            // value in this case.
+            // The context needs to return a value in this case.
+            // It will also generate a CONTEXT_LOST error.
             return true;
         }
         else
         {
+            ANGLE_VALIDATION_ERROR(GL_CONTEXT_LOST, kContextLost);
             return false;
         }
     }
 
     Sync *syncObject = context->getSync(syncPacked);
-    if (!syncObject)
+    if (syncObject == nullptr)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kSyncMissing);
         return false;
@@ -4836,12 +4834,6 @@ bool ValidateClientWaitSync(const Context *context,
     if ((context->getClientMajorVersion() < 3) && !context->getExtensions().syncARB)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
-        return false;
-    }
-
-    if (context->getState().getPixelLocalStorageActivePlanes() != 0)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kPLSActive);
         return false;
     }
 

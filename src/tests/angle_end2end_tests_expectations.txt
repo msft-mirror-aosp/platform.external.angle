@@ -830,6 +830,7 @@ b/330697097 PIXEL6 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachmen
 40096874 IOS METAL : PixelLocalStorageTest.Coherency/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096838 IOS METAL : PixelLocalStorageTest.ColorAttachment0Workaround/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096838 IOS METAL : PixelLocalStorageTest.CopyTexSubImage/ES3_Metal_EmulatePixelLocalStorage* = SKIP
+40096838 IOS METAL : PixelLocalStorageTest.FlushFinishSync/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.ForgetBarrier/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.FragmentReject_depth/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.FragmentReject_stencil/ES3_Metal_EmulatePixelLocalStorage* = SKIP
@@ -1686,6 +1687,8 @@ b/292285899 PIXEL4ORXL GLES : EGLSurfaceTest.DestroyAndRecreateWhileCurrent/* = 
 397848903 LINUX NVIDIA OPENGL : EGLSurfaceTest.ResizeBeforeDrawPostSizeQuery/* = SKIP
 397848903 LINUX NVIDIA OPENGL : EGLSurfaceTest.ResizeAfterDraw/* = SKIP
 397848903 LINUX NVIDIA OPENGL : EGLSurfaceTest.ResizeInvisibleWindow/* = SKIP
+
+406827038 SWIFTSHADER : GLSLTest_ES3.DenormFloatsToIntValues/* = SKIP
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Slow tests, should appear last in this file
