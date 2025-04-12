@@ -218,6 +218,7 @@ angle::Result GetQueryObjectParameter(const Context *context, Query *query, GLen
             bool available = false;
             if (context->isContextLost())
             {
+                context->contextLostErrorOnBlockingCall(angle::EntryPoint::GLGetQueryObjectuiv);
                 available = true;
             }
             else
@@ -357,6 +358,13 @@ EGLenum GetContextPriority(const egl::AttributeMap &attribs)
 bool GetProtectedContent(const egl::AttributeMap &attribs)
 {
     return static_cast<bool>(attribs.getAsInt(EGL_PROTECTED_CONTENT_EXT, EGL_FALSE));
+}
+
+bool GetPassthroughShaders(egl::Display *display, const egl::AttributeMap &attribs)
+{
+    const angle::FrontendFeatures &frontendFeatures = display->getFrontendFeatures();
+    return frontendFeatures.forcePassthroughShaders.enabled ||
+           static_cast<bool>(attribs.getAsInt(EGL_CONTEXT_PASSTHROUGH_SHADERS_ANGLE, EGL_FALSE));
 }
 
 std::string GetObjectLabelFromPointer(GLsizei length, const GLchar *label)
@@ -660,7 +668,8 @@ Context::Context(egl::Display *display,
              GetContextPriority(attribs),
              GetRobustAccess(attribs),
              GetProtectedContent(attribs),
-             GetIsExternal(attribs)),
+             GetIsExternal(attribs),
+             GetPassthroughShaders(display, attribs)),
       mShared(shareContext != nullptr || shareTextures != nullptr || shareSemaphores != nullptr),
       mDisplayTextureShareGroup(shareTextures != nullptr),
       mDisplaySemaphoreShareGroup(shareSemaphores != nullptr),
@@ -1087,6 +1096,11 @@ egl::Error Context::unMakeCurrent(const egl::Display *display)
     }
 
     return egl::NoError();
+}
+
+void Context::contextLostErrorOnBlockingCall(angle::EntryPoint entryPoint) const
+{
+    mErrors.validationError(entryPoint, GL_CONTEXT_LOST, err::kContextLost);
 }
 
 BufferID Context::createBuffer()
@@ -2996,19 +3010,26 @@ void Context::finish()
 
 void Context::insertEventMarker(GLsizei length, const char *marker)
 {
-    ASSERT(mImplementation);
+    if (length < 0 || marker == nullptr)
+    {
+        return;  // no-op, not an error
+    }
+
     ANGLE_CONTEXT_TRY(mImplementation->insertEventMarker(length, marker));
 }
 
 void Context::pushGroupMarker(GLsizei length, const char *marker)
 {
-    ASSERT(mImplementation);
+    if (length < 0)
+    {
+        return;  // no-op, not an error
+    }
 
     if (marker == nullptr)
     {
         // From the EXT_debug_marker spec,
         // "If <marker> is null then an empty string is pushed on the stack."
-        ANGLE_CONTEXT_TRY(mImplementation->pushGroupMarker(length, ""));
+        ANGLE_CONTEXT_TRY(mImplementation->pushGroupMarker(0, ""));
     }
     else
     {
@@ -3018,7 +3039,6 @@ void Context::pushGroupMarker(GLsizei length, const char *marker)
 
 void Context::popGroupMarker()
 {
-    ASSERT(mImplementation);
     ANGLE_CONTEXT_TRY(mImplementation->popGroupMarker());
 }
 
@@ -4043,6 +4063,22 @@ Extensions Context::generateSupportedExtensions() const
     // Blob cache extension is provided by the ANGLE frontend
     supportedExtensions.blobCacheANGLE = true;
 
+    // Disable extensions that are implemented through shader compiler transformations
+    if (mState.usesPassthroughShaders())
+    {
+        supportedExtensions.multiDrawANGLE                       = false;
+        supportedExtensions.shaderPixelLocalStorageANGLE         = false;
+        supportedExtensions.shaderPixelLocalStorageCoherentANGLE = false;
+        if (frontendFeatures.clipCullDistanceBrokenWithPassthroughShaders.enabled)
+        {
+            supportedExtensions.clipCullDistanceEXT = false;
+        }
+        if (frontendFeatures.noperspectiveInterpolationBrokenWithPassthroughShaders.enabled)
+        {
+            supportedExtensions.shaderNoperspectiveInterpolationNV = false;
+        }
+    }
+
     return supportedExtensions;
 }
 
@@ -5043,6 +5079,11 @@ void Context::copyTexImage2D(TextureTarget target,
                              GLsizei height,
                              GLint border)
 {
+    if (ANGLE_UNLIKELY(width == 0 || height == 0))
+    {
+        return;
+    }
+
     ANGLE_CONTEXT_TRY(prepareForCopyImage());
 
     Rectangle sourceArea(x, y, width, height);
@@ -5062,7 +5103,7 @@ void Context::copyTexSubImage2D(TextureTarget target,
                                 GLsizei width,
                                 GLsizei height)
 {
-    if (width == 0 || height == 0)
+    if (ANGLE_UNLIKELY(width == 0 || height == 0))
     {
         return;
     }
@@ -5089,7 +5130,7 @@ void Context::copyTexSubImage3D(TextureTarget target,
                                 GLsizei width,
                                 GLsizei height)
 {
-    if (width == 0 || height == 0)
+    if (ANGLE_UNLIKELY(width == 0 || height == 0))
     {
         return;
     }

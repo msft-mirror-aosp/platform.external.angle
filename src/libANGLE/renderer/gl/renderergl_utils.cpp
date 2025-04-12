@@ -12,6 +12,7 @@
 #include <array>
 #include <limits>
 
+#include "GLSLANG/ShaderLang.h"
 #include "common/android_util.h"
 #include "common/mathutil.h"
 #include "common/platform.h"
@@ -1455,7 +1456,6 @@ void GenerateCaps(const FunctionsGL *functions,
                                       functions->hasGLExtension("GL_ARB_pixel_buffer_object") ||
                                       functions->hasGLExtension("GL_EXT_pixel_buffer_object") ||
                                       functions->hasGLESExtension("GL_NV_pixel_buffer_object");
-    extensions->syncARB      = nativegl::SupportsFenceSync(functions);
     extensions->mapbufferOES = functions->isAtLeastGL(gl::Version(1, 5)) ||
                                functions->isAtLeastGLES(gl::Version(3, 0)) ||
                                functions->hasGLESExtension("GL_OES_mapbuffer");
@@ -2745,6 +2745,14 @@ void InitializeFrontendFeatures(const FunctionsGL *functions, angle::FrontendFea
     ANGLE_FEATURE_CONDITION(features, linkJobIsThreadSafe, false);
 
     ANGLE_FEATURE_CONDITION(features, cacheCompiledShader, true);
+
+    // GL_EXT_clip_cull_distance and GL_NV_shader_noperspective_interpolation are broken on QCOM
+    // without ANGLE workarounds: the former does not allow built-in redeclarations outside of
+    // interface blocks and the latter does not compile unless the shader version is at least 310
+    // es.
+    ANGLE_FEATURE_CONDITION(features, clipCullDistanceBrokenWithPassthroughShaders, isQualcomm);
+    ANGLE_FEATURE_CONDITION(features, noperspectiveInterpolationBrokenWithPassthroughShaders,
+                            isQualcomm);
 }
 
 void ReInitializeFeaturesAtGPUSwitch(const FunctionsGL *functions, angle::FeaturesGL *features)

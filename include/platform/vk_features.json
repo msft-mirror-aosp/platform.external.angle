@@ -391,10 +391,10 @@
             "issue": "http://anglebug.com/40096464"
         },
         {
-            "name": "enable_pre_rotate_surfaces",
+            "name": "warm_up_pre_rotate_pipeline_variations",
             "category": "Features",
             "description": [
-                "Enable Android pre-rotation for landscape applications"
+                "Enable warm up pre-rotation pipeline variations for landscape applications"
             ],
             "issue": "http://anglebug.com/42262166"
         },

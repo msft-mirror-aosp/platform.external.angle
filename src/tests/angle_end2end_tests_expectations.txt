@@ -369,6 +369,7 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 42263073 MAC AMD OPENGL : ClipDistanceAPPLETest.EachClipDistance/* = SKIP
 42263073 MAC AMD OPENGL : ClipCullDistanceTest.EachClipDistance/ES3_OpenGL__ANGLE = SKIP
 373506513 MAC OPENGL : BlitFramebufferTest.BlitMultisampledFramebufferToMRT/* = SKIP
+406566447 MAC AMD OPENGL : Texture3DTestES3.PixelUnpackParamsChangeTexImage/* = SKIP
 
 // BlitFramebufferTest.ScissoredMultisampleStencil failures
 42262159 MAC INTEL OPENGL : BlitFramebufferTest.ScissoredMultisampleStencil/* = SKIP
@@ -830,6 +831,7 @@ b/330697097 PIXEL6 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachmen
 40096874 IOS METAL : PixelLocalStorageTest.Coherency/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096838 IOS METAL : PixelLocalStorageTest.ColorAttachment0Workaround/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096838 IOS METAL : PixelLocalStorageTest.CopyTexSubImage/ES3_Metal_EmulatePixelLocalStorage* = SKIP
+40096838 IOS METAL : PixelLocalStorageTest.FlushFinishSync/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.ForgetBarrier/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.FragmentReject_depth/ES3_Metal_EmulatePixelLocalStorage* = SKIP
 40096874 IOS METAL : PixelLocalStorageTest.FragmentReject_stencil/ES3_Metal_EmulatePixelLocalStorage* = SKIP
@@ -1312,8 +1314,7 @@ b/267953710 GALAXYS22 VULKAN : VulkanPerformanceCounterTest_ES31.ColorMaskedFram
 42266622 GALAXYS23 VULKAN : WebGL2GLSLTest.InitUninitializedLocals/* = SKIP
 // Skip all forms of _*Prerotation* tests
 42266622 GALAXYS23 VULKAN : */*Vulkan_EmulatedPrerotation* = SKIP
-42266622 GALAXYS23 VULKAN : */*PreRotationEnabled* = SKIP
-42266622 GALAXYS23 VULKAN : */*PreRotationDisabled* = SKIP
+42266622 GALAXYS23 VULKAN : EGLPreRotation*/* = SKIP
 
 // Samsung GalaxyS23 crashes and failures:
 42266598 GALAXYS23 VULKAN : EGLBlobCacheTest.ThreadSafety/* = SKIP
@@ -1366,8 +1367,7 @@ b/267953710 GALAXYS22 VULKAN : VulkanPerformanceCounterTest_ES31.ColorMaskedFram
 42266622 GALAXYA23 VULKAN : WebGL2GLSLTest.InitUninitializedLocals/* = SKIP
 // Skip all forms of _*Prerotation* tests
 42266622 GALAXYA23 VULKAN : */*Vulkan_EmulatedPrerotation* = SKIP
-42266622 GALAXYA23 VULKAN : */*PreRotationEnabled* = SKIP
-42266622 GALAXYA23 VULKAN : */*PreRotationDisabled* = SKIP
+42266622 GALAXYA23 VULKAN : EGLPreRotation*/* = SKIP
 
 // Samsung Galaxy A23 crashes:
 42266622 GALAXYA23 VULKAN : ClearTest.Stencil8Scissored/* = SKIP
@@ -1688,6 +1688,9 @@ b/292285899 PIXEL4ORXL GLES : EGLSurfaceTest.DestroyAndRecreateWhileCurrent/* = 
 397848903 LINUX NVIDIA OPENGL : EGLSurfaceTest.ResizeBeforeDrawPostSizeQuery/* = SKIP
 397848903 LINUX NVIDIA OPENGL : EGLSurfaceTest.ResizeAfterDraw/* = SKIP
 397848903 LINUX NVIDIA OPENGL : EGLSurfaceTest.ResizeInvisibleWindow/* = SKIP
+
+406827038 SWIFTSHADER : GLSLTest_ES3.DenormFloatsToIntValues/* = SKIP
+406827038 PIXEL6 VULKAN : GLSLTest_ES3.DenormFloatsToIntValues/* = SKIP
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Slow tests, should appear last in this file

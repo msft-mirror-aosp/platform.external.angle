@@ -2003,11 +2003,6 @@ config("default_warnings") {
         # annotation completeness, this warning exception can be removed.
         "-Wno-nullability-completeness",
       ]
-
-      if (llvm_force_head_revision) {
-        # TODO(crbug.com/407622661): Enable broadly, suppress selectively.
-        cflags_cc += [ "-Wno-unnecessary-virtual-specifier" ]
-      }
     }
 
     if (is_wasm) {
@@ -2229,12 +2224,8 @@ config("no_chromium_code") {
       "/wd4800",  # Disable warning when forcing value to bool.
       "/wd4267",  # TODO(jschuh): size_t to int.
     ]
-  } else {
-    if (is_clang && !is_nacl) {
-      # TODO(thakis): Remove !is_nacl once
-      # https://codereview.webrtc.org/1552863002/ made its way into chromium.
-      cflags += [ "-Wall" ]
-    }
+  } else if (is_clang) {
+    cflags += [ "-Wall" ]
   }
 
   if (is_clang) {
