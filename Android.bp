@@ -783,7 +783,6 @@ cc_library_shared {
         "src/tests/egl_tests/EGLChooseConfigTest.cpp",
         "src/tests/egl_tests/EGLContextASANTest.cpp",
         "src/tests/egl_tests/EGLContextCompatibilityTest.cpp",
-        "src/tests/egl_tests/EGLContextPassthroughShadersTest.cpp",
         "src/tests/egl_tests/EGLContextSharingTest.cpp",
         "src/tests/egl_tests/EGLCreateContextAttribsTest.cpp",
         "src/tests/egl_tests/EGLDebugTest.cpp",
@@ -4868,6 +4867,47 @@ cc_defaults {
 }
 
 cc_defaults {
+    name: "third_party_abseil_cpp_absl_container_raw_hash_set_resize_impl",
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "buildtools_third_party_libc++_std",
+        "buildtools_third_party_libc++_std_config",
+        "buildtools_third_party_libc++_std_core",
+        "buildtools_third_party_libc++_std_ctype_h",
+        "buildtools_third_party_libc++_std_errno_h",
+        "buildtools_third_party_libc++_std_fenv_h",
+        "buildtools_third_party_libc++_std_float_h",
+        "buildtools_third_party_libc++_std_inttypes_h",
+        "buildtools_third_party_libc++_std_math_h",
+        "buildtools_third_party_libc++_std_private_mbstate_t",
+        "buildtools_third_party_libc++_std_string_h",
+        "buildtools_third_party_libc++_std_uchar_h",
+        "buildtools_third_party_libc++_std_wctype_h",
+        "third_party_abseil_cpp_absl_base_config",
+    ],
+    local_include_dirs: [
+        "",
+        "third_party/abseil-cpp/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-Wno-c++11-narrowing",
+        "-Wno-unused-but-set-variable",
+        "-Wno-unused-variable",
+    ],
+    sdk_version: "current",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
     name: "third_party_abseil_cpp_absl_profiling_sample_recorder",
     defaults: [
         "angle_common_auto_cflags",
@@ -5131,6 +5171,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_container_hashtable_control_bytes",
         "third_party_abseil_cpp_absl_container_hashtable_debug_hooks",
         "third_party_abseil_cpp_absl_container_hashtablez_sampler",
+        "third_party_abseil_cpp_absl_container_raw_hash_set_resize_impl",
         "third_party_abseil_cpp_absl_functional_function_ref",
         "third_party_abseil_cpp_absl_hash_hash",
         "third_party_abseil_cpp_absl_memory_memory",
