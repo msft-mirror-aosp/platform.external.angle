@@ -677,7 +677,7 @@ bool ValidateGetPlatformDisplayCommon(const ValidationContext *val,
             }
             break;
         default:
-            val->setError(EGL_BAD_CONFIG, "Bad platform type.");
+            val->setError(EGL_BAD_PARAMETER, "Bad platform type.");
             return false;
     }
 
@@ -1300,7 +1300,7 @@ bool ValidateCompatibleSurface(const ValidationContext *val,
     const Config *surfaceConfig = surface->getConfig();
 
     // Surface compatible with client API - only OPENGL_ES supported
-    switch (context->getClientMajorVersion())
+    switch (context->getClientVersion().getMajor())
     {
         case 1:
             if (!(surfaceConfig->renderableType & EGL_OPENGL_ES_BIT))
@@ -1907,15 +1907,6 @@ bool ValidateCreateContextAttribute(const ValidationContext *val,
             }
             break;
 
-        case EGL_CONTEXT_PASSTHROUGH_SHADERS_ANGLE:
-            if (!display->getExtensions().createContextPassthroughShadersANGLE)
-            {
-                val->setError(EGL_BAD_ATTRIBUTE,
-                              "Attribute EGL_CONTEXT_PASSTHROUGH_SHADERS_ANGLE requires "
-                              "EGL_ANGLE_create_context_passthrough_shaders.");
-            }
-            break;
-
         default:
             val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute: 0x%04" PRIxPTR "X", attribute);
             return false;
@@ -2163,16 +2154,6 @@ bool ValidateCreateContextAttributeValue(const ValidationContext *val,
                 val->setError(EGL_BAD_ATTRIBUTE,
                               "EGL_CONTEXT_METAL_OWNERSHIP_IDENTITY_ANGLE must"
                               "be non-zero.");
-                return false;
-            }
-            break;
-
-        case EGL_CONTEXT_PASSTHROUGH_SHADERS_ANGLE:
-            if (value != EGL_TRUE && value != EGL_FALSE)
-            {
-                val->setError(EGL_BAD_ATTRIBUTE,
-                              "EGL_CONTEXT_PASSTHROUGH_SHADERS_ANGLE must "
-                              "be either EGL_TRUE or EGL_FALSE.");
                 return false;
             }
             break;
@@ -2873,15 +2854,16 @@ bool ValidateCreateContext(const ValidationContext *val,
                         return false;
                     }
                     if (display->getMaxSupportedESVersion() <
-                        gl::Version(static_cast<GLuint>(clientMajorVersion),
-                                    static_cast<GLuint>(clientMinorVersion)))
+                        gl::Version(static_cast<uint8_t>(clientMajorVersion),
+                                    static_cast<uint8_t>(clientMinorVersion)))
                     {
                         gl::Version max = display->getMaxSupportedESVersion();
                         val->setError(EGL_BAD_MATCH,
                                       "Requested GLES version (%" PRIxPTR ".%" PRIxPTR
                                       ") is greater than "
-                                      "max supported (%d, %d).",
-                                      clientMajorVersion, clientMinorVersion, max.major, max.minor);
+                                      "max supported (%d.%d).",
+                                      clientMajorVersion, clientMinorVersion, max.getMajor(),
+                                      max.getMinor());
                         return false;
                     }
                     if ((attributes.get(EGL_CONTEXT_WEBGL_COMPATIBILITY_ANGLE, EGL_FALSE) ==

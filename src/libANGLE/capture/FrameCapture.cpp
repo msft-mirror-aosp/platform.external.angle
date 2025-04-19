@@ -8137,7 +8137,7 @@ void FrameCaptureShared::runMidExecutionCapture(gl::Context *mainContext)
     gl::State mainContextReplayState(
         nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, contextState.getClientVersion(),
         false, true, true, true, false, EGL_CONTEXT_PRIORITY_MEDIUM_IMG,
-        contextState.hasRobustAccess(), contextState.hasProtectedContent(), false, false);
+        contextState.hasRobustAccess(), contextState.hasProtectedContent(), false);
     mainContextReplayState.initializeForCapture(mainContext);
 
     CaptureShareGroupMidExecutionSetup(mainContext, &mShareGroupSetupCalls, &mResourceTracker,
@@ -8183,7 +8183,7 @@ void FrameCaptureShared::runMidExecutionCapture(gl::Context *mainContext)
                                             shareContextState.getClientVersion(), false, true, true,
                                             true, false, EGL_CONTEXT_PRIORITY_MEDIUM_IMG,
                                             shareContextState.hasRobustAccess(),
-                                            shareContextState.hasProtectedContent(), false, false);
+                                            shareContextState.hasProtectedContent(), false);
             auxContextReplayState.initializeForCapture(shareContext.second);
 
             egl::Error error = shareContext.second->makeCurrent(display, draw, read);
@@ -8617,8 +8617,8 @@ void FrameCaptureShared::writeJSON(const gl::Context *context)
     JsonSerializer json;
     json.startGroup("TraceMetadata");
     json.addScalar("CaptureRevision", GetANGLERevision());
-    json.addScalar("ContextClientMajorVersion", context->getClientMajorVersion());
-    json.addScalar("ContextClientMinorVersion", context->getClientMinorVersion());
+    json.addScalar("ContextClientMajorVersion", context->getClientVersion().getMajor());
+    json.addScalar("ContextClientMinorVersion", context->getClientVersion().getMinor());
     json.addHexValue("DisplayPlatformType", displayAttribs.getAsInt(EGL_PLATFORM_ANGLE_TYPE_ANGLE));
     json.addHexValue("DisplayDeviceType",
                      displayAttribs.getAsInt(EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE));

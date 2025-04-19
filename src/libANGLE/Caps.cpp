@@ -77,8 +77,7 @@ TextureCaps GenerateMinimumTextureCaps(GLenum sizedInternalFormat,
     caps.sampleCounts.insert(0);
     if (internalFormatInfo.isRequiredRenderbufferFormat(clientVersion))
     {
-        if ((clientVersion.major >= 3 && clientVersion.minor >= 1) ||
-            (clientVersion.major >= 3 && !internalFormatInfo.isInt()))
+        if (clientVersion >= ES_3_1 || (clientVersion == ES_3_0 && !internalFormatInfo.isInt()))
         {
             caps.sampleCounts.insert(4);
         }
@@ -1401,7 +1400,6 @@ std::vector<std::string> DisplayExtensions::getStrings() const
     InsertExtensionString("EGL_ANGLE_global_fence_sync",                         globalFenceSyncANGLE,               &extensionStrings);
     InsertExtensionString("EGL_ANGLE_memory_usage_report",                       memoryUsageReportANGLE,             &extensionStrings);
     InsertExtensionString("EGL_EXT_surface_compression",                         surfaceCompressionEXT,              &extensionStrings);
-    InsertExtensionString("EGL_ANGLE_create_context_passthrough_shaders",        createContextPassthroughShadersANGLE, &extensionStrings);
     // clang-format on
 
     return extensionStrings;

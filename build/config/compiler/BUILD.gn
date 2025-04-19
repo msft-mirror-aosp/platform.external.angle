@@ -540,11 +540,12 @@ config("compiler") {
     # (https://crbug.com/829795).
     cflags += [ "-fmerge-all-constants" ]
 
-    # TODO(crbug.com/345541122): investigate the fuchsia binary size increase.
-    if (is_win) {
-      cflags += [ "/Zc:sizedDealloc-" ]
-    } else {
-      cflags += [ "-fno-sized-deallocation" ]
+    if (!use_sized_deallocation) {
+      if (is_win) {
+        cflags += [ "/Zc:sizedDealloc-" ]
+      } else {
+        cflags += [ "-fno-sized-deallocation" ]
+      }
     }
   }
 
@@ -1704,8 +1705,9 @@ config("compiler_arm") {
 
 config("libcxx_module") {
   if (use_libcxx_modules) {
-    modulemap = rebase_path("//third_party/libc++/src/include/module.modulemap",
-                            root_build_dir)
+    modulemap = rebase_path(
+            "${root_gen_dir}/third_party/libc++/src/include/module.modulemap",
+            root_build_dir)
     cflags_cc = [
       "-fmodules",
       "-fmodule-map-file=" + modulemap,
@@ -1953,6 +1955,11 @@ config("default_warnings") {
         "-Wno-psabi",
       ]
     }
+  }
+
+  if (is_win && is_clang) {
+    # This warning is enabled by -Wall on windows only
+    cflags_cc += [ "-Wno-padded" ]
   }
 
   if (is_clang) {

@@ -77,10 +77,10 @@ static bool NeverSupported(const Version &, const Extensions &)
 
 static bool RequireES1(const Version &clientVersion, const Extensions &extensions)
 {
-    return clientVersion.major == 1;
+    return clientVersion < ES_2_0;
 }
 
-template <GLuint minCoreGLMajorVersion, GLuint minCoreGLMinorVersion>
+template <uint8_t minCoreGLMajorVersion, uint8_t minCoreGLMinorVersion>
 static bool RequireES(const Version &clientVersion, const Extensions &)
 {
     return clientVersion >= Version(minCoreGLMajorVersion, minCoreGLMinorVersion);
@@ -94,7 +94,7 @@ static bool RequireExt(const Version &, const Extensions &extensions)
 }
 
 // Check for a minimum client version or a single extension
-template <GLuint minCoreGLMajorVersion, GLuint minCoreGLMinorVersion, ExtensionBool bool1>
+template <uint8_t minCoreGLMajorVersion, uint8_t minCoreGLMinorVersion, ExtensionBool bool1>
 static bool RequireESOrExt(const Version &clientVersion, const Extensions &extensions)
 {
     return clientVersion >= Version(minCoreGLMajorVersion, minCoreGLMinorVersion) ||
@@ -102,8 +102,8 @@ static bool RequireESOrExt(const Version &clientVersion, const Extensions &exten
 }
 
 // Check for a minimum client version or two extensions
-template <GLuint minCoreGLMajorVersion,
-          GLuint minCoreGLMinorVersion,
+template <uint8_t minCoreGLMajorVersion,
+          uint8_t minCoreGLMinorVersion,
           ExtensionBool bool1,
           ExtensionBool bool2>
 static bool RequireESOrExtAndExt(const Version &clientVersion, const Extensions &extensions)
@@ -113,8 +113,8 @@ static bool RequireESOrExtAndExt(const Version &clientVersion, const Extensions 
 }
 
 // Check for a minimum client version or at least one of two extensions
-template <GLuint minCoreGLMajorVersion,
-          GLuint minCoreGLMinorVersion,
+template <uint8_t minCoreGLMajorVersion,
+          uint8_t minCoreGLMinorVersion,
           ExtensionBool bool1,
           ExtensionBool bool2>
 static bool RequireESOrExtOrExt(const Version &clientVersion, const Extensions &extensions)
@@ -470,7 +470,7 @@ bool InternalFormat::isRequiredRenderbufferFormat(const Version &version) const
             default:
                 break;
         }
-        if (version.major < 3)
+        if (version < ES_3_0)
         {
             return false;
         }
@@ -502,7 +502,7 @@ bool InternalFormat::isRequiredRenderbufferFormat(const Version &version) const
         default:
             break;
     }
-    if (version.major < 3)
+    if (version < ES_3_0)
     {
         return false;
     }
