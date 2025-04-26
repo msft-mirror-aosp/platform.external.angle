@@ -1022,7 +1022,8 @@ bool ValidateDrawInstancedANGLE(const Context *context, angle::EntryPoint entryP
         // an error.
         context->getState().getDebug().insertMessage(
             GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR, 0, GL_DEBUG_SEVERITY_HIGH,
-            std::string("Attempting to draw without a program"), gl::LOG_WARN, entryPoint);
+            std::string(GetEntryPointName(entryPoint)) + ": Attempting to draw without a program",
+            gl::LOG_WARN);
         return true;
     }
 
@@ -2822,7 +2823,7 @@ bool ValidateGetQueryObjecti64vEXT(const Context *context,
                                    angle::EntryPoint entryPoint,
                                    QueryID id,
                                    GLenum pname,
-                                   GLint64 *params)
+                                   const GLint64 *params)
 {
     if (!context->getExtensions().disjointTimerQueryEXT)
     {
@@ -2838,7 +2839,7 @@ bool ValidateGetQueryObjecti64vRobustANGLE(const Context *context,
                                            GLenum pname,
                                            GLsizei bufSize,
                                            const GLsizei *length,
-                                           GLint64 *params)
+                                           const GLint64 *params)
 {
     if (!context->getExtensions().disjointTimerQueryEXT)
     {
@@ -2872,7 +2873,7 @@ bool ValidateGetQueryObjectui64vEXT(const Context *context,
                                     angle::EntryPoint entryPoint,
                                     QueryID id,
                                     GLenum pname,
-                                    GLuint64 *params)
+                                    const GLuint64 *params)
 {
     if (!context->getExtensions().disjointTimerQueryEXT)
     {
@@ -2888,7 +2889,7 @@ bool ValidateGetQueryObjectui64vRobustANGLE(const Context *context,
                                             GLenum pname,
                                             GLsizei bufSize,
                                             const GLsizei *length,
-                                            GLuint64 *params)
+                                            const GLuint64 *params)
 {
     if (!context->getExtensions().disjointTimerQueryEXT)
     {
@@ -3243,19 +3244,13 @@ bool ValidateGetInteger64vRobustANGLE(const Context *context,
                                       GLenum pname,
                                       GLsizei bufSize,
                                       const GLsizei *length,
-                                      GLint64 *data)
+                                      const GLint64 *data)
 {
     GLenum nativeType;
     unsigned int numParams = 0;
 
     if (!ValidateRobustStateQuery(context, entryPoint, pname, bufSize, &nativeType, &numParams))
     {
-        return false;
-    }
-
-    if (nativeType == GL_INT_64_ANGLEX)
-    {
-        CastStateValues(context, nativeType, pname, numParams, data);
         return false;
     }
 
