@@ -136,6 +136,7 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 402532204 WIN OPENGL : PbufferTest.ZeroSizedSurfaceFormatQuery/* = SKIP
 402532204 WIN GLES : PbufferTest.ZeroSizedSurfaceFormatQuery/* = SKIP
 410591534 WIN INTEL OPENGL : Texture2DTestES3.SampleThenFullUpdateThenSampleAgain/* = SKIP
+410591534 WIN INTEL OPENGL : TextureCubeTestES3.IncompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgain*/* = SKIP
 411157348 WIN D3D11 : ImageTestES31.UseSourceTextureAsStorageImage/* = SKIP
 409821658 WIN INTEL OPENGL : SRGBTextureTestES3.SRGBSkipEncodeAndDecodeInGenerateMipmap/ES3_OpenGL* = SKIP
 
@@ -233,8 +234,13 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 362545033 LINUX NVIDIA OPENGL : TextureCubeTestES3.SpecifyAndSampleFromBaseLevel1/* = SKIP
 // Intel/mesa does not ignore gl_Layer for non-layered framebuffers
 374790899 LINUX INTEL OPENGL : GeometryShaderTest.GLLayerIneffectiveWithoutLayeredFramebuffer/* = SKIP
+// Base level greater than max level fails on Linux/OpenGL
+42267266 LINUX INTEL OPENGL : Texture2DTestES3.TextureBaseLevelGreaterThanMaxLevel3Levels/* = SKIP
 
 379758210 LINUX INTEL OPENGL : GLSLTest_ES3.SwizzledToBoolCoercion/* = SKIP
+
+//Angle has bugs for sampler validation
+401546698 : TextureCubeTest.CubeMapBug2/* = SKIP
 
 // Nvidia
 42264645 NVIDIA OPENGL : GLSLTestLoops.DoWhileContinue/* = SKIP
@@ -1735,6 +1741,9 @@ b/292285899 PIXEL4ORXL GLES : EGLSurfaceTest.DestroyAndRecreateWhileCurrent/* = 
 
 404581995 ANDROID PIXEL4ORXL   : EGLDisplayTestES3.GetPlatformDisplayAndroidValidation/* = SKIP
 404581995 ANDROID GALAXYS22    : EGLDisplayTestES3.GetPlatformDisplayAndroidValidation/* = SKIP
+
+// Fails on D3D11
+412738262 D3D11 : AtomicCounterBufferTest31.AtomicCounterQueries/* = SKIP
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Slow tests, should appear last in this file
