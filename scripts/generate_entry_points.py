@@ -1655,7 +1655,10 @@ def is_egl_entry_point_accessing_both_sync_and_non_sync_API_resources(cmd_name):
     return False
 
 
-def get_validation_expression(api, cmd_name, entry_point_name, internal_params, version):
+def get_validation_expression(api, cmd_name, entry_point_name, internal_params, sources):
+    if api != "GLES":
+        return ""
+
     name = strip_api_prefix(cmd_name)
     private_params = ["context->getPrivateState()", "context->getMutableErrorSetForValidation()"]
     is_private = is_context_private_state_command(api, cmd_name)
@@ -1663,30 +1666,54 @@ def get_validation_expression(api, cmd_name, entry_point_name, internal_params, 
     expr = "Validate{name}({params})".format(
         name=name, params=", ".join(extra_params + [entry_point_name] + internal_params))
 
-    # Validation expression for ES 2.0 and extension entry points
-    if version not in ["1_0", "3_0", "3_1", "3_2"]:
+    # Extensions temporarily skipped from autogen
+    skipped_exts = [
+        'GL_ANGLE_base_vertex_base_instance',
+        'GL_ANGLE_robust_client_memory',
+        'GL_ANGLE_shader_pixel_local_storage',
+        'GL_CHROMIUM_sync_query',
+        'GL_EXT_disjoint_timer_query',
+        'GL_EXT_draw_elements_base_vertex',
+        'GL_EXT_occlusion_query_boolean',
+        'GL_OES_draw_elements_base_vertex',
+        'GL_OES_EGL_image',
+        'GL_OES_EGL_image_external',
+        'GL_OVR_multiview',
+    ]
+
+    # Validation expression for always present entry points
+    if sorted(sources) == ["1_0", "2_0"] or sources[0] in skipped_exts:
         return "bool isCallValid = (context->skipValidation() || {validation_expression});".format(
             validation_expression=expr)
 
-    # glGetPointerv is a special case: defined in ES 1.0 and ES 3.2 only
-    is_get_pointer = name == "GetPointerv"
-    get_pointer_validation = "context->getClientVersion() < ES_2_0 || context->getClientVersion() >= ES_3_2"
-    get_pointer_error = "RecordVersionErrorES1Or32(context, {entry_point_name});".format(
-        entry_point_name=entry_point_name)
+    def get_camel_case(name_with_underscores):
+        words = name_with_underscores.split('_')
+        words = [words[2]] + [(word[0].upper() + word[1:]) for word in words[3:]] + [words[1]]
+        return ''.join(words)
 
-    version_compare = ">= ES_{version}".format(version=version) if version != "1_0" else "< ES_2_0"
-    version_condition = "context->getClientVersion() {version_compare}".format(
-        version_compare=version_compare) if not is_get_pointer else get_pointer_validation
+    condition = ""
+    error_suffix = sources[0].replace("_", "")
+    if sorted(sources) == ["1_0", "3_2"]:
+        # glGetPointerv is a special case: defined in ES 1.0 and ES 3.2 only
+        condition = "context->getClientVersion() < ES_2_0 || context->getClientVersion() >= ES_3_2"
+        error_suffix = "1Or32"
+    elif sources == ["1_0"]:
+        condition = "context->getClientVersion() < ES_2_0"
+    elif len(sources) == 1 and sources[0] in ["2_0", "3_0", "3_1", "3_2"]:
+        condition = "context->getClientVersion() >= ES_{}".format(sources[0])
+    else:
+        assert (sources[0].startswith("GL_"))
+        exts = map(lambda x: "context->getExtensions().{}".format(get_camel_case(x)), sources)
+        condition = " || ".join(list(exts))
+        error_suffix = "EXT"
 
-    record_error = "RecordVersionErrorES{v}(context, {entry_point_name});".format(
-        v=version.replace("_", ""),
-        entry_point_name=entry_point_name) if not is_get_pointer else get_pointer_error
+    record_error = "RecordVersionErrorES{}(context, {});".format(error_suffix, entry_point_name)
 
-    # Validation logic with version check generated for ES 1.0 and ES 3.x entry points
+    # Validation logic for entry points with conditional support
     return """bool isCallValid = context->skipValidation();
 if (!isCallValid)
 {{
-    if (ANGLE_LIKELY({version_condition}))
+    if (ANGLE_LIKELY({support_condition}))
     {{
         isCallValid = {validation_expression};
     }}
@@ -1695,7 +1722,7 @@ if (!isCallValid)
         {record_error}
     }}
 }}""".format(
-        version_condition=version_condition, validation_expression=expr, record_error=record_error)
+        support_condition=condition, validation_expression=expr, record_error=record_error)
 
 
 def entry_point_export(api):
@@ -1882,15 +1909,15 @@ def get_context_getter_function(cmd_name):
 
 
 def get_valid_context_check(cmd_name):
-    return "context"
+    return "ANGLE_LIKELY(context != nullptr)"
 
 
-def get_constext_lost_error_generator(cmd_name):
+def get_constext_lost_error_generator(cmd_name, entry_point_name):
     # Don't generate context lost errors on commands that accept lost contexts
     if is_context_lost_acceptable_cmd(cmd_name):
         return ""
 
-    return "GenerateContextLostErrorOnCurrentGlobalContext();"
+    return "GenerateContextLostErrorOnCurrentGlobalContext({name});".format(name=entry_point_name)
 
 
 def strip_suffix_always(api, name):
@@ -1964,7 +1991,7 @@ def get_def_template(api, cmd_name, return_type, has_errcode_ret):
 
 
 def format_entry_point_def(api, command_node, cmd_name, proto, params, cmd_packed_enums,
-                           packed_param_types, ep_to_object, version):
+                           packed_param_types, ep_to_object, sources):
     packed_enums = get_packed_enums(api, cmd_packed_enums, cmd_name, packed_param_types, params)
     internal_params = [just_the_name_packed(param, packed_enums) for param in params]
     if internal_params and internal_params[-1] == "errcode_ret":
@@ -2048,7 +2075,7 @@ def format_entry_point_def(api, command_node, cmd_name, proto, params, cmd_packe
         "egl_capture_params":
             ", ".join(["thread"] + internal_params),
         "validation_expression":
-            get_validation_expression(api, cmd_name, entry_point_name, internal_params, version),
+            get_validation_expression(api, cmd_name, entry_point_name, internal_params, sources),
         "format_params":
             ", ".join(format_params),
         "context_getter":
@@ -2056,7 +2083,7 @@ def format_entry_point_def(api, command_node, cmd_name, proto, params, cmd_packe
         "valid_context_check":
             get_valid_context_check(cmd_name),
         "constext_lost_error_generator":
-            get_constext_lost_error_generator(cmd_name),
+            get_constext_lost_error_generator(cmd_name, entry_point_name),
         "event_comment":
             event_comment,
         "labeled_object":
@@ -2365,8 +2392,7 @@ class ANGLEEntryPoints(registry_xml.EntryPoints):
                  cmd_packed_enums,
                  export_template=TEMPLATE_GL_ENTRY_POINT_EXPORT,
                  packed_param_types=[],
-                 ep_to_object={},
-                 version=""):
+                 ep_to_object={}):
         super().__init__(api, xml, commands)
 
         self.decls = []
@@ -2385,7 +2411,7 @@ class ANGLEEntryPoints(registry_xml.EntryPoints):
             self.defs.append(
                 format_entry_point_def(self.api, command_node, cmd_name, proto_text, param_text,
                                        cmd_packed_enums, packed_param_types, ep_to_object,
-                                       version))
+                                       xml.sources_by_command[cmd_name]))
 
             self.export_defs.append(
                 format_entry_point_export(cmd_name, proto_text, param_text, export_template))
@@ -2422,14 +2448,9 @@ class GLEntryPoints(ANGLEEntryPoints):
 
     all_param_types = set()
 
-    def __init__(self, api, xml, commands, version=""):
-        super().__init__(
-            api,
-            xml,
-            commands,
-            GLEntryPoints.all_param_types,
-            GLEntryPoints.get_packed_enums(),
-            version=version)
+    def __init__(self, api, xml, commands):
+        super().__init__(api, xml, commands, GLEntryPoints.all_param_types,
+                         GLEntryPoints.get_packed_enums())
 
     _packed_enums = None
 
@@ -3538,6 +3559,14 @@ def main():
     context_private_call_protos = []
     context_private_call_functions = set()
 
+    # Build commands cache
+    for major_version, minor_version in registry_xml.GLES_VERSIONS:
+        version = "{}_{}".format(major_version, minor_version)
+        name_prefix = "GL_VERSION_ES_CM_" if major_version == 1 else "GL_ES_VERSION_"
+        feature_name = "{}{}".format(name_prefix, version)
+        xml.AddCommands(feature_name, version)
+    xml.AddExtensionCommands(registry_xml.supported_extensions, ['gles2', 'gles1'])
+
     # First run through the main GLES entry points.  Since ES2+ is the primary use
     # case, we go through those first and then add ES1-only APIs at the end.
     for major_version, minor_version in registry_xml.GLES_VERSIONS:
@@ -3551,13 +3580,11 @@ def main():
         comment = version.replace("_", ".")
         feature_name = "{}{}".format(name_prefix, version)
 
-        xml.AddCommands(feature_name, version)
-
         version_commands = xml.commands[version]
         all_commands_no_suffix.extend(xml.commands[version])
         all_commands_with_suffix.extend(xml.commands[version])
 
-        eps = GLEntryPoints(apis.GLES, xml, version_commands, version)
+        eps = GLEntryPoints(apis.GLES, xml, version_commands)
         eps.decls.insert(0, "extern \"C\" {")
         eps.decls.append("} // extern \"C\"")
         eps.defs.insert(0, "extern \"C\" {")
@@ -3618,8 +3645,6 @@ def main():
         glesdecls['exts']['GLES2+ Extensions'][glesext] = []
     for angle_ext in registry_xml.angle_extensions:
         glesdecls['exts']['ANGLE Extensions'][angle_ext] = []
-
-    xml.AddExtensionCommands(registry_xml.supported_extensions, ['gles2', 'gles1'])
 
     for extension_name, ext_cmd_names in sorted(xml.ext_data.items()):
         extension_commands.extend(xml.ext_data[extension_name])

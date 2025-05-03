@@ -193,6 +193,14 @@
             ]
         },
         {
+            "name": "prefer_global_pipeline_cache",
+            "category": "Features",
+            "description": [
+                "The renderer's pipeline cache will be used instead of the separate caches per program."
+            ],
+            "issue": "http://anglebug.com/411442610"
+        },
+        {
             "name": "supports_YUV_sampler_conversion",
             "category": "Features",
             "description": [
@@ -1453,6 +1461,14 @@
             ]
         },
         {
+            "name": "force_host_image_copy_for_luma",
+            "category": "Features",
+            "description": [
+                "When using VK_EXT_host_image_copy, use VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT for images created",
+                "for luminance/alpha textures"
+            ]
+        },
+        {
             "name": "enable_parallel_compile_and_link",
             "category": "Features",
             "description": [
@@ -1630,6 +1646,14 @@
                 "Uses VkEvent instead of VkCmdPipelineBarrier for buffer barriers"
             ],
             "issue": "https://issues.angleproject.org/360274928"
+        },
+        {
+            "name": "recycle_vkEvent",
+            "category": "Features",
+            "description": [
+                "Keep and recycle VkEvent instead of destroying when the last reference goes away"
+            ],
+            "issue": "https://issues.angleproject.org/409441956"
         },
         {
             "name": "supports_synchronization2",

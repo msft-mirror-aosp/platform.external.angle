@@ -6023,6 +6023,12 @@ void Context::disableVertexAttribArray(GLuint index)
 
 void Context::enableVertexAttribArray(GLuint index)
 {
+    const VertexArray *vao = getState().getVertexArray();
+    if (vao->getEnabledAttributesMask().test(index))
+    {
+        return;
+    }
+
     mState.setEnableVertexAttribArray(index, true);
     mStateCache.onVertexArrayStateChange(this);
 }
@@ -6065,9 +6071,13 @@ void Context::vertexAttribIPointer(GLuint index,
                                    GLsizei stride,
                                    const void *pointer)
 {
+    bool vertexAttribDirty = false;
     mState.setVertexAttribIPointer(this, index, mState.getTargetBuffer(BufferBinding::Array), size,
-                                   type, stride, pointer);
-    mStateCache.onVertexArrayStateChange(this);
+                                   type, stride, pointer, &vertexAttribDirty);
+    if (vertexAttribDirty)
+    {
+        mStateCache.onVertexArrayStateChange(this);
+    }
 }
 
 void Context::getVertexAttribivImpl(GLuint index, GLenum pname, GLint *params) const
@@ -6189,8 +6199,7 @@ void Context::debugMessageInsert(GLenum source,
     }
 
     std::string msg(buf, (length > 0) ? static_cast<size_t>(length) : strlen(buf));
-    mState.getDebug().insertMessage(source, type, id, severity, std::move(msg), gl::LOG_INFO,
-                                    angle::EntryPoint::GLDebugMessageInsert);
+    mState.getDebug().insertMessage(source, type, id, severity, std::move(msg), gl::LOG_INFO);
 }
 
 void Context::debugMessageCallback(GLDEBUGPROCKHR callback, const void *userParam)
@@ -6249,15 +6258,6 @@ void Context::bufferStorageExternal(BufferBinding target,
     ASSERT(buffer);
 
     ANGLE_CONTEXT_TRY(buffer->bufferStorageExternal(this, target, size, clientBuffer, flags));
-}
-
-void Context::namedBufferStorageExternal(GLuint buffer,
-                                         GLintptr offset,
-                                         GLsizeiptr size,
-                                         GLeglClientBufferEXT clientBuffer,
-                                         GLbitfield flags)
-{
-    UNIMPLEMENTED();
 }
 
 void Context::bufferData(BufferBinding target, GLsizeiptr size, const void *data, BufferUsage usage)
@@ -6352,7 +6352,7 @@ void Context::bindBufferRange(BufferBinding target,
         mStateCache.onBufferBindingChange(this);
     }
 
-    if (object)
+    if (object && isWebGL())
     {
         object->onBind(this, target);
     }
@@ -9921,16 +9921,16 @@ void ErrorSet::handleError(GLenum errorCode,
 
     // Process the error, but log it with WARN severity so it shows up in logs.
     mDebug->insertMessage(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_ERROR, errorCode,
-                          GL_DEBUG_SEVERITY_HIGH, std::move(formattedMessage), gl::LOG_WARN,
-                          angle::EntryPoint::Invalid);
+                          GL_DEBUG_SEVERITY_HIGH, std::move(formattedMessage), gl::LOG_WARN);
 
     pushError(errorCode);
 }
 
 void ErrorSet::validationError(angle::EntryPoint entryPoint, GLenum errorCode, const char *message)
 {
-    mDebug->insertMessage(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_ERROR, errorCode,
-                          GL_DEBUG_SEVERITY_HIGH, message, gl::LOG_INFO, entryPoint);
+    mDebug->insertMessage(
+        GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_ERROR, errorCode, GL_DEBUG_SEVERITY_HIGH,
+        std::string(GetEntryPointName(entryPoint)) + ": " + message, gl::LOG_INFO);
 
     pushError(errorCode);
 }

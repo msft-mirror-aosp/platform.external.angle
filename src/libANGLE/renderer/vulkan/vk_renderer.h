@@ -946,7 +946,7 @@ class Renderer : angle::NonCopyable
 
     // The mutex protects -
     // 1. initialization of the cache
-    // 2. Vulkan driver guarantess synchronization for read and write operations but the spec
+    // 2. Vulkan driver guarantees synchronization for read and write operations but the spec
     //    requires external synchronization when mPipelineCache is the dstCache of
     //    vkMergePipelineCaches. Lock the mutex if mergeProgramPipelineCachesToGlobalCache is
     //    enabled
@@ -1071,6 +1071,9 @@ class Renderer : angle::NonCopyable
 
     // Cached value for the buffer memory size limit.
     VkDeviceSize mMaxBufferMemorySizeLimit;
+
+    // Record submitted queue serials not belongs to any context.
+    vk::ResourceUse mSubmittedResourceUse;
 };
 
 ANGLE_INLINE Serial Renderer::generateQueueSerial(SerialIndex index)

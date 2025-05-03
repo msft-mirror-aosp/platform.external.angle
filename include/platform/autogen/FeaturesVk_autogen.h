@@ -170,6 +170,12 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
+    FeatureInfo preferGlobalPipelineCache = {
+        "preferGlobalPipelineCache",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
     FeatureInfo supportsYUVSamplerConversion = {
         "supportsYUVSamplerConversion",
         FeatureCategory::VulkanFeatures,
@@ -1112,6 +1118,12 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
+    FeatureInfo forceHostImageCopyForLuma = {
+        "forceHostImageCopyForLuma",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
     FeatureInfo enableParallelCompileAndLink = {
         "enableParallelCompileAndLink",
         FeatureCategory::VulkanFeatures,
@@ -1240,6 +1252,12 @@ struct FeaturesVk : FeatureSetBase
 
     FeatureInfo useVkEventForBufferBarrier = {
         "useVkEventForBufferBarrier",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo recycleVkEvent = {
+        "recycleVkEvent",
         FeatureCategory::VulkanFeatures,
         &members,
     };

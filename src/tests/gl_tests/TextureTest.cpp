@@ -953,7 +953,6 @@ class TextureCubeTest : public TexCoordDrawTest
             uniform samplerCube texCube;
             uniform int cubeFace;
             varying vec2 texcoord;
-
             void main()
             {
                 gl_FragColor = texture2D(tex2D, texcoord);
@@ -1017,6 +1016,8 @@ class TextureCubeTestES3 : public TextureCubeTest
 {
   protected:
     TextureCubeTestES3() {}
+
+    void incompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgain(GLint format);
 };
 
 class TextureCubeTestES32 : public TextureCubeTest
@@ -2351,6 +2352,53 @@ TEST_P(TextureCubeTest, CubeMapBug)
     glUniform1i(mTexture2DUniformLocation, 0);
     glUniform1i(mTextureCubeUniformLocation, 1);
     drawQuad(mProgram, "position", 0.5f);
+    EXPECT_GL_NO_ERROR();
+}
+
+// Duplicate of CubeMapBug test and change texture bind unit to trigger an ANGLE bug in validation
+TEST_P(TextureCubeTest, CubeMapBug2)
+{
+    const char *vertexShaderSource   = getVertexShaderSource();
+    const char *fragmentShaderSource = R"(precision highp float;
+            uniform sampler2D tex2D;
+            uniform sampler2D tex2DUnused;
+            uniform samplerCube texCube;
+            uniform int cubeFace;
+            varying vec2 texcoord;
+            void main()
+            {
+                gl_FragColor = texture2D(tex2D, texcoord);
+
+                vec2 scaled = vec2(1) - vec2(2) * texcoord.xy;
+                vec3 cubecoord = vec3(1, scaled.xy);
+                if (cubeFace == 1)
+                    cubecoord = vec3(-1, scaled.xy);
+                else if (cubeFace == 2)
+                    cubecoord = vec3(scaled.x, 1, scaled.y);
+                else if (cubeFace == 3)
+                    cubecoord = vec3(scaled.x, -1, scaled.y);
+                else if (cubeFace == 4)
+                    cubecoord = vec3(scaled.xy, 1);
+                else if (cubeFace == 5)
+                    cubecoord = vec3(scaled.xy, -1);
+
+                gl_FragColor += textureCube(texCube, cubecoord) + texture2D(tex2DUnused, texcoord);
+            })";
+    ANGLE_GL_PROGRAM(cubeMapBug2Program, vertexShaderSource, fragmentShaderSource);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, mTexture2D);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, mTextureCube);
+    EXPECT_GL_ERROR(GL_NO_ERROR);
+
+    glUseProgram(cubeMapBug2Program);
+    GLint tex2DUniformLocation = glGetUniformLocation(cubeMapBug2Program, "tex2D");
+    ASSERT_NE(tex2DUniformLocation, -1);
+    GLint texCubeUniformLocation = glGetUniformLocation(cubeMapBug2Program, "texCube");
+    ASSERT_NE(texCubeUniformLocation, -1);
+    glUniform1i(tex2DUniformLocation, 3);
+    glUniform1i(texCubeUniformLocation, 0);
+    drawQuad(cubeMapBug2Program, "position", 0.5f);
     EXPECT_GL_NO_ERROR();
 }
 
@@ -5863,7 +5911,8 @@ TEST_P(Texture2DBaseMaxTestES3, Fuzz545ImmutableTexRenderFeedback)
                             {  // "...does not name an immutable-format texture..."
                                 // * "...the value of [level] must be in the range `[level_base,
                                 // q]`"
-                                fbComplete &= (level_base <= dstMip && dstMip <= q);
+                                fbComplete &=
+                                    (level_base == dstMip || (level_base <= dstMip && dstMip <= q));
 
                                 // * "...the value of [level] is not `level_base`, then the texture
                                 // must be mipmap complete"
@@ -7215,7 +7264,7 @@ TEST_P(Texture2DArrayTestES3, ClearThenTexSubImageWithOverlappingLayersThenRead)
     // Create a single leveled texture with 6 layers
     GLTexture tex;
     glBindTexture(GL_TEXTURE_2D_ARRAY, tex);
-    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 4, GL_RGBA8, kTexWidth, kTexHeight, kTexDepth);
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, kTexWidth, kTexHeight, kTexDepth);
 
     // Stage clear to red on all layers
     GLFramebuffer drawFBO;
@@ -7229,23 +7278,86 @@ TEST_P(Texture2DArrayTestES3, ClearThenTexSubImageWithOverlappingLayersThenRead)
     }
 
     // TexSubImage with green color on half of the image of layer 2,3,4
-    std::vector<GLColor> updateData((kTexWidth / 2) * kTexHeight * 3, GLColor::green);
-    GLsizei layerStart = 2;
-    GLsizei layerCount = 3;
-    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layerStart, kTexWidth / 2, kTexHeight, layerCount,
-                    GL_RGBA, GL_UNSIGNED_BYTE, updateData.data());
+    constexpr GLsizei kUpdateLayerStart = 2;
+    constexpr GLsizei kUpdateLayerCount = 3;
+    std::vector<GLColor> updateData((kTexWidth / 2) * kTexHeight * kUpdateLayerCount,
+                                    GLColor::green);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, kUpdateLayerStart, kTexWidth / 2, kTexHeight,
+                    kUpdateLayerCount, GL_RGBA, GL_UNSIGNED_BYTE, updateData.data());
 
-    // Now read out layer 2/3/4
+    // Verify that layers 2, 3 and 4 have been correctly overwritten, and the other layers are
+    // cleared.
     GLFramebuffer readFBO;
     glBindFramebuffer(GL_READ_FRAMEBUFFER, readFBO);
-    for (GLsizei layer = layerStart; layer < layerStart + layerCount; layer++)
+    for (GLsizei layer = 0; layer < kTexDepth; layer++)
     {
         glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex, 0, layer);
         EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_READ_FRAMEBUFFER);
-        EXPECT_PIXEL_EQ(kTexWidth / 4, kTexHeight / 2, GLColor::green.R, GLColor::green.G,
-                        GLColor::green.B, GLColor::green.A);
-        EXPECT_PIXEL_EQ(3 * kTexWidth / 4, kTexHeight / 2, GLColor::red.R, GLColor::red.G,
-                        GLColor::red.B, GLColor::red.A);
+
+        static_assert(kUpdateLayerStart + kUpdateLayerCount <= kTexDepth);
+        if (layer >= kUpdateLayerStart && layer < kUpdateLayerStart + kUpdateLayerCount)
+        {
+            EXPECT_PIXEL_RECT_EQ(0, 0, kTexWidth / 2, kTexHeight, GLColor::green);
+            EXPECT_PIXEL_RECT_EQ(kTexWidth / 2, 0, kTexWidth - kTexWidth / 2, kTexHeight,
+                                 GLColor::red);
+        }
+        else
+        {
+            EXPECT_PIXEL_RECT_EQ(0, 0, kTexWidth, kTexHeight, GLColor::red);
+        }
+    }
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test for a bug when staged clear to a layer is entirely overwritten with glTexSubImage with
+// multiple layers, but the clear for the layers that were not overwritten by glTexSubImage was
+// incorrectly dropped.
+TEST_P(Texture2DArrayTestES3, ClearThenOverwriteWithTexSubImageThenRead)
+{
+    constexpr GLsizei kTexWidth  = 92;
+    constexpr GLsizei kTexHeight = 128;
+    constexpr GLsizei kTexDepth  = 6;
+    // Create a single leveled texture with 6 layers
+    GLTexture tex;
+    glBindTexture(GL_TEXTURE_2D_ARRAY, tex);
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, kTexWidth, kTexHeight, kTexDepth);
+
+    // Stage clear to red on all layers
+    GLFramebuffer drawFBO;
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFBO);
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    for (GLsizei layer = 0; layer < kTexDepth; layer++)
+    {
+        glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex, 0, layer);
+        ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_DRAW_FRAMEBUFFER);
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
+
+    // TexSubImage with green color in layers 1, 2 and 3
+    constexpr GLsizei kUpdateLayerStart = 1;
+    constexpr GLsizei kUpdateLayerCount = 3;
+    std::vector<GLColor> updateData(kTexWidth * kTexHeight * kUpdateLayerCount, GLColor::green);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, kUpdateLayerStart, kTexWidth, kTexHeight,
+                    kUpdateLayerCount, GL_RGBA, GL_UNSIGNED_BYTE, updateData.data());
+
+    // Verify that layers 1, 2 and 3 have been correctly overwritten, and the other layers are
+    // cleared.
+    GLFramebuffer readFBO;
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, readFBO);
+    for (GLsizei layer = 0; layer < kTexDepth; layer++)
+    {
+        glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex, 0, layer);
+        EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_READ_FRAMEBUFFER);
+
+        static_assert(kUpdateLayerStart + kUpdateLayerCount <= kTexDepth);
+        if (layer >= kUpdateLayerStart && layer < kUpdateLayerStart + kUpdateLayerCount)
+        {
+            EXPECT_PIXEL_RECT_EQ(0, 0, kTexWidth, kTexHeight, GLColor::green);
+        }
+        else
+        {
+            EXPECT_PIXEL_RECT_EQ(0, 0, kTexWidth, kTexHeight, GLColor::red);
+        }
     }
     ASSERT_GL_NO_ERROR();
 }
@@ -7260,7 +7372,7 @@ TEST_P(Texture2DArrayTestES3, ClearThenTexSubImageWithOverlappingLayersThenDrawA
     // Create a single leveled texture with 6 layers
     GLTexture tex;
     glBindTexture(GL_TEXTURE_2D_ARRAY, tex);
-    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 4, GL_RGBA8, kTexWidth, kTexHeight, kTexDepth);
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, kTexWidth, kTexHeight, kTexDepth);
 
     // Stage clear to red on all layers
     GLFramebuffer drawFBO;
@@ -7274,15 +7386,16 @@ TEST_P(Texture2DArrayTestES3, ClearThenTexSubImageWithOverlappingLayersThenDrawA
     }
 
     // TexSubImage with green color on half of the image of layer 2,3,4
-    std::vector<GLColor> updateData((kTexWidth / 2) * kTexHeight * 3, GLColor::green);
-    GLsizei layerStart = 2;
-    GLsizei layerCount = 3;
-    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layerStart, kTexWidth / 2, kTexHeight, layerCount,
-                    GL_RGBA, GL_UNSIGNED_BYTE, updateData.data());
+    constexpr GLsizei kUpdateLayerStart = 2;
+    constexpr GLsizei kUpdateLayerCount = 3;
+    std::vector<GLColor> updateData((kTexWidth / 2) * kTexHeight * kUpdateLayerCount,
+                                    GLColor::green);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, kUpdateLayerStart, kTexWidth / 2, kTexHeight,
+                    kUpdateLayerCount, GL_RGBA, GL_UNSIGNED_BYTE, updateData.data());
 
     // Now Draw to fbo on layerStart with blue color
-    GLsizei blueQuadLayer = 2;
-    glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex, 0, blueQuadLayer);
+    constexpr GLsizei kBlueQuadLayer = 2;
+    glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex, 0, kBlueQuadLayer);
     ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_DRAW_FRAMEBUFFER);
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE);
@@ -7290,28 +7403,34 @@ TEST_P(Texture2DArrayTestES3, ClearThenTexSubImageWithOverlappingLayersThenDrawA
     glUseProgram(blueProgram);
     drawQuad(blueProgram, essl3_shaders::PositionAttrib(), 0.5f);
 
-    // Now read out layer 2/3/4
+    // Verify that layer 2 has the result of the draw call, layers 3 and 4 have been correctly
+    // overwritten by glTexSubImage3D, and the other layers are cleared.
     GLFramebuffer readFBO;
     glBindFramebuffer(GL_READ_FRAMEBUFFER, readFBO);
-    for (GLsizei layer = layerStart; layer < layerStart + layerCount; layer++)
+    for (GLsizei layer = 0; layer < kTexDepth; layer++)
     {
         glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex, 0, layer);
         EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_READ_FRAMEBUFFER);
-        if (layer == blueQuadLayer)
+
+        static_assert(kBlueQuadLayer < kTexDepth);
+        static_assert(kUpdateLayerStart + kUpdateLayerCount <= kTexDepth);
+        if (layer == kBlueQuadLayer)
         {
             // green + blue = cyan
-            EXPECT_PIXEL_EQ(kTexWidth / 4, kTexHeight / 2, GLColor::cyan.R, GLColor::cyan.G,
-                            GLColor::cyan.B, GLColor::cyan.A);
+            EXPECT_PIXEL_RECT_EQ(0, 0, kTexWidth / 2, kTexHeight, GLColor::cyan);
             // red + blue = magenta
-            EXPECT_PIXEL_EQ(3 * kTexWidth / 4, kTexHeight / 2, GLColor::magenta.R,
-                            GLColor::magenta.G, GLColor::magenta.B, GLColor::magenta.A);
+            EXPECT_PIXEL_RECT_EQ(kTexWidth / 2, 0, kTexWidth - kTexWidth / 2, kTexHeight,
+                                 GLColor::magenta);
+        }
+        else if (layer >= kUpdateLayerStart && layer < kUpdateLayerStart + kUpdateLayerCount)
+        {
+            EXPECT_PIXEL_RECT_EQ(0, 0, kTexWidth / 2, kTexHeight, GLColor::green);
+            EXPECT_PIXEL_RECT_EQ(kTexWidth / 2, 0, kTexWidth - kTexWidth / 2, kTexHeight,
+                                 GLColor::red);
         }
         else
         {
-            EXPECT_PIXEL_EQ(kTexWidth / 4, kTexHeight / 2, GLColor::green.R, GLColor::green.G,
-                            GLColor::green.B, GLColor::green.A);
-            EXPECT_PIXEL_EQ(3 * kTexWidth / 4, kTexHeight / 2, GLColor::red.R, GLColor::red.G,
-                            GLColor::red.B, GLColor::red.A);
+            EXPECT_PIXEL_RECT_EQ(0, 0, kTexWidth, kTexHeight, GLColor::red);
         }
     }
     ASSERT_GL_NO_ERROR();
@@ -7522,6 +7641,107 @@ TEST_P(Texture2DTestES3, TextureBaseLevelGreaterThanMaxLevel)
 
     // Texture should be incomplete.
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::black);
+}
+
+// Test base level is greater than max level for 2-level textures.
+TEST_P(Texture2DTestES3, TextureBaseLevelGreaterThanMax2Levels)
+{
+    std::vector<GLColor> texDataRed(2u * 2u, GLColor::red);
+
+    GLTexture tex2D;
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, texDataRed.data());
+    glTexImage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &GLColor::green);
+
+    EXPECT_GL_NO_ERROR();
+
+    // Texture should be complete.
+    drawQuad(mProgram, "position", 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // Texture should be incomplete.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    drawQuad(mProgram, "position", 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::black);
+
+    // Texture should be complete.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    drawQuad(mProgram, "position", 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+}
+
+// Test base level is greater than max level for 3-level textures.
+TEST_P(Texture2DTestES3, TextureBaseLevelGreaterThanMaxLevel3Levels)
+{
+    GLColor expectedColor[] = {GLColor::red, GLColor::green, GLColor::blue, GLColor::black};
+    std::vector<GLColor> texDataRed(4u * 4u, GLColor::red);
+    std::vector<GLColor> texDataGreen(2u * 2u, GLColor::green);
+
+    GLTexture tex2D;
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 4, 4, 0, GL_RGBA, GL_UNSIGNED_BYTE, texDataRed.data());
+    glTexImage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 texDataGreen.data());
+    glTexImage2D(GL_TEXTURE_2D, 2, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &GLColor::blue);
+
+    EXPECT_GL_NO_ERROR();
+
+    for (int base = 0; base < 3; ++base)
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, base);
+        for (int max = 0; max < 3; ++max)
+        {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, max);
+            drawQuad(mProgram, "position", 0.5f);
+            EXPECT_PIXEL_COLOR_EQ(0, 0, expectedColor[base <= max ? base : 3]);
+        }
+    }
+
+    for (int max = 0; max < 3; ++max)
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, max);
+        for (int base = 0; base < 3; ++base)
+        {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, base);
+            drawQuad(mProgram, "position", 0.5f);
+            EXPECT_PIXEL_COLOR_EQ(0, 0, expectedColor[base <= max ? base : 3]);
+        }
+    }
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    for (int base = 0; base < 3; ++base)
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, base);
+        for (int max = 0; max < 3; ++max)
+        {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, max);
+            drawQuad(mProgram, "position", 0.5f);
+            EXPECT_PIXEL_COLOR_EQ(0, 0, expectedColor[base]);
+        }
+    }
+
+    for (int max = 0; max < 3; ++max)
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, max);
+        for (int base = 0; base < 3; ++base)
+        {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, base);
+            drawQuad(mProgram, "position", 0.5f);
+            EXPECT_PIXEL_COLOR_EQ(0, 0, expectedColor[base]);
+        }
+    }
 }
 
 // Test that immutable texture base level and max level are clamped.
@@ -12385,6 +12605,205 @@ TEST_P(TextureCubeTestES3, IncompatibleLayerABThenCompatibleLayerABSingleLevel)
         EXPECT_PIXEL_RECT_EQ(2, 2, w - 4, h - 4, expect);
         EXPECT_GL_NO_ERROR();
     }
+}
+
+// Test that after a cubemap is setup, if the faces are incompatibly redefined (with data), then a
+// single face is redefined back to the original size (with data) and redefined again back to the
+// incompatible size, that the (incompatible) updates to the other faces are not accidentally
+// dropped.
+void TextureCubeTestES3::incompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgain(
+    GLint internalformat)
+{
+    uint32_t kSize = 16;
+
+    GLenum format = GL_RGBA;
+    GLenum type   = GL_UNSIGNED_BYTE;
+
+    switch (internalformat)
+    {
+        case GL_RGBA8:
+            break;
+        case GL_LUMINANCE:
+            format = GL_LUMINANCE;
+            break;
+        case GL_LUMINANCE_ALPHA:
+            format = GL_LUMINANCE_ALPHA;
+            break;
+        case GL_ALPHA:
+            format = GL_ALPHA;
+            break;
+        default:
+            // Unhandled format
+            ASSERT_TRUE(false);
+    }
+
+    GLTexture tex;
+    glBindTexture(GL_TEXTURE_CUBE_MAP, tex);
+
+    // Initial data to upload to the textures.
+    const std::vector<GLColor> initialData(kSize * kSize, GLColor(50, 100, 50, 100));
+
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, internalformat, kSize, kSize, 0, format, type,
+                 initialData.data());
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, internalformat, kSize, kSize, 0, format, type,
+                 initialData.data());
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, internalformat, kSize, kSize, 0, format, type,
+                 initialData.data());
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, internalformat, kSize, kSize, 0, format, type,
+                 initialData.data());
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, internalformat, kSize, kSize, 0, format, type,
+                 initialData.data());
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, internalformat, kSize, kSize, 0, format, type,
+                 initialData.data());
+
+    // Sample from the cubemap and make sure all faces are correct
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    // Make sure the program's sample from tex2D doesn't interfere with the test.
+    GLTexture zero2D;
+    glBindTexture(GL_TEXTURE_2D, zero2D);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 &GLColor::transparentBlack);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, zero2D);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, tex);
+
+    glUseProgram(mProgram);
+    glUniform1i(mTexture2DUniformLocation, 0);
+    glUniform1i(mTextureCubeUniformLocation, 1);
+
+    const auto getExpectedColor = [internalformat](const GLColor &uploadColor, GLColor *expect0,
+                                                   GLColor *expect1) {
+        *expect0 = uploadColor;
+        *expect1 = uploadColor;
+        switch (internalformat)
+        {
+            case GL_RGBA8:
+                break;
+            case GL_LUMINANCE:
+                *expect0 = GLColor(uploadColor.R, uploadColor.R, uploadColor.R, 255);
+                *expect1 = GLColor(uploadColor.G, uploadColor.G, uploadColor.G, 255);
+                break;
+            case GL_LUMINANCE_ALPHA:
+                *expect0 = *expect1 =
+                    GLColor(uploadColor.R, uploadColor.R, uploadColor.R, uploadColor.G);
+                break;
+            case GL_ALPHA:
+                *expect0 = GLColor(0, 0, 0, uploadColor.R);
+                *expect1 = GLColor(0, 0, 0, uploadColor.G);
+                break;
+            default:
+                ASSERT_TRUE(false);
+        }
+    };
+
+    const int w = getWindowWidth();
+    const int h = getWindowHeight();
+
+    for (uint32_t i = 0; i < 6; ++i)
+    {
+        glUniform1i(mTextureCubeFaceUniformLocation, i);
+        glClear(GL_COLOR_BUFFER_BIT);
+        drawQuad(mProgram, "position", 0.5f);
+
+        GLColor expect0, expect1;
+        getExpectedColor(initialData[0], &expect0, &expect1);
+
+        // How the texture is projected depends on the face
+        if (i != 0 && i != 5)
+        {
+            std::swap(expect0, expect1);
+        }
+        EXPECT_PIXEL_COLOR_EQ(0, 0, expect0) << "At cubemap face " << i;
+        EXPECT_PIXEL_COLOR_EQ(w - 1, h - 1, expect1) << "At cubemap face " << i;
+        ASSERT_GL_NO_ERROR();
+    }
+
+    // Redefine the faces to something smaller.
+    const std::vector<GLColor> redefine0(kSize * kSize / 4, GLColor(20, 150, 20, 150));
+    const std::vector<GLColor> redefine1(kSize * kSize / 4, GLColor(80, 200, 80, 200));
+    const std::vector<GLColor> redefine2(kSize * kSize / 4, GLColor(120, 40, 120, 40));
+    const std::vector<GLColor> redefine3(kSize * kSize / 4, GLColor(180, 10, 180, 10));
+    const std::vector<GLColor> redefine4(kSize * kSize / 4, GLColor(220, 70, 220, 70));
+    const std::vector<GLColor> redefine5(kSize * kSize / 4, GLColor(160, 240, 160, 240));
+
+    // Leave one face untouched so the image doesn't become complete.  This way the staged updates
+    // have to stay pending.
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, internalformat, kSize / 2, kSize / 2, 0, format,
+                 type, redefine1.data());
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, internalformat, kSize / 2, kSize / 2, 0, format,
+                 type, redefine2.data());
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, internalformat, kSize / 2, kSize / 2, 0, format,
+                 type, redefine3.data());
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, internalformat, kSize / 2, kSize / 2, 0, format,
+                 type, redefine4.data());
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, internalformat, kSize / 2, kSize / 2, 0, format,
+                 type, redefine5.data());
+
+    // Upload data to the untouched face, overwriting it completely.
+    const std::vector<GLColor> throwAway(kSize * kSize, GLColor(12, 34, 56, 78));
+    glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, 0, 0, kSize, kSize, format, type,
+                    throwAway.data());
+
+    // Redefine that face to the smaller size too to make the texture complete.
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, internalformat, kSize / 2, kSize / 2, 0, format,
+                 type, redefine0.data());
+
+    // Verify that the previously staged updates are not lost.
+    const std::vector<GLColor> *redefines[] = {
+        &redefine0, &redefine1, &redefine2, &redefine3, &redefine4, &redefine5,
+    };
+    for (uint32_t i = 0; i < 6; ++i)
+    {
+        glUniform1i(mTextureCubeFaceUniformLocation, i);
+        glClear(GL_COLOR_BUFFER_BIT);
+        drawQuad(mProgram, "position", 0.5f);
+
+        GLColor expect0, expect1;
+        getExpectedColor((*redefines[i])[0], &expect0, &expect1);
+
+        // How the texture is projected depends on the face
+        if (i != 0 && i != 5)
+        {
+            std::swap(expect0, expect1);
+        }
+        EXPECT_PIXEL_COLOR_EQ(0, 0, expect0) << "At cubemap face " << i;
+        EXPECT_PIXEL_COLOR_EQ(w - 1, h - 1, expect1) << "At cubemap face " << i;
+        ASSERT_GL_NO_ERROR();
+    }
+}
+
+// |incompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgain| with RGBA8
+TEST_P(TextureCubeTestES3,
+       IncompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgainRGBA8)
+{
+    incompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgain(GL_RGBA8);
+}
+
+// |incompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgain| with LUMINANCE
+TEST_P(TextureCubeTestES3,
+       IncompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgainLUMINANCE)
+{
+    incompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgain(GL_LUMINANCE);
+}
+
+// |incompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgain| with LUMINANCE_ALPHA
+TEST_P(TextureCubeTestES3,
+       IncompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgainLUMA)
+{
+    incompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgain(GL_LUMINANCE_ALPHA);
+}
+
+// |incompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgain| with ALPHA
+TEST_P(TextureCubeTestES3,
+       IncompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgainALPHA)
+{
+    incompatibleCubeFacesThenSingleFaceCompatibleUploadAndIncompatibleAgain(GL_ALPHA);
 }
 
 // Test that the maximum texture layer can allocate enough memory.

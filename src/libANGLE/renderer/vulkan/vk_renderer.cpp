@@ -283,8 +283,6 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDraw-None-09462",
     // https://anglebug.com/394598758
     "VUID-vkBindBufferMemory-size-01037",
-    // https://anglebug.com/408190758
-    "VUID-vkQueueSubmit-pSignalSemaphores-00067",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -344,6 +342,11 @@ constexpr const char *kSkippedMessagesWithDynamicRendering[] = {
     "VUID-vkCmdDrawIndexed-multisampledRenderToSingleSampled-07285",
     "VUID-vkCmdDrawIndexed-multisampledRenderToSingleSampled-07286",
     "VUID-vkCmdDrawIndexed-multisampledRenderToSingleSampled-07287",
+};
+
+constexpr const char *kSkippedMessagesWithoutSwapchainMaintenance1[] = {
+    // https://anglebug.com/408190758
+    "VUID-vkQueueSubmit-pSignalSemaphores-00067",
 };
 
 // Some syncval errors are resolved in the presence of the NONE load or store render pass ops.  For
@@ -2030,6 +2033,8 @@ void Renderer::onDestroy(vk::ErrorContext *context)
     {
         handleDeviceLost();
     }
+
+    (void)(finishResourceUse(context, mSubmittedResourceUse));
 
     if (mPlaceHolderDescriptorSetLayout)
     {
@@ -4505,6 +4510,14 @@ void Renderer::initializeValidationMessageSuppressions()
             kSkippedMessagesWithDynamicRendering + ArraySize(kSkippedMessagesWithDynamicRendering));
     }
 
+    if (!getFeatures().supportsSwapchainMaintenance1.enabled)
+    {
+        mSkippedValidationMessages.insert(
+            mSkippedValidationMessages.end(), kSkippedMessagesWithoutSwapchainMaintenance1,
+            kSkippedMessagesWithoutSwapchainMaintenance1 +
+                ArraySize(kSkippedMessagesWithoutSwapchainMaintenance1));
+    }
+
     // Build the list of syncval errors that are currently expected and should be skipped.
     mSkippedSyncvalMessages.insert(mSkippedSyncvalMessages.end(), kSkippedSyncvalMessages,
                                    kSkippedSyncvalMessages + ArraySize(kSkippedSyncvalMessages));
@@ -5028,6 +5041,13 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // VkHostImageCopyDevicePerformanceQueryEXT::identicalMemoryLayout.
     ANGLE_FEATURE_CONDITION(&mFeatures, allowHostImageCopyDespiteNonIdenticalLayout, false);
 
+    // Force host image copy for textures with luminance/alpha formats.  This disables framebuffer
+    // compression (but these formats are not renderable), and the benefits of host image copy
+    // outweigh framebuffer compression on sampled textures on the following GPUs:
+    //
+    // - ARM
+    ANGLE_FEATURE_CONDITION(&mFeatures, forceHostImageCopyForLuma, isARM);
+
     // VK_EXT_pipeline_creation_feedback is promoted to core in Vulkan 1.3.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsPipelineCreationFeedback,
@@ -5222,11 +5242,15 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // MSRTSS is disabled if the driver does not support it for RGBA8 and RGBA8_SRGB.
     // This is used to filter out known drivers where support for sRGB formats are missing.
+    //
+    // Qualcomm driver 512.821 is known to have rendering bugs with this extension.
+    // http://crbug.com/413427770
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsMultisampledRenderToSingleSampled,
         mMultisampledRenderToSingleSampledFeatures.multisampledRenderToSingleSampled == VK_TRUE &&
             mFeatures.supportsRenderpass2.enabled &&
-            mFeatures.supportsDepthStencilResolve.enabled && CanSupportMSRTSSForRGBA8(this));
+            mFeatures.supportsDepthStencilResolve.enabled && CanSupportMSRTSSForRGBA8(this) &&
+            !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 822, 0)));
 
     // Preferring the MSRTSS flag is for texture initialization. If the MSRTSS is not used at first,
     // it will be used (if available) when recreating the image if it is bound to an MSRTT
@@ -5879,6 +5903,10 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, preferMonolithicPipelinesOverLibraries,
                             mFeatures.supportsGraphicsPipelineLibrary.enabled && false);
 
+    // To avoid memory bloating due to using pipeline caches per program, the pipeline cache in the
+    // renderer can be used.
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferGlobalPipelineCache, isNvidia || (isAMD && !isRADV));
+
     // Whether the pipeline caches should merge into the global pipeline cache.  This should only be
     // enabled on platforms if:
     //
@@ -6092,6 +6120,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
                             isTileBasedRenderer || isSwiftShader);
     ANGLE_FEATURE_CONDITION(&mFeatures, useVkEventForBufferBarrier,
                             isTileBasedRenderer || isSwiftShader);
+    // vkCmdResetEvent adds extra GPU overhead and ARM prefers CPU overhead of creating/destroying
+    // VkEvent instead of GPU overhead associated with vkCmdResetEvent.
+    ANGLE_FEATURE_CONDITION(&mFeatures, recycleVkEvent, !isARM);
 
     // Disable for Samsung, details here -> http://anglebug.com/386749841#comment21
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsDynamicRendering,
@@ -6331,6 +6362,7 @@ angle::Result Renderer::getPipelineCache(vk::ErrorContext *context,
 
     angle::SimpleMutex *pipelineCacheMutex =
         context->getFeatures().mergeProgramPipelineCachesToGlobalCache.enabled ||
+                context->getFeatures().preferGlobalPipelineCache.enabled ||
                 context->getFeatures().preferMonolithicPipelinesOverLibraries.enabled
             ? &mPipelineCacheMutex
             : nullptr;
@@ -6592,6 +6624,7 @@ angle::Result Renderer::queueSubmitOneOff(vk::ErrorContext *context,
                                               primary.getHandle(), waitSemaphore,
                                               waitSemaphoreStageMasks, submitQueueSerial));
 
+    mSubmittedResourceUse.setQueueSerial(submitQueueSerial);
     *queueSerialOut = submitQueueSerial;
     if (primary.valid())
     {
@@ -6610,9 +6643,11 @@ angle::Result Renderer::queueSubmitWaitSemaphore(vk::ErrorContext *context,
                                                  VkPipelineStageFlags waitSemaphoreStageMasks,
                                                  QueueSerial submitQueueSerial)
 {
-    return mCommandQueue.queueSubmitOneOff(context, vk::ProtectionType::Unprotected, priority,
-                                           VK_NULL_HANDLE, waitSemaphore.getHandle(),
-                                           waitSemaphoreStageMasks, submitQueueSerial);
+    ANGLE_TRY(mCommandQueue.queueSubmitOneOff(context, vk::ProtectionType::Unprotected, priority,
+                                              VK_NULL_HANDLE, waitSemaphore.getHandle(),
+                                              waitSemaphoreStageMasks, submitQueueSerial));
+    mSubmittedResourceUse.setQueueSerial(submitQueueSerial);
+    return angle::Result::Continue;
 }
 
 template <VkFormatFeatureFlags VkFormatProperties::*features>
@@ -6888,6 +6923,7 @@ angle::Result Renderer::submitPriorityDependency(vk::ErrorContext *context,
         }
         ANGLE_TRY(submitCommands(context, protectionType, srcContextPriority, signalSemaphore,
                                  nullptr, {}, queueSerial));
+        mSubmittedResourceUse.setQueueSerial(queueSerial);
     }
 
     // Submit only Wait Semaphore into the destination Priority (VkQueue).

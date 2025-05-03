@@ -41,7 +41,6 @@ xml_inputs = sorted(khronos_xml_inputs + angle_xml_inputs)
 # We document those extensions in gl_angle_ext.xml instead of the canonical gl.xml.
 
 angle_toggleable_extensions = [
-    "GL_ANGLE_texture_rectangle",
 ]
 
 angle_requestable_extensions = [
@@ -74,6 +73,7 @@ angle_requestable_extensions = [
     "GL_ANGLE_texture_compression_dxt5",
     "GL_ANGLE_texture_external_update",
     "GL_ANGLE_texture_multisample",
+    "GL_ANGLE_texture_rectangle",
     "GL_ANGLE_vulkan_image",
     "GL_ANGLE_yuv_internal_format",
     "GL_CHROMIUM_color_buffer_float_rgb",
@@ -312,6 +312,8 @@ gles1_extensions = [
 gles_skipped_commands = [
     # GL_EXT_EGL_image_storage
     "glEGLImageTargetTextureStorageEXT",
+    # GL_EXT_external_buffer
+    "glNamedBufferStorageExternalEXT",
     # GL_EXT_memory_object
     "glTextureStorageMem2DEXT",
     "glTextureStorageMem2DMultisampleEXT",
@@ -540,6 +542,7 @@ class RegistryXML:
         self.all_commands = self.root.findall('commands/command')
         self.all_cmd_names = CommandNames()
         self.commands = {}
+        self.sources_by_command = {}
 
     def _AppendANGLEExts(self, ext_file):
         angle_ext_tree = etree.parse(script_relative(ext_file))
@@ -564,6 +567,10 @@ class RegistryXML:
     def AddCommands(self, feature_name, annotation):
         xpath = ".//feature[@name='%s']//command" % feature_name
         commands = [cmd.attrib['name'] for cmd in self.root.findall(xpath)]
+
+        # Reverse cache for all places a command may be defined in.
+        for cmd in commands:
+            self.sources_by_command.setdefault(cmd, []).append(annotation)
 
         # Remove commands that have already been processed
         current_cmds = self.all_cmd_names.get_all_commands()
@@ -627,6 +634,10 @@ class RegistryXML:
             self.ext_data[extension_name] = sorted(ext_cmd_names)
 
         for extension_name, ext_cmd_names in sorted(self.ext_data.items()):
+
+            # Reverse cache for all places a command may be defined in.
+            for cmd in ext_cmd_names:
+                self.sources_by_command.setdefault(cmd, []).append(extension_name)
 
             # Detect and filter duplicate extensions.
             dupes = []
