@@ -2370,24 +2370,16 @@ INSTANTIATE_TEST_SUITE_P(
 // TODO(umar): Instruction capability checks
 
 spv_result_t spvCoreOperandTableNameLookup(spv_target_env env,
-                                           const spv_operand_table table,
                                            const spv_operand_type_t type,
                                            const char* name,
                                            const size_t nameLength) {
-  if (!table) return SPV_ERROR_INVALID_TABLE;
   if (!name) return SPV_ERROR_INVALID_POINTER;
 
-  for (uint64_t typeIndex = 0; typeIndex < table->count; ++typeIndex) {
-    const auto& group = table->types[typeIndex];
-    if (type != group.type) continue;
-    for (uint64_t index = 0; index < group.count; ++index) {
-      const auto& entry = group.entries[index];
-      // Check for min version only.
-      if (spvVersionForTargetEnv(env) >= entry.minVersion &&
-          nameLength == strlen(entry.name) &&
-          !strncmp(entry.name, name, nameLength)) {
-        return SPV_SUCCESS;
-      }
+  const spvtools::OperandDesc* entry = nullptr;
+  if (SPV_SUCCESS == spvtools::LookupOperand(type, name, nameLength, &entry)) {
+    // Check for min version only.
+    if (spvVersionForTargetEnv(env) >= entry->minVersion) {
+      return SPV_SUCCESS;
     }
   }
 
@@ -2398,8 +2390,7 @@ spv_result_t spvCoreOperandTableNameLookup(spv_target_env env,
 bool Exists(const std::string& capability, spv_target_env env) {
   ScopedContext sc(env);
   return SPV_SUCCESS ==
-         spvCoreOperandTableNameLookup(env, sc.context->operand_table,
-                                       SPV_OPERAND_TYPE_CAPABILITY,
+         spvCoreOperandTableNameLookup(env, SPV_OPERAND_TYPE_CAPABILITY,
                                        capability.c_str(), capability.size());
 }
 
@@ -2627,6 +2618,26 @@ OpDecorate %intt BuiltIn PointSize
       getDiagnosticString(),
       HasSubstr("Capability DrawParameters is not allowed by Vulkan 1.0"));
 }
+
+using OpenCLFloat16CapabilityBase = spvtest::ValidateBase<spv_target_env>;
+
+TEST_P(OpenCLFloat16CapabilityBase, OpenCLFloat16Capability) {
+  const std::string spirv = R"(
+OpCapability Kernel
+OpCapability Addresses
+OpCapability Linkage
+OpCapability Float16
+OpMemoryModel Physical64 OpenCL
+%f16    = OpTypeFloat 16
+)";
+  CompileSuccessfully(spirv, GetParam());
+  EXPECT_EQ(SPV_SUCCESS, ValidateInstructions(GetParam()));
+}
+
+INSTANTIATE_TEST_SUITE_P(OpenCLFloat16Capability, OpenCLFloat16CapabilityBase,
+                         ValuesIn(std::vector<spv_target_env>{
+                             SPV_ENV_OPENCL_1_2, SPV_ENV_OPENCL_2_0,
+                             SPV_ENV_OPENCL_2_1, SPV_ENV_OPENCL_2_2}));
 
 TEST_F(ValidateCapability, NonOpenCL12FullCapability) {
   const std::string spirv = R"(

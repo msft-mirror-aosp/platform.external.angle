@@ -1669,13 +1669,9 @@ def get_validation_expression(api, cmd_name, entry_point_name, internal_params, 
     # Extensions temporarily skipped from autogen
     skipped_exts = [
         'GL_ANGLE_base_vertex_base_instance',
-        'GL_ANGLE_robust_client_memory',
-        'GL_ANGLE_shader_pixel_local_storage',
         'GL_CHROMIUM_sync_query',
         'GL_EXT_disjoint_timer_query',
-        'GL_EXT_draw_elements_base_vertex',
         'GL_EXT_occlusion_query_boolean',
-        'GL_OES_draw_elements_base_vertex',
         'GL_OES_EGL_image',
         'GL_OES_EGL_image_external',
         'GL_OVR_multiview',
@@ -2554,6 +2550,8 @@ def get_decls(api,
         # directly access the context-private state.
         if is_context_private_state_command(api, cmd_name):
             continue
+
+        already_included.append(name_no_suffix)
 
         param_text = ["".join(param.itertext()) for param in command.findall('param')]
         proto_text = "".join(proto.itertext())
@@ -3697,7 +3695,6 @@ def main():
 
     for name in extension_commands:
         all_commands_with_suffix.append(name)
-        all_commands_no_suffix.append(strip_suffix(apis.GLES, name))
 
     # OpenCL
     clxml = registry_xml.RegistryXML('cl.xml')

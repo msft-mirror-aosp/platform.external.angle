@@ -2353,6 +2353,13 @@ bool ValidateReadnPixelsRobustANGLE(const Context *context,
                                     const GLsizei *rows,
                                     const void *data)
 {
+    if ((context->getClientVersion() < ES_3_2) && !context->getExtensions().robustnessEXT &&
+        !context->getExtensions().robustnessKHR)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kEntryPointBaseUnsupported);
+        return false;
+    }
+
     GLsizei writeLength  = 0;
     GLsizei writeColumns = 0;
     GLsizei writeRows    = 0;
@@ -2640,6 +2647,14 @@ bool ValidateGetQueryivRobustANGLE(const Context *context,
                                    const GLsizei *length,
                                    const GLint *params)
 {
+    if ((context->getClientVersion() < ES_3_0) && !context->getExtensions().disjointTimerQueryEXT &&
+        !context->getExtensions().occlusionQueryBooleanEXT &&
+        !context->getExtensions().syncQueryCHROMIUM)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kEntryPointBaseUnsupported);
+        return false;
+    }
+
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
     {
         return false;
@@ -2789,11 +2804,11 @@ bool ValidateGetQueryObjectuivRobustANGLE(const Context *context,
                                           const GLsizei *length,
                                           const GLuint *params)
 {
-    if (!context->getExtensions().disjointTimerQueryEXT &&
+    if ((context->getClientVersion() < ES_3_0) && !context->getExtensions().disjointTimerQueryEXT &&
         !context->getExtensions().occlusionQueryBooleanEXT &&
         !context->getExtensions().syncQueryCHROMIUM)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExtensionNotEnabled);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kEntryPointBaseUnsupported);
         return false;
     }
 
@@ -3246,6 +3261,12 @@ bool ValidateGetInteger64vRobustANGLE(const Context *context,
                                       const GLsizei *length,
                                       const GLint64 *data)
 {
+    if ((context->getClientVersion() < ES_3_0) && !context->getExtensions().disjointTimerQueryEXT)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kEntryPointBaseUnsupported);
+        return false;
+    }
+
     GLenum nativeType;
     unsigned int numParams = 0;
 
@@ -3641,6 +3662,53 @@ const InternalFormat *GetValidFormatInfoForCopyImageSubData(const Context *conte
                                                             GLenum target,
                                                             GLint level)
 {
+    // An INVALID_ENUM error is generated if either target is not
+    // RENDERBUFFER or a valid texture target; is TEXTURE_BUFFER or one of the
+    // cubemap face selectors.
+    switch (target)
+    {
+        case GL_RENDERBUFFER:
+        case GL_TEXTURE_2D:
+        case GL_TEXTURE_CUBE_MAP:
+        case GL_TEXTURE_3D:
+        case GL_TEXTURE_2D_ARRAY:
+            break;
+        case GL_TEXTURE_2D_MULTISAMPLE:
+            if (context->getClientVersion() < ES_3_1 &&
+                !context->getExtensions().textureMultisampleANGLE)
+            {
+                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kMultisampleTextureExtensionOrES31Required);
+                return nullptr;
+            }
+            break;
+        case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+            if (context->getClientVersion() < ES_3_2 &&
+                !context->getExtensions().textureStorageMultisample2dArrayOES)
+            {
+                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kMultisampleArrayExtensionOrES32Required);
+                return nullptr;
+            }
+            break;
+        case GL_TEXTURE_CUBE_MAP_ARRAY:
+            if (context->getClientVersion() < ES_3_2 &&
+                !context->getExtensions().textureCubeMapArrayAny())
+            {
+                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTarget);
+                return nullptr;
+            }
+            break;
+        case GL_TEXTURE_EXTERNAL_OES:
+            if (!context->getExtensions().EGLImageExternalOES)
+            {
+                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTarget);
+                return nullptr;
+            }
+            break;
+        default:
+            ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTarget);
+            return nullptr;
+    }
+
     if (target == GL_RENDERBUFFER)
     {
         Renderbuffer *renderbufferObject =
@@ -3668,9 +3736,9 @@ const InternalFormat *GetValidFormatInfoForCopyImageSubData(const Context *conte
         return nullptr;
     }
 
-    // Buffer textures are not allowed and the target must match the texture type.
+    // the target must match the texture type.
     const TextureType textureType = textureObject->getType();
-    if (textureType == TextureType::Buffer || ToGLenum(textureType) != target)
+    if (ToGLenum(textureType) != target)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kTextureTargetInvalidForCopyImage);
         return nullptr;
@@ -5522,12 +5590,6 @@ bool ValidateGenOrDelete(const Context *context,
 
 bool ValidateRobustEntryPoint(const Context *context, angle::EntryPoint entryPoint, GLsizei bufSize)
 {
-    if (!context->getExtensions().robustClientMemoryANGLE)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExtensionNotEnabled);
-        return false;
-    }
-
     if (bufSize < 0)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufSize);
@@ -5952,6 +6014,12 @@ bool ValidateGetBufferParameteri64vRobustANGLE(const Context *context,
                                                const GLsizei *length,
                                                const GLint64 *params)
 {
+    if (context->getClientVersion() < ES_3_0)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
+        return false;
+    }
+
     GLsizei numParams = 0;
 
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))

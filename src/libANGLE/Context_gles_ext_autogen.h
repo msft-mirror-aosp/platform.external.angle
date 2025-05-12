@@ -139,6 +139,7 @@
     void multiDrawElementsBaseVertex(PrimitiveMode modePacked, const GLsizei *count,               \
                                      DrawElementsType typePacked, const void *const *indices,      \
                                      GLsizei drawcount, const GLint *basevertex);                  \
+    /* GL_EXT_draw_instanced */                                                                    \
     /* GL_EXT_external_buffer */                                                                   \
     void bufferStorageExternal(BufferBinding targetPacked, GLintptr offset, GLsizeiptr size,       \
                                GLeglClientBufferEXT clientBuffer, GLbitfield flags);               \
@@ -177,6 +178,7 @@
     /* GL_EXT_memory_object_fd */                                                                  \
     void importMemoryFd(MemoryObjectID memoryPacked, GLuint64 size, HandleType handleTypePacked,   \
                         GLint fd);                                                                 \
+    /* GL_EXT_multi_draw_arrays */                                                                 \
     /* GL_EXT_multi_draw_indirect */                                                               \
     void multiDrawArraysIndirect(PrimitiveMode modePacked, const void *indirect,                   \
                                  GLsizei drawcount, GLsizei stride);                               \
