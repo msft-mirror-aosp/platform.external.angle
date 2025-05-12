@@ -84,6 +84,7 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_OES_draw_buffers_indexed"] = enableableExtension(&Extensions::drawBuffersIndexedOES);
         map["GL_EXT_draw_elements_base_vertex"] = enableableExtension(&Extensions::drawElementsBaseVertexEXT);
         map["GL_OES_draw_elements_base_vertex"] = enableableExtension(&Extensions::drawElementsBaseVertexOES);
+        map["GL_EXT_draw_instanced"] = enableableExtension(&Extensions::drawInstancedEXT);
         map["GL_OES_EGL_image"] = enableableExtension(&Extensions::EGLImageOES);
         map["GL_EXT_EGL_image_array"] = enableableExtension(&Extensions::EGLImageArrayEXT);
         map["GL_OES_EGL_image_external"] = enableableExtension(&Extensions::EGLImageExternalOES);
@@ -115,6 +116,7 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_EXT_map_buffer_range"] = enableableExtension(&Extensions::mapBufferRangeEXT);
         map["GL_EXT_memory_object"] = enableableExtension(&Extensions::memoryObjectEXT);
         map["GL_EXT_memory_object_fd"] = enableableExtension(&Extensions::memoryObjectFdEXT);
+        map["GL_EXT_multi_draw_arrays"] = enableableExtension(&Extensions::multiDrawArraysEXT);
         map["GL_EXT_multi_draw_indirect"] = enableableExtension(&Extensions::multiDrawIndirectEXT);
         map["GL_EXT_multisample_compatibility"] = esOnlyExtension(&Extensions::multisampleCompatibilityEXT);
         map["GL_EXT_multisampled_render_to_texture"] = enableableExtension(&Extensions::multisampledRenderToTextureEXT);

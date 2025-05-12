@@ -4366,6 +4366,24 @@ void GL_APIENTRY glMultiDrawElementsBaseVertexEXT(GLenum mode,
     return GL_MultiDrawElementsBaseVertexEXT(mode, count, type, indices, drawcount, basevertex);
 }
 
+// GL_EXT_draw_instanced
+void GL_APIENTRY glDrawArraysInstancedEXT(GLenum mode,
+                                          GLint start,
+                                          GLsizei count,
+                                          GLsizei primcount)
+{
+    return GL_DrawArraysInstancedEXT(mode, start, count, primcount);
+}
+
+void GL_APIENTRY glDrawElementsInstancedEXT(GLenum mode,
+                                            GLsizei count,
+                                            GLenum type,
+                                            const void *indices,
+                                            GLsizei primcount)
+{
+    return GL_DrawElementsInstancedEXT(mode, count, type, indices, primcount);
+}
+
 // GL_EXT_external_buffer
 void GL_APIENTRY glBufferStorageExternalEXT(GLenum target,
                                             GLintptr offset,
@@ -4391,23 +4409,6 @@ void GL_APIENTRY glFramebufferTextureEXT(GLenum target,
 // GL_EXT_gpu_shader5
 
 // GL_EXT_instanced_arrays
-void GL_APIENTRY glDrawArraysInstancedEXT(GLenum mode,
-                                          GLint start,
-                                          GLsizei count,
-                                          GLsizei primcount)
-{
-    return GL_DrawArraysInstancedEXT(mode, start, count, primcount);
-}
-
-void GL_APIENTRY glDrawElementsInstancedEXT(GLenum mode,
-                                            GLsizei count,
-                                            GLenum type,
-                                            const void *indices,
-                                            GLsizei primcount)
-{
-    return GL_DrawElementsInstancedEXT(mode, count, type, indices, primcount);
-}
-
 void GL_APIENTRY glVertexAttribDivisorEXT(GLuint index, GLuint divisor)
 {
     return GL_VertexAttribDivisorEXT(index, divisor);
@@ -4528,6 +4529,24 @@ void GL_APIENTRY glTexStorageMem3DMultisampleEXT(GLenum target,
 void GL_APIENTRY glImportMemoryFdEXT(GLuint memory, GLuint64 size, GLenum handleType, GLint fd)
 {
     return GL_ImportMemoryFdEXT(memory, size, handleType, fd);
+}
+
+// GL_EXT_multi_draw_arrays
+void GL_APIENTRY glMultiDrawArraysEXT(GLenum mode,
+                                      const GLint *first,
+                                      const GLsizei *count,
+                                      GLsizei primcount)
+{
+    return GL_MultiDrawArraysEXT(mode, first, count, primcount);
+}
+
+void GL_APIENTRY glMultiDrawElementsEXT(GLenum mode,
+                                        const GLsizei *count,
+                                        GLenum type,
+                                        const void *const *indices,
+                                        GLsizei primcount)
+{
+    return GL_MultiDrawElementsEXT(mode, count, type, indices, primcount);
 }
 
 // GL_EXT_multi_draw_indirect

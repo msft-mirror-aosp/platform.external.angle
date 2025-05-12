@@ -1384,6 +1384,21 @@ angle::CallCapture CaptureMultiDrawElementsBaseVertexEXT(const State &glState,
                                                          GLsizei drawcount,
                                                          const GLint *basevertex);
 
+// GL_EXT_draw_instanced
+angle::CallCapture CaptureDrawArraysInstancedEXT(const State &glState,
+                                                 bool isCallValid,
+                                                 PrimitiveMode modePacked,
+                                                 GLint start,
+                                                 GLsizei count,
+                                                 GLsizei primcount);
+angle::CallCapture CaptureDrawElementsInstancedEXT(const State &glState,
+                                                   bool isCallValid,
+                                                   PrimitiveMode modePacked,
+                                                   GLsizei count,
+                                                   DrawElementsType typePacked,
+                                                   const void *indices,
+                                                   GLsizei primcount);
+
 // GL_EXT_external_buffer
 angle::CallCapture CaptureBufferStorageExternalEXT(const State &glState,
                                                    bool isCallValid,
@@ -1406,19 +1421,6 @@ angle::CallCapture CaptureFramebufferTextureEXT(const State &glState,
 // GL_EXT_gpu_shader5
 
 // GL_EXT_instanced_arrays
-angle::CallCapture CaptureDrawArraysInstancedEXT(const State &glState,
-                                                 bool isCallValid,
-                                                 PrimitiveMode modePacked,
-                                                 GLint start,
-                                                 GLsizei count,
-                                                 GLsizei primcount);
-angle::CallCapture CaptureDrawElementsInstancedEXT(const State &glState,
-                                                   bool isCallValid,
-                                                   PrimitiveMode modePacked,
-                                                   GLsizei count,
-                                                   DrawElementsType typePacked,
-                                                   const void *indices,
-                                                   GLsizei primcount);
 angle::CallCapture CaptureVertexAttribDivisorEXT(const State &glState,
                                                  bool isCallValid,
                                                  GLuint index,
@@ -1524,6 +1526,21 @@ angle::CallCapture CaptureImportMemoryFdEXT(const State &glState,
                                             GLuint64 size,
                                             HandleType handleTypePacked,
                                             GLint fd);
+
+// GL_EXT_multi_draw_arrays
+angle::CallCapture CaptureMultiDrawArraysEXT(const State &glState,
+                                             bool isCallValid,
+                                             PrimitiveMode modePacked,
+                                             const GLint *first,
+                                             const GLsizei *count,
+                                             GLsizei primcount);
+angle::CallCapture CaptureMultiDrawElementsEXT(const State &glState,
+                                               bool isCallValid,
+                                               PrimitiveMode modePacked,
+                                               const GLsizei *count,
+                                               DrawElementsType typePacked,
+                                               const void *const *indices,
+                                               GLsizei primcount);
 
 // GL_EXT_multi_draw_indirect
 angle::CallCapture CaptureMultiDrawArraysIndirectEXT(const State &glState,
@@ -4736,6 +4753,36 @@ void CaptureMemoryObjectParameterivEXT_params(const State &glState,
                                               GLenum pname,
                                               const GLint *params,
                                               angle::ParamCapture *paramCapture);
+void CaptureMultiDrawArraysEXT_first(const State &glState,
+                                     bool isCallValid,
+                                     PrimitiveMode modePacked,
+                                     const GLint *first,
+                                     const GLsizei *count,
+                                     GLsizei primcount,
+                                     angle::ParamCapture *paramCapture);
+void CaptureMultiDrawArraysEXT_count(const State &glState,
+                                     bool isCallValid,
+                                     PrimitiveMode modePacked,
+                                     const GLint *first,
+                                     const GLsizei *count,
+                                     GLsizei primcount,
+                                     angle::ParamCapture *paramCapture);
+void CaptureMultiDrawElementsEXT_count(const State &glState,
+                                       bool isCallValid,
+                                       PrimitiveMode modePacked,
+                                       const GLsizei *count,
+                                       DrawElementsType typePacked,
+                                       const void *const *indices,
+                                       GLsizei primcount,
+                                       angle::ParamCapture *paramCapture);
+void CaptureMultiDrawElementsEXT_indices(const State &glState,
+                                         bool isCallValid,
+                                         PrimitiveMode modePacked,
+                                         const GLsizei *count,
+                                         DrawElementsType typePacked,
+                                         const void *const *indices,
+                                         GLsizei primcount,
+                                         angle::ParamCapture *paramCapture);
 void CaptureMultiDrawArraysIndirectEXT_indirect(const State &glState,
                                                 bool isCallValid,
                                                 PrimitiveMode modePacked,

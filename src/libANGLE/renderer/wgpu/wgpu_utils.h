@@ -59,6 +59,34 @@
     PROC(Surface)                 \
     PROC(Sync)
 
+#define ANGLE_WGPU_OBJECTS_X(PROC) \
+    PROC(Adapter)                  \
+    PROC(BindGroup)                \
+    PROC(BindGroupLayout)          \
+    PROC(Buffer)                   \
+    PROC(CommandBuffer)            \
+    PROC(CommandEncoder)           \
+    PROC(ComputePassEncoder)       \
+    PROC(ComputePipeline)          \
+    PROC(Device)                   \
+    PROC(ExternalTexture)          \
+    PROC(Instance)                 \
+    PROC(PipelineLayout)           \
+    PROC(QuerySet)                 \
+    PROC(Queue)                    \
+    PROC(RenderBundle)             \
+    PROC(RenderBundleEncoder)      \
+    PROC(RenderPassEncoder)        \
+    PROC(RenderPipeline)           \
+    PROC(Sampler)                  \
+    PROC(ShaderModule)             \
+    PROC(SharedBufferMemory)       \
+    PROC(SharedFence)              \
+    PROC(SharedTextureMemory)      \
+    PROC(Surface)                  \
+    PROC(Texture)                  \
+    PROC(TextureView)
+
 namespace rx
 {
 
@@ -72,6 +100,126 @@ ANGLE_EGL_OBJECTS_X(ANGLE_PRE_DECLARE_WGPU_OBJECT)
 
 namespace webgpu
 {
+
+#define ANGLE_DECLARE_WGPU_HANDLE_REF_FUNCS(OBJ)     \
+    inline void AddRefWGPUCHandle(WGPU##OBJ handle)  \
+    {                                                \
+        if (handle)                                  \
+        {                                            \
+            wgpu##OBJ##AddRef(handle);               \
+        }                                            \
+    }                                                \
+                                                     \
+    inline void ReleaseWGPUCHandle(WGPU##OBJ handle) \
+    {                                                \
+        if (handle)                                  \
+        {                                            \
+            wgpu##OBJ##Release(handle);              \
+        }                                            \
+    }
+
+ANGLE_WGPU_OBJECTS_X(ANGLE_DECLARE_WGPU_HANDLE_REF_FUNCS)
+#undef ANGLE_DECLARE_WGPU_HANDLE_REF_FUNCS
+
+template <typename CType, typename CppType>
+class WrapperBase
+{
+  public:
+    using ObjectType = CType;
+
+    WrapperBase() = default;
+    WrapperBase(const WrapperBase<CType, CppType> &other) : mHandle(other.mHandle)
+    {
+        AddRefWGPUCHandle(mHandle);
+    }
+
+    // Convert from the wgpu_cpp wrapper types.
+    // TODO: Remove once this wrapper is used everywhere
+    WrapperBase(const CppType &other) : mHandle(other.Get()) { AddRefWGPUCHandle(mHandle); }
+
+    WrapperBase<CType, CppType> &operator=(const CppType &other)
+    {
+        ReleaseWGPUCHandle(mHandle);
+        mHandle = other.Get();
+        AddRefWGPUCHandle(mHandle);
+        return *this;
+    }
+
+    WrapperBase<CType, CppType> &operator=(const WrapperBase<CType, CppType> &other)
+    {
+        if (&other != this)
+        {
+            ReleaseWGPUCHandle(mHandle);
+            mHandle = other.mHandle;
+            AddRefWGPUCHandle(mHandle);
+        }
+        return *this;
+    }
+
+    WrapperBase(WrapperBase<CType, CppType> &&other)
+    {
+        mHandle       = other.mHandle;
+        other.mHandle = nullptr;
+    }
+
+    WrapperBase &operator=(WrapperBase<CType, CppType> &&other)
+    {
+        if (&other != this)
+        {
+            ReleaseWGPUCHandle(mHandle);
+            mHandle       = other.mHandle;
+            other.mHandle = nullptr;
+        }
+        return *this;
+    }
+
+    WrapperBase(std::nullptr_t) {}
+
+    WrapperBase &operator=(std::nullptr_t)
+    {
+        ReleaseWGPUCHandle(mHandle);
+        mHandle = nullptr;
+        return *this;
+    }
+
+    bool operator==(const WrapperBase<CType, CppType> &other) const
+    {
+        return mHandle == other.mHandle;
+    }
+
+    bool operator!=(const WrapperBase<CType, CppType> &other) const { return !(*this == other); }
+
+    bool operator==(std::nullptr_t) const { return mHandle == nullptr; }
+
+    bool operator!=(std::nullptr_t) const { return mHandle != nullptr; }
+
+    explicit operator bool() const { return mHandle != nullptr; }
+
+    const CType &get() const { return mHandle; }
+
+    static WrapperBase<CType, CppType> Acquire(CType handle)
+    {
+        WrapperBase<CType, CppType> result;
+        result.mHandle = handle;
+        return result;
+    }
+
+    size_t hash() const
+    {
+        std::hash<CType> hasher;
+        return hasher(mHandle);
+    }
+
+  private:
+    CType mHandle = nullptr;
+};
+
+#define ANGLE_DECLARE_WGPU_OBJECT_WRAPPER(OBJ) \
+    using OBJ##Handle = WrapperBase<WGPU##OBJ, wgpu::OBJ>;
+
+ANGLE_WGPU_OBJECTS_X(ANGLE_DECLARE_WGPU_OBJECT_WRAPPER)
+#undef ANGLE_DECLARE_WGPU_OBJECT_WRAPPER
+
 template <typename T>
 struct ImplTypeHelper;
 
@@ -243,7 +391,7 @@ wgpu::RenderPassDepthStencilAttachment CreateNewDepthStencilAttachment(
 bool IsWgpuError(wgpu::WaitStatus waitStatus);
 bool IsWgpuError(wgpu::MapAsyncStatus mapAsyncStatus);
 
-bool IsStripPrimitiveTopology(wgpu::PrimitiveTopology topology);
+bool IsStripPrimitiveTopology(WGPUPrimitiveTopology topology);
 
 // Required alignments for buffer sizes and mapping
 constexpr size_t kBufferSizeAlignment         = 4;
@@ -273,19 +421,19 @@ wgpu::TextureViewDimension GetWgpuTextureViewDimension(gl::TextureType textureTy
 wgpu::TextureDimension GetWgpuTextureDimension(gl::TextureType glTextureType);
 wgpu::Extent3D getExtent3D(const gl::Extents &glExtent);
 
-wgpu::PrimitiveTopology GetPrimitiveTopology(gl::PrimitiveMode mode);
+WGPUPrimitiveTopology GetPrimitiveTopology(gl::PrimitiveMode mode);
 
-wgpu::IndexFormat GetIndexFormat(gl::DrawElementsType drawElementsTYpe);
-wgpu::FrontFace GetFrontFace(GLenum frontFace);
-wgpu::CullMode GetCullMode(gl::CullFaceMode mode, bool cullFaceEnabled);
-wgpu::ColorWriteMask GetColorWriteMask(bool r, bool g, bool b, bool a);
+WGPUIndexFormat GetIndexFormat(gl::DrawElementsType drawElementsTYpe);
+WGPUFrontFace GetFrontFace(GLenum frontFace);
+WGPUCullMode GetCullMode(gl::CullFaceMode mode, bool cullFaceEnabled);
+WGPUColorWriteMask GetColorWriteMask(bool r, bool g, bool b, bool a);
 
-wgpu::BlendFactor GetBlendFactor(gl::BlendFactorType blendFactor);
-wgpu::BlendOperation GetBlendEquation(gl::BlendEquationType blendEquation);
+WGPUBlendFactor GetBlendFactor(gl::BlendFactorType blendFactor);
+WGPUBlendOperation GetBlendEquation(gl::BlendEquationType blendEquation);
 
-wgpu::CompareFunction GetCompareFunc(const GLenum glCompareFunc, bool testEnabled);
+WGPUCompareFunction GetCompareFunc(const GLenum glCompareFunc, bool testEnabled);
 wgpu::TextureSampleType GetTextureSampleType(gl::SamplerFormat samplerFormat);
-wgpu::StencilOperation getStencilOp(const GLenum glStencilOp);
+WGPUStencilOperation GetStencilOp(const GLenum glStencilOp);
 wgpu::FilterMode GetFilter(const GLenum filter);
 wgpu::MipmapFilterMode GetSamplerMipmapMode(const GLenum filter);
 wgpu::AddressMode GetSamplerAddressMode(const GLenum wrap);
@@ -300,42 +448,16 @@ constexpr uint32_t kReservedPerStageDefaultUniformSlotCount = 0;
 
 }  // namespace rx
 
-#define ANGLE_WGPU_WRAPPER_OBJECTS_X(PROC) \
-    PROC(BindGroup)                        \
-    PROC(Buffer)                           \
-    PROC(RenderPipeline)
-
-// Add a hash function for all wgpu cpp wrappers that hashes the underlying C object pointer.
-#define ANGLE_WGPU_WRAPPER_OBJECT_HASH(OBJ)               \
-    namespace std                                         \
-    {                                                     \
-    template <>                                           \
-    struct hash<wgpu::OBJ>                                \
-    {                                                     \
-        size_t operator()(const wgpu::OBJ &wrapper) const \
-        {                                                 \
-            std::hash<decltype(wrapper.Get())> cTypeHash; \
-            return cTypeHash(wrapper.Get());              \
-        }                                                 \
-    };                                                    \
+namespace std
+{
+template <typename CType, typename CppType>
+struct hash<rx::webgpu::WrapperBase<CType, CppType>>
+{
+    size_t operator()(const rx::webgpu::WrapperBase<CType, CppType> &obj) const
+    {
+        return obj.hash();
     }
-
-ANGLE_WGPU_WRAPPER_OBJECTS_X(ANGLE_WGPU_WRAPPER_OBJECT_HASH)
-#undef ANGLE_WGPU_WRAPPER_OBJECT_HASH
-
-// Add a hash function for all wgpu cpp wrappers that compares the underlying C object pointer.
-#define ANGLE_WGPU_WRAPPER_OBJECT_EQUALITY(OBJ)        \
-    namespace wgpu                                     \
-    {                                                  \
-    inline bool operator==(const OBJ &a, const OBJ &b) \
-    {                                                  \
-        return a.Get() == b.Get();                     \
-    }                                                  \
-    }
-
-ANGLE_WGPU_WRAPPER_OBJECTS_X(ANGLE_WGPU_WRAPPER_OBJECT_EQUALITY)
-#undef ANGLE_WGPU_WRAPPER_OBJECT_EQUALITY
-
-#undef ANGLE_WGPU_WRAPPER_OBJECTS_X
+};
+}  // namespace std
 
 #endif  // LIBANGLE_RENDERER_WGPU_WGPU_UTILS_H_

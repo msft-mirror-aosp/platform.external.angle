@@ -95,7 +95,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r28_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-21-init-9266-g09006611-1\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-21-init-9266-g09006611-2\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -1016,23 +1016,11 @@ cc_library_shared {
     ],
     generated_headers: [
         "angle_program_version_id",
-        "third_party_spirv_tools_src_spvtools_core_enums_unified1",
-        "third_party_spirv_tools_src_spvtools_core_tables_unified1",
+        "third_party_spirv_tools_src_spvtools_core_tables",
         "third_party_spirv_tools_src_spvtools_generators_inc",
-        "third_party_spirv_tools_src_spvtools_glsl_tables_glsl1-0",
         "third_party_spirv_tools_src_spvtools_language_header_cldebuginfo100",
         "third_party_spirv_tools_src_spvtools_language_header_debuginfo",
         "third_party_spirv_tools_src_spvtools_language_header_vkdebuginfo100",
-        "third_party_spirv_tools_src_spvtools_opencl_tables_opencl1-0",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_debuginfo",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.clspvreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.shader.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.vkspreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_opencl.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-gcn-shader",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-ballot",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-explicit-vertex-parameter",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-trinary-minmax",
     ],
     local_include_dirs: [
         "",
@@ -1181,23 +1169,11 @@ cc_library_shared {
     ],
     generated_headers: [
         "angle_program_version_id",
-        "third_party_spirv_tools_src_spvtools_core_enums_unified1",
-        "third_party_spirv_tools_src_spvtools_core_tables_unified1",
+        "third_party_spirv_tools_src_spvtools_core_tables",
         "third_party_spirv_tools_src_spvtools_generators_inc",
-        "third_party_spirv_tools_src_spvtools_glsl_tables_glsl1-0",
         "third_party_spirv_tools_src_spvtools_language_header_cldebuginfo100",
         "third_party_spirv_tools_src_spvtools_language_header_debuginfo",
         "third_party_spirv_tools_src_spvtools_language_header_vkdebuginfo100",
-        "third_party_spirv_tools_src_spvtools_opencl_tables_opencl1-0",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_debuginfo",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.clspvreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.shader.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.vkspreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_opencl.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-gcn-shader",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-ballot",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-explicit-vertex-parameter",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-trinary-minmax",
     ],
     local_include_dirs: [
         "include/",
@@ -1285,23 +1261,11 @@ cc_library_shared {
     ],
     generated_headers: [
         "angle_program_version_id",
-        "third_party_spirv_tools_src_spvtools_core_enums_unified1",
-        "third_party_spirv_tools_src_spvtools_core_tables_unified1",
+        "third_party_spirv_tools_src_spvtools_core_tables",
         "third_party_spirv_tools_src_spvtools_generators_inc",
-        "third_party_spirv_tools_src_spvtools_glsl_tables_glsl1-0",
         "third_party_spirv_tools_src_spvtools_language_header_cldebuginfo100",
         "third_party_spirv_tools_src_spvtools_language_header_debuginfo",
         "third_party_spirv_tools_src_spvtools_language_header_vkdebuginfo100",
-        "third_party_spirv_tools_src_spvtools_opencl_tables_opencl1-0",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_debuginfo",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.clspvreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.shader.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.vkspreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_opencl.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-gcn-shader",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-ballot",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-explicit-vertex-parameter",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-trinary-minmax",
     ],
     local_include_dirs: [
         "include/",
@@ -1760,159 +1724,6 @@ cc_defaults {
 }
 
 cc_genrule {
-    name: "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-trinary-minmax",
-    srcs: [
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-trinary-minmax.grammar.json",
-    ],
-    out: [
-        "spv-amd-shader-trinary-minmax.insts.inc",
-    ],
-    tool_files: [
-        "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
-    ],
-    cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-trinary-minmax.grammar.json) --vendor-insts-output $(location spv-amd-shader-trinary-minmax.insts.inc) --vendor-operand-kind-prefix ...nil...",
-    sdk_version: "current",
-}
-
-cc_genrule {
-    name: "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-explicit-vertex-parameter",
-    srcs: [
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-explicit-vertex-parameter.grammar.json",
-    ],
-    out: [
-        "spv-amd-shader-explicit-vertex-parameter.insts.inc",
-    ],
-    tool_files: [
-        "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
-    ],
-    cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-explicit-vertex-parameter.grammar.json) --vendor-insts-output $(location spv-amd-shader-explicit-vertex-parameter.insts.inc) --vendor-operand-kind-prefix ...nil...",
-    sdk_version: "current",
-}
-
-cc_genrule {
-    name: "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-ballot",
-    srcs: [
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-ballot.grammar.json",
-    ],
-    out: [
-        "spv-amd-shader-ballot.insts.inc",
-    ],
-    tool_files: [
-        "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
-    ],
-    cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-ballot.grammar.json) --vendor-insts-output $(location spv-amd-shader-ballot.insts.inc) --vendor-operand-kind-prefix ...nil...",
-    sdk_version: "current",
-}
-
-cc_genrule {
-    name: "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-gcn-shader",
-    srcs: [
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-gcn-shader.grammar.json",
-    ],
-    out: [
-        "spv-amd-gcn-shader.insts.inc",
-    ],
-    tool_files: [
-        "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
-    ],
-    cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-gcn-shader.grammar.json) --vendor-insts-output $(location spv-amd-gcn-shader.insts.inc) --vendor-operand-kind-prefix ...nil...",
-    sdk_version: "current",
-}
-
-cc_genrule {
-    name: "third_party_spirv_tools_src_spvtools_vendor_tables_opencl.debuginfo.100",
-    srcs: [
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json",
-    ],
-    out: [
-        "opencl.debuginfo.100.insts.inc",
-    ],
-    tool_files: [
-        "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
-    ],
-    cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --vendor-insts-output $(location opencl.debuginfo.100.insts.inc) --vendor-operand-kind-prefix CLDEBUG100_",
-    sdk_version: "current",
-}
-
-cc_genrule {
-    name: "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.vkspreflection",
-    srcs: [
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.vkspreflection.grammar.json",
-    ],
-    out: [
-        "nonsemantic.vkspreflection.insts.inc",
-    ],
-    tool_files: [
-        "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
-    ],
-    cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.vkspreflection.grammar.json) --vendor-insts-output $(location nonsemantic.vkspreflection.insts.inc) --vendor-operand-kind-prefix ...nil...",
-    sdk_version: "current",
-}
-
-cc_genrule {
-    name: "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.shader.debuginfo.100",
-    srcs: [
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.shader.debuginfo.100.grammar.json",
-    ],
-    out: [
-        "nonsemantic.shader.debuginfo.100.insts.inc",
-    ],
-    tool_files: [
-        "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
-    ],
-    cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.shader.debuginfo.100.grammar.json) --vendor-insts-output $(location nonsemantic.shader.debuginfo.100.insts.inc) --vendor-operand-kind-prefix SHDEBUG100_",
-    sdk_version: "current",
-}
-
-cc_genrule {
-    name: "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.clspvreflection",
-    srcs: [
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.clspvreflection.grammar.json",
-    ],
-    out: [
-        "nonsemantic.clspvreflection.insts.inc",
-    ],
-    tool_files: [
-        "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
-    ],
-    cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.clspvreflection.grammar.json) --vendor-insts-output $(location nonsemantic.clspvreflection.insts.inc) --vendor-operand-kind-prefix ...nil...",
-    sdk_version: "current",
-}
-
-cc_genrule {
-    name: "third_party_spirv_tools_src_spvtools_vendor_tables_debuginfo",
-    srcs: [
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json",
-    ],
-    out: [
-        "debuginfo.insts.inc",
-    ],
-    tool_files: [
-        "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
-    ],
-    cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --vendor-insts-output $(location debuginfo.insts.inc) --vendor-operand-kind-prefix ...nil...",
-    sdk_version: "current",
-}
-
-cc_genrule {
-    name: "third_party_spirv_tools_src_spvtools_opencl_tables_opencl1-0",
-    srcs: [
-        "third_party/spirv-headers/src/include/spirv/1.0/extinst.opencl.std.100.grammar.json",
-        "third_party/spirv-headers/src/include/spirv/1.0/spirv.core.grammar.json",
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json",
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json",
-    ],
-    out: [
-        "opencl.std.insts.inc",
-    ],
-    tool_files: [
-        "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
-    ],
-    cmd: "$(location) --spirv-core-grammar $(location third_party/spirv-headers/src/include/spirv/1.0/spirv.core.grammar.json) --extinst-debuginfo-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extinst-opencl-grammar $(location third_party/spirv-headers/src/include/spirv/1.0/extinst.opencl.std.100.grammar.json) --opencl-insts-output $(location opencl.std.insts.inc)",
-    sdk_version: "current",
-}
-
-cc_genrule {
     name: "third_party_spirv_tools_src_spvtools_language_header_vkdebuginfo100",
     srcs: [
         "third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.shader.debuginfo.100.grammar.json",
@@ -1958,24 +1769,6 @@ cc_genrule {
 }
 
 cc_genrule {
-    name: "third_party_spirv_tools_src_spvtools_glsl_tables_glsl1-0",
-    srcs: [
-        "third_party/spirv-headers/src/include/spirv/1.0/extinst.glsl.std.450.grammar.json",
-        "third_party/spirv-headers/src/include/spirv/1.0/spirv.core.grammar.json",
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json",
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json",
-    ],
-    out: [
-        "glsl.std.450.insts.inc",
-    ],
-    tool_files: [
-        "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
-    ],
-    cmd: "$(location) --spirv-core-grammar $(location third_party/spirv-headers/src/include/spirv/1.0/spirv.core.grammar.json) --extinst-debuginfo-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extinst-glsl-grammar $(location third_party/spirv-headers/src/include/spirv/1.0/extinst.glsl.std.450.grammar.json) --glsl-insts-output $(location glsl.std.450.insts.inc)",
-    sdk_version: "current",
-}
-
-cc_genrule {
     name: "third_party_spirv_tools_src_spvtools_generators_inc",
     srcs: [
         "third_party/spirv-headers/src/include/spirv/spir-v.xml",
@@ -1991,38 +1784,34 @@ cc_genrule {
 }
 
 cc_genrule {
-    name: "third_party_spirv_tools_src_spvtools_core_tables_unified1",
+    name: "third_party_spirv_tools_src_spvtools_core_tables",
     srcs: [
         "third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json",
+        "third_party/spirv-headers/src/include/spirv/unified1/extinst.glsl.std.450.grammar.json",
+        "third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.clspvreflection.grammar.json",
+        "third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.shader.debuginfo.100.grammar.json",
+        "third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.vkspreflection.grammar.json",
         "third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json",
+        "third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.std.100.grammar.json",
+        "third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-gcn-shader.grammar.json",
+        "third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-ballot.grammar.json",
+        "third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-explicit-vertex-parameter.grammar.json",
+        "third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-trinary-minmax.grammar.json",
         "third_party/spirv-headers/src/include/spirv/unified1/spirv.core.grammar.json",
     ],
     out: [
-        "core.insts-unified1.inc",
-        "operand.kinds-unified1.inc",
+        "core_tables_body.inc",
+        "core_tables_header.inc",
     ],
     tool_files: [
-        "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
+        "third_party/spirv-tools/src/utils/Table/Context.py",
+        "third_party/spirv-tools/src/utils/Table/IndexRange.py",
+        "third_party/spirv-tools/src/utils/Table/Operand.py",
+        "third_party/spirv-tools/src/utils/Table/StringList.py",
+        "third_party/spirv-tools/src/utils/Table/__init__.py",
+        "third_party/spirv-tools/src/utils/ggt.py",
     ],
-    cmd: "$(location) --spirv-core-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/spirv.core.grammar.json) --core-insts-output $(location core.insts-unified1.inc) --extinst-debuginfo-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --operand-kinds-output $(location operand.kinds-unified1.inc)",
-    sdk_version: "current",
-}
-
-cc_genrule {
-    name: "third_party_spirv_tools_src_spvtools_core_enums_unified1",
-    srcs: [
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json",
-        "third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json",
-        "third_party/spirv-headers/src/include/spirv/unified1/spirv.core.grammar.json",
-    ],
-    out: [
-        "enum_string_mapping.inc",
-        "extension_enum.inc",
-    ],
-    tool_files: [
-        "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
-    ],
-    cmd: "$(location) --spirv-core-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/spirv.core.grammar.json) --extinst-debuginfo-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extension-enum-output $(location extension_enum.inc) --enum-string-mapping-output $(location enum_string_mapping.inc)",
+    cmd: "$(location third_party/spirv-tools/src/utils/ggt.py) --spirv-core-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/spirv.core.grammar.json) --extinst=,$(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst=,$(location third_party/spirv-headers/src/include/spirv/unified1/extinst.glsl.std.450.grammar.json) --extinst=,$(location third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.clspvreflection.grammar.json) --extinst=SHDEBUG100_,$(location third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.shader.debuginfo.100.grammar.json) --extinst=,$(location third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.vkspreflection.grammar.json) --extinst=CLDEBUG100_,$(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extinst=,$(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.std.100.grammar.json) --extinst=,$(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-gcn-shader.grammar.json) --extinst=,$(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-ballot.grammar.json) --extinst=,$(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-explicit-vertex-parameter.grammar.json) --extinst=,$(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-trinary-minmax.grammar.json) --core-tables-body-output $(location core_tables_body.inc) --core-tables-header-output $(location core_tables_header.inc)",
     sdk_version: "current",
 }
 
@@ -2033,7 +1822,6 @@ cc_library_static {
         "third_party/spirv-tools/src/source/binary.cpp",
         "third_party/spirv-tools/src/source/diagnostic.cpp",
         "third_party/spirv-tools/src/source/disassemble.cpp",
-        "third_party/spirv-tools/src/source/enum_string_mapping.cpp",
         "third_party/spirv-tools/src/source/ext_inst.cpp",
         "third_party/spirv-tools/src/source/extensions.cpp",
         "third_party/spirv-tools/src/source/libspirv.cpp",
@@ -2049,6 +1837,7 @@ cc_library_static {
         "third_party/spirv-tools/src/source/spirv_target_env.cpp",
         "third_party/spirv-tools/src/source/spirv_validator_options.cpp",
         "third_party/spirv-tools/src/source/table.cpp",
+        "third_party/spirv-tools/src/source/table2.cpp",
         "third_party/spirv-tools/src/source/text.cpp",
         "third_party/spirv-tools/src/source/text_handler.cpp",
         "third_party/spirv-tools/src/source/to_string.cpp",
@@ -2077,23 +1866,11 @@ cc_library_static {
         "third_party_spirv_tools_src_spvtools_headers",
     ],
     generated_headers: [
-        "third_party_spirv_tools_src_spvtools_core_enums_unified1",
-        "third_party_spirv_tools_src_spvtools_core_tables_unified1",
+        "third_party_spirv_tools_src_spvtools_core_tables",
         "third_party_spirv_tools_src_spvtools_generators_inc",
-        "third_party_spirv_tools_src_spvtools_glsl_tables_glsl1-0",
         "third_party_spirv_tools_src_spvtools_language_header_cldebuginfo100",
         "third_party_spirv_tools_src_spvtools_language_header_debuginfo",
         "third_party_spirv_tools_src_spvtools_language_header_vkdebuginfo100",
-        "third_party_spirv_tools_src_spvtools_opencl_tables_opencl1-0",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_debuginfo",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.clspvreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.shader.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.vkspreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_opencl.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-gcn-shader",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-ballot",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-explicit-vertex-parameter",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-trinary-minmax",
     ],
     local_include_dirs: [
         "",
@@ -2202,23 +1979,11 @@ cc_library_static {
         "third_party_spirv_tools_src_spvtools_headers",
     ],
     generated_headers: [
-        "third_party_spirv_tools_src_spvtools_core_enums_unified1",
-        "third_party_spirv_tools_src_spvtools_core_tables_unified1",
+        "third_party_spirv_tools_src_spvtools_core_tables",
         "third_party_spirv_tools_src_spvtools_generators_inc",
-        "third_party_spirv_tools_src_spvtools_glsl_tables_glsl1-0",
         "third_party_spirv_tools_src_spvtools_language_header_cldebuginfo100",
         "third_party_spirv_tools_src_spvtools_language_header_debuginfo",
         "third_party_spirv_tools_src_spvtools_language_header_vkdebuginfo100",
-        "third_party_spirv_tools_src_spvtools_opencl_tables_opencl1-0",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_debuginfo",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.clspvreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.shader.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.vkspreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_opencl.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-gcn-shader",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-ballot",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-explicit-vertex-parameter",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-trinary-minmax",
     ],
     local_include_dirs: [
         "",
@@ -2702,6 +2467,7 @@ cc_library_static {
         "src/compiler/translator/tree_ops/spirv/ReswizzleYUVOps.cpp",
         "src/compiler/translator/tree_ops/spirv/RewriteInterpolateAtOffset.cpp",
         "src/compiler/translator/tree_ops/spirv/RewriteR32fImages.cpp",
+        "src/compiler/translator/tree_ops/spirv/RewriteSamplerExternalTexelFetch.cpp",
         "src/compiler/translator/tree_util/DriverUniform.cpp",
         "src/compiler/translator/tree_util/FindFunction.cpp",
         "src/compiler/translator/tree_util/FindMain.cpp",
@@ -2745,23 +2511,11 @@ cc_library_static {
     ],
     generated_headers: [
         "angle_program_version_id",
-        "third_party_spirv_tools_src_spvtools_core_enums_unified1",
-        "third_party_spirv_tools_src_spvtools_core_tables_unified1",
+        "third_party_spirv_tools_src_spvtools_core_tables",
         "third_party_spirv_tools_src_spvtools_generators_inc",
-        "third_party_spirv_tools_src_spvtools_glsl_tables_glsl1-0",
         "third_party_spirv_tools_src_spvtools_language_header_cldebuginfo100",
         "third_party_spirv_tools_src_spvtools_language_header_debuginfo",
         "third_party_spirv_tools_src_spvtools_language_header_vkdebuginfo100",
-        "third_party_spirv_tools_src_spvtools_opencl_tables_opencl1-0",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_debuginfo",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.clspvreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.shader.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.vkspreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_opencl.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-gcn-shader",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-ballot",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-explicit-vertex-parameter",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-trinary-minmax",
     ],
     local_include_dirs: [
         "include/",
@@ -3319,6 +3073,8 @@ cc_genrule {
         "src/compiler/translator/tree_ops/spirv/RewriteInterpolateAtOffset.h",
         "src/compiler/translator/tree_ops/spirv/RewriteR32fImages.cpp",
         "src/compiler/translator/tree_ops/spirv/RewriteR32fImages.h",
+        "src/compiler/translator/tree_ops/spirv/RewriteSamplerExternalTexelFetch.cpp",
+        "src/compiler/translator/tree_ops/spirv/RewriteSamplerExternalTexelFetch.h",
         "src/compiler/translator/tree_util/BuiltIn.h",
         "src/compiler/translator/tree_util/BuiltIn_autogen.h",
         "src/compiler/translator/tree_util/DriverUniform.cpp",
@@ -4656,23 +4412,11 @@ cc_defaults {
     ],
     generated_headers: [
         "angle_program_version_id",
-        "third_party_spirv_tools_src_spvtools_core_enums_unified1",
-        "third_party_spirv_tools_src_spvtools_core_tables_unified1",
+        "third_party_spirv_tools_src_spvtools_core_tables",
         "third_party_spirv_tools_src_spvtools_generators_inc",
-        "third_party_spirv_tools_src_spvtools_glsl_tables_glsl1-0",
         "third_party_spirv_tools_src_spvtools_language_header_cldebuginfo100",
         "third_party_spirv_tools_src_spvtools_language_header_debuginfo",
         "third_party_spirv_tools_src_spvtools_language_header_vkdebuginfo100",
-        "third_party_spirv_tools_src_spvtools_opencl_tables_opencl1-0",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_debuginfo",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.clspvreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.shader.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.vkspreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_opencl.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-gcn-shader",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-ballot",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-explicit-vertex-parameter",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-trinary-minmax",
     ],
     local_include_dirs: [
         "include/",
@@ -6545,56 +6289,6 @@ cc_defaults {
 }
 
 cc_defaults {
-    name: "third_party_abseil_cpp_absl_strings_internal",
-    srcs: [
-        "third_party/abseil-cpp/absl/strings/internal/escaping.cc",
-        "third_party/abseil-cpp/absl/strings/internal/ostringstream.cc",
-        "third_party/abseil-cpp/absl/strings/internal/utf8.cc",
-    ],
-    defaults: [
-        "angle_common_auto_cflags",
-        "angle_common_library_cflags",
-        "buildtools_third_party_libc++_std",
-        "buildtools_third_party_libc++_std_config",
-        "buildtools_third_party_libc++_std_core",
-        "buildtools_third_party_libc++_std_ctype_h",
-        "buildtools_third_party_libc++_std_errno_h",
-        "buildtools_third_party_libc++_std_fenv_h",
-        "buildtools_third_party_libc++_std_float_h",
-        "buildtools_third_party_libc++_std_inttypes_h",
-        "buildtools_third_party_libc++_std_math_h",
-        "buildtools_third_party_libc++_std_private_mbstate_t",
-        "buildtools_third_party_libc++_std_string_h",
-        "buildtools_third_party_libc++_std_uchar_h",
-        "buildtools_third_party_libc++_std_wctype_h",
-        "third_party_abseil_cpp_absl_base_config",
-        "third_party_abseil_cpp_absl_base_core_headers",
-        "third_party_abseil_cpp_absl_base_endian",
-        "third_party_abseil_cpp_absl_base_raw_logging_internal",
-        "third_party_abseil_cpp_absl_meta_type_traits",
-    ],
-    local_include_dirs: [
-        "",
-        "third_party/abseil-cpp/",
-    ],
-    cflags: [
-        "-DABSL_ALLOCATOR_NOTHROW=1",
-        "-Wno-c++11-narrowing",
-        "-Wno-unused-but-set-variable",
-        "-Wno-unused-variable",
-    ],
-    sdk_version: "current",
-    stl: "libc++_static",
-    arch: {
-        arm64: {
-            cflags: [
-                "-D__ARM_NEON__=1",
-            ],
-        },
-    },
-}
-
-cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_charset",
     defaults: [
         "angle_common_auto_cflags",
@@ -6708,6 +6402,56 @@ cc_defaults {
 }
 
 cc_defaults {
+    name: "third_party_abseil_cpp_absl_strings_internal",
+    srcs: [
+        "third_party/abseil-cpp/absl/strings/internal/escaping.cc",
+        "third_party/abseil-cpp/absl/strings/internal/ostringstream.cc",
+        "third_party/abseil-cpp/absl/strings/internal/utf8.cc",
+    ],
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "buildtools_third_party_libc++_std",
+        "buildtools_third_party_libc++_std_config",
+        "buildtools_third_party_libc++_std_core",
+        "buildtools_third_party_libc++_std_ctype_h",
+        "buildtools_third_party_libc++_std_errno_h",
+        "buildtools_third_party_libc++_std_fenv_h",
+        "buildtools_third_party_libc++_std_float_h",
+        "buildtools_third_party_libc++_std_inttypes_h",
+        "buildtools_third_party_libc++_std_math_h",
+        "buildtools_third_party_libc++_std_private_mbstate_t",
+        "buildtools_third_party_libc++_std_string_h",
+        "buildtools_third_party_libc++_std_uchar_h",
+        "buildtools_third_party_libc++_std_wctype_h",
+        "third_party_abseil_cpp_absl_base_config",
+        "third_party_abseil_cpp_absl_base_core_headers",
+        "third_party_abseil_cpp_absl_base_endian",
+        "third_party_abseil_cpp_absl_base_raw_logging_internal",
+        "third_party_abseil_cpp_absl_meta_type_traits",
+    ],
+    local_include_dirs: [
+        "",
+        "third_party/abseil-cpp/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-Wno-c++11-narrowing",
+        "-Wno-unused-but-set-variable",
+        "-Wno-unused-variable",
+    ],
+    sdk_version: "current",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
     name: "third_party_abseil_cpp_absl_numeric_representation",
     defaults: [
         "angle_common_auto_cflags",
@@ -6783,6 +6527,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_numeric_bits",
         "third_party_abseil_cpp_absl_numeric_int128",
         "third_party_abseil_cpp_absl_numeric_representation",
+        "third_party_abseil_cpp_absl_strings_internal",
         "third_party_abseil_cpp_absl_strings_string_view",
         "third_party_abseil_cpp_absl_strings_strings",
         "third_party_abseil_cpp_absl_types_optional",
@@ -9929,23 +9674,11 @@ cc_defaults {
     ],
     generated_headers: [
         "angle_program_version_id",
-        "third_party_spirv_tools_src_spvtools_core_enums_unified1",
-        "third_party_spirv_tools_src_spvtools_core_tables_unified1",
+        "third_party_spirv_tools_src_spvtools_core_tables",
         "third_party_spirv_tools_src_spvtools_generators_inc",
-        "third_party_spirv_tools_src_spvtools_glsl_tables_glsl1-0",
         "third_party_spirv_tools_src_spvtools_language_header_cldebuginfo100",
         "third_party_spirv_tools_src_spvtools_language_header_debuginfo",
         "third_party_spirv_tools_src_spvtools_language_header_vkdebuginfo100",
-        "third_party_spirv_tools_src_spvtools_opencl_tables_opencl1-0",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_debuginfo",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.clspvreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.shader.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.vkspreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_opencl.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-gcn-shader",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-ballot",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-explicit-vertex-parameter",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-trinary-minmax",
     ],
     local_include_dirs: [
         "include/",
@@ -10086,23 +9819,11 @@ cc_library_shared {
     ],
     generated_headers: [
         "angle_program_version_id",
-        "third_party_spirv_tools_src_spvtools_core_enums_unified1",
-        "third_party_spirv_tools_src_spvtools_core_tables_unified1",
+        "third_party_spirv_tools_src_spvtools_core_tables",
         "third_party_spirv_tools_src_spvtools_generators_inc",
-        "third_party_spirv_tools_src_spvtools_glsl_tables_glsl1-0",
         "third_party_spirv_tools_src_spvtools_language_header_cldebuginfo100",
         "third_party_spirv_tools_src_spvtools_language_header_debuginfo",
         "third_party_spirv_tools_src_spvtools_language_header_vkdebuginfo100",
-        "third_party_spirv_tools_src_spvtools_opencl_tables_opencl1-0",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_debuginfo",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.clspvreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.shader.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_nonsemantic.vkspreflection",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_opencl.debuginfo.100",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-gcn-shader",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-ballot",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-explicit-vertex-parameter",
-        "third_party_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-trinary-minmax",
     ],
     local_include_dirs: [
         "include/",

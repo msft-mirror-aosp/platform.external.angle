@@ -6667,43 +6667,6 @@ CallCapture CaptureMultiDrawElementsBaseVertexEXT(const State &glState,
     return CallCapture(angle::EntryPoint::GLMultiDrawElementsBaseVertexEXT, std::move(paramBuffer));
 }
 
-CallCapture CaptureBufferStorageExternalEXT(const State &glState,
-                                            bool isCallValid,
-                                            BufferBinding targetPacked,
-                                            GLintptr offset,
-                                            GLsizeiptr size,
-                                            GLeglClientBufferEXT clientBuffer,
-                                            GLbitfield flags)
-{
-    ParamBuffer paramBuffer;
-
-    paramBuffer.addValueParam("targetPacked", ParamType::TBufferBinding, targetPacked);
-    paramBuffer.addValueParam("offset", ParamType::TGLintptr, offset);
-    paramBuffer.addValueParam("size", ParamType::TGLsizeiptr, size);
-    paramBuffer.addValueParam("clientBuffer", ParamType::TGLeglClientBufferEXT, clientBuffer);
-    paramBuffer.addEnumParam("flags", GLESEnum::BufferStorageMask, ParamType::TGLbitfield, flags);
-
-    return CallCapture(angle::EntryPoint::GLBufferStorageExternalEXT, std::move(paramBuffer));
-}
-
-CallCapture CaptureFramebufferTextureEXT(const State &glState,
-                                         bool isCallValid,
-                                         GLenum target,
-                                         GLenum attachment,
-                                         TextureID texturePacked,
-                                         GLint level)
-{
-    ParamBuffer paramBuffer;
-
-    paramBuffer.addEnumParam("target", GLESEnum::FramebufferTarget, ParamType::TGLenum, target);
-    paramBuffer.addEnumParam("attachment", GLESEnum::FramebufferAttachment, ParamType::TGLenum,
-                             attachment);
-    paramBuffer.addValueParam("texturePacked", ParamType::TTextureID, texturePacked);
-    paramBuffer.addValueParam("level", ParamType::TGLint, level);
-
-    return CallCapture(angle::EntryPoint::GLFramebufferTextureEXT, std::move(paramBuffer));
-}
-
 CallCapture CaptureDrawArraysInstancedEXT(const State &glState,
                                           bool isCallValid,
                                           PrimitiveMode modePacked,
@@ -6754,6 +6717,43 @@ CallCapture CaptureDrawElementsInstancedEXT(const State &glState,
     paramBuffer.addValueParam("primcount", ParamType::TGLsizei, primcount);
 
     return CallCapture(angle::EntryPoint::GLDrawElementsInstancedEXT, std::move(paramBuffer));
+}
+
+CallCapture CaptureBufferStorageExternalEXT(const State &glState,
+                                            bool isCallValid,
+                                            BufferBinding targetPacked,
+                                            GLintptr offset,
+                                            GLsizeiptr size,
+                                            GLeglClientBufferEXT clientBuffer,
+                                            GLbitfield flags)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("targetPacked", ParamType::TBufferBinding, targetPacked);
+    paramBuffer.addValueParam("offset", ParamType::TGLintptr, offset);
+    paramBuffer.addValueParam("size", ParamType::TGLsizeiptr, size);
+    paramBuffer.addValueParam("clientBuffer", ParamType::TGLeglClientBufferEXT, clientBuffer);
+    paramBuffer.addEnumParam("flags", GLESEnum::BufferStorageMask, ParamType::TGLbitfield, flags);
+
+    return CallCapture(angle::EntryPoint::GLBufferStorageExternalEXT, std::move(paramBuffer));
+}
+
+CallCapture CaptureFramebufferTextureEXT(const State &glState,
+                                         bool isCallValid,
+                                         GLenum target,
+                                         GLenum attachment,
+                                         TextureID texturePacked,
+                                         GLint level)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addEnumParam("target", GLESEnum::FramebufferTarget, ParamType::TGLenum, target);
+    paramBuffer.addEnumParam("attachment", GLESEnum::FramebufferAttachment, ParamType::TGLenum,
+                             attachment);
+    paramBuffer.addValueParam("texturePacked", ParamType::TTextureID, texturePacked);
+    paramBuffer.addValueParam("level", ParamType::TGLint, level);
+
+    return CallCapture(angle::EntryPoint::GLFramebufferTextureEXT, std::move(paramBuffer));
 }
 
 CallCapture CaptureVertexAttribDivisorEXT(const State &glState,
@@ -7139,6 +7139,105 @@ CallCapture CaptureImportMemoryFdEXT(const State &glState,
     paramBuffer.addValueParam("fd", ParamType::TGLint, fd);
 
     return CallCapture(angle::EntryPoint::GLImportMemoryFdEXT, std::move(paramBuffer));
+}
+
+CallCapture CaptureMultiDrawArraysEXT(const State &glState,
+                                      bool isCallValid,
+                                      PrimitiveMode modePacked,
+                                      const GLint *first,
+                                      const GLsizei *count,
+                                      GLsizei primcount)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("modePacked", ParamType::TPrimitiveMode, modePacked);
+
+    if (isCallValid)
+    {
+        ParamCapture firstParam("first", ParamType::TGLintConstPointer);
+        InitParamValue(ParamType::TGLintConstPointer, first, &firstParam.value);
+        CaptureMultiDrawArraysEXT_first(glState, isCallValid, modePacked, first, count, primcount,
+                                        &firstParam);
+        paramBuffer.addParam(std::move(firstParam));
+    }
+    else
+    {
+        ParamCapture firstParam("first", ParamType::TGLintConstPointer);
+        InitParamValue(ParamType::TGLintConstPointer, static_cast<const GLint *>(nullptr),
+                       &firstParam.value);
+        paramBuffer.addParam(std::move(firstParam));
+    }
+
+    if (isCallValid)
+    {
+        ParamCapture countParam("count", ParamType::TGLsizeiConstPointer);
+        InitParamValue(ParamType::TGLsizeiConstPointer, count, &countParam.value);
+        CaptureMultiDrawArraysEXT_count(glState, isCallValid, modePacked, first, count, primcount,
+                                        &countParam);
+        paramBuffer.addParam(std::move(countParam));
+    }
+    else
+    {
+        ParamCapture countParam("count", ParamType::TGLsizeiConstPointer);
+        InitParamValue(ParamType::TGLsizeiConstPointer, static_cast<const GLsizei *>(nullptr),
+                       &countParam.value);
+        paramBuffer.addParam(std::move(countParam));
+    }
+
+    paramBuffer.addValueParam("primcount", ParamType::TGLsizei, primcount);
+
+    return CallCapture(angle::EntryPoint::GLMultiDrawArraysEXT, std::move(paramBuffer));
+}
+
+CallCapture CaptureMultiDrawElementsEXT(const State &glState,
+                                        bool isCallValid,
+                                        PrimitiveMode modePacked,
+                                        const GLsizei *count,
+                                        DrawElementsType typePacked,
+                                        const void *const *indices,
+                                        GLsizei primcount)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("modePacked", ParamType::TPrimitiveMode, modePacked);
+
+    if (isCallValid)
+    {
+        ParamCapture countParam("count", ParamType::TGLsizeiConstPointer);
+        InitParamValue(ParamType::TGLsizeiConstPointer, count, &countParam.value);
+        CaptureMultiDrawElementsEXT_count(glState, isCallValid, modePacked, count, typePacked,
+                                          indices, primcount, &countParam);
+        paramBuffer.addParam(std::move(countParam));
+    }
+    else
+    {
+        ParamCapture countParam("count", ParamType::TGLsizeiConstPointer);
+        InitParamValue(ParamType::TGLsizeiConstPointer, static_cast<const GLsizei *>(nullptr),
+                       &countParam.value);
+        paramBuffer.addParam(std::move(countParam));
+    }
+
+    paramBuffer.addValueParam("typePacked", ParamType::TDrawElementsType, typePacked);
+
+    if (isCallValid)
+    {
+        ParamCapture indicesParam("indices", ParamType::TvoidConstPointerPointer);
+        InitParamValue(ParamType::TvoidConstPointerPointer, indices, &indicesParam.value);
+        CaptureMultiDrawElementsEXT_indices(glState, isCallValid, modePacked, count, typePacked,
+                                            indices, primcount, &indicesParam);
+        paramBuffer.addParam(std::move(indicesParam));
+    }
+    else
+    {
+        ParamCapture indicesParam("indices", ParamType::TvoidConstPointerPointer);
+        InitParamValue(ParamType::TvoidConstPointerPointer,
+                       static_cast<const void *const *>(nullptr), &indicesParam.value);
+        paramBuffer.addParam(std::move(indicesParam));
+    }
+
+    paramBuffer.addValueParam("primcount", ParamType::TGLsizei, primcount);
+
+    return CallCapture(angle::EntryPoint::GLMultiDrawElementsEXT, std::move(paramBuffer));
 }
 
 CallCapture CaptureMultiDrawArraysIndirectEXT(const State &glState,
