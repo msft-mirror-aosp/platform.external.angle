@@ -1756,9 +1756,7 @@ config("clang_warning_suppression") {
     from_build_root =
         rebase_path(clang_warning_suppression_file, root_build_dir)
     inputs = [ clang_warning_suppression_file ]
-    cflags = [
-      "--warning-suppression-mappings=" + from_build_root,
-    ]
+    cflags = [ "--warning-suppression-mappings=" + from_build_root ]
   }
 }
 
@@ -3228,10 +3226,13 @@ if (is_apple) {
   # C++ and exceptions in Objective-C code are intended to be fatal, so
   # -fno-objc-arc-exceptions is specified to disable these unwanted exception
   # handlers.
+  # -Wobjc-property-assign-on-object-type enables to show warnings when the
+  # assign is used for a property on an Objective-C object under ARC.
   config("enable_arc") {
     common_flags = [
       "-fobjc-arc",
       "-fno-objc-arc-exceptions",
+      "-Wobjc-property-assign-on-object-type",
     ]
     cflags_objc = common_flags
     cflags_objcc = common_flags
