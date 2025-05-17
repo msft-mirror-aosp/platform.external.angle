@@ -179,6 +179,7 @@ group("absl_full_deps") {
     # the flag registration mechanism is problematic in component builds.
     "//third_party/abseil-cpp/absl/flags:config",
     "//third_party/abseil-cpp/absl/flags:flag",
+    "//third_party/abseil-cpp/absl/flags:marshalling",
     "//third_party/abseil-cpp/absl/flags:parse",
     "//third_party/abseil-cpp/absl/flags:reflection",
     "//third_party/abseil-cpp/absl/flags:usage",

@@ -6,7 +6,7 @@
   "scripts/gl_angle_ext.xml":
     "da4ecccdd77635f1b0e9d4664f856706",
   "scripts/registry_xml.py":
-    "7c904a7b62373ab2d6cdda794f81c038",
+    "c56e84017783474a6b4698370cf5864a",
   "src/libEGL/egl_loader_autogen.cpp":
     "2aca2a57c51fc2b1c7e1da0a7ccf6107",
   "src/libEGL/egl_loader_autogen.h":
@@ -26,17 +26,17 @@
   "util/capture/trace_egl_loader_autogen.h":
     "9adc81af729078b16b36647f02401342",
   "util/capture/trace_gles_loader_autogen.cpp":
-    "e061bdd2594b6ce0b568c0ccc148d6ec",
+    "81242937e728987adc15e39c0b007ff5",
   "util/capture/trace_gles_loader_autogen.h":
-    "f73092a8f3138fa6c7aef19341a025ab",
+    "d369496980c96dd58d2a00fd40386b08",
   "util/egl_loader_autogen.cpp":
     "ae6abfc6c2c0a997ad59258dfc0339ce",
   "util/egl_loader_autogen.h":
     "ea5f73048616a6fc80eaa7e93ef5f0ce",
   "util/gles_loader_autogen.cpp":
-    "e6871cf55a8e3b6737d3b1a56830fbbf",
+    "33c532e70695584adb587d6c3e55789c",
   "util/gles_loader_autogen.h":
-    "6f4d2b5b496ac95de83f3f86c2cc4c0b",
+    "09a4e0c77d71c01b44caa74b4da72eff",
   "util/windows/wgl_loader_autogen.cpp":
     "373b062587eab8a163121255f54597dc",
   "util/windows/wgl_loader_autogen.h":

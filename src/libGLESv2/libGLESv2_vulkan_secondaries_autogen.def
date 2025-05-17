@@ -792,6 +792,10 @@ EXPORTS
     glDrawRangeElementsBaseVertexEXT
     glMultiDrawElementsBaseVertexEXT
 
+    ; GL_EXT_draw_instanced
+    glDrawArraysInstancedEXT
+    glDrawElementsInstancedEXT
+
     ; GL_EXT_external_buffer
     glBufferStorageExternalEXT
 
@@ -803,8 +807,6 @@ EXPORTS
     ; GL_EXT_gpu_shader5
 
     ; GL_EXT_instanced_arrays
-    glDrawArraysInstancedEXT
-    glDrawElementsInstancedEXT
     glVertexAttribDivisorEXT
 
     ; GL_EXT_map_buffer_range
@@ -827,6 +829,10 @@ EXPORTS
 
     ; GL_EXT_memory_object_fd
     glImportMemoryFdEXT
+
+    ; GL_EXT_multi_draw_arrays
+    glMultiDrawArraysEXT
+    glMultiDrawElementsEXT
 
     ; GL_EXT_multi_draw_indirect
     glMultiDrawArraysIndirectEXT

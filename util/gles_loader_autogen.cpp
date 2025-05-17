@@ -666,10 +666,10 @@ ANGLE_UTIL_EXPORT PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXEXTPROC
     l_glDrawElementsInstancedBaseVertexEXT;
 ANGLE_UTIL_EXPORT PFNGLDRAWRANGEELEMENTSBASEVERTEXEXTPROC l_glDrawRangeElementsBaseVertexEXT;
 ANGLE_UTIL_EXPORT PFNGLMULTIDRAWELEMENTSBASEVERTEXEXTPROC l_glMultiDrawElementsBaseVertexEXT;
-ANGLE_UTIL_EXPORT PFNGLBUFFERSTORAGEEXTERNALEXTPROC l_glBufferStorageExternalEXT;
-ANGLE_UTIL_EXPORT PFNGLFRAMEBUFFERTEXTUREEXTPROC l_glFramebufferTextureEXT;
 ANGLE_UTIL_EXPORT PFNGLDRAWARRAYSINSTANCEDEXTPROC l_glDrawArraysInstancedEXT;
 ANGLE_UTIL_EXPORT PFNGLDRAWELEMENTSINSTANCEDEXTPROC l_glDrawElementsInstancedEXT;
+ANGLE_UTIL_EXPORT PFNGLBUFFERSTORAGEEXTERNALEXTPROC l_glBufferStorageExternalEXT;
+ANGLE_UTIL_EXPORT PFNGLFRAMEBUFFERTEXTUREEXTPROC l_glFramebufferTextureEXT;
 ANGLE_UTIL_EXPORT PFNGLVERTEXATTRIBDIVISOREXTPROC l_glVertexAttribDivisorEXT;
 ANGLE_UTIL_EXPORT PFNGLFLUSHMAPPEDBUFFERRANGEEXTPROC l_glFlushMappedBufferRangeEXT;
 ANGLE_UTIL_EXPORT PFNGLMAPBUFFERRANGEEXTPROC l_glMapBufferRangeEXT;
@@ -686,6 +686,8 @@ ANGLE_UTIL_EXPORT PFNGLTEXSTORAGEMEM2DMULTISAMPLEEXTPROC l_glTexStorageMem2DMult
 ANGLE_UTIL_EXPORT PFNGLTEXSTORAGEMEM3DEXTPROC l_glTexStorageMem3DEXT;
 ANGLE_UTIL_EXPORT PFNGLTEXSTORAGEMEM3DMULTISAMPLEEXTPROC l_glTexStorageMem3DMultisampleEXT;
 ANGLE_UTIL_EXPORT PFNGLIMPORTMEMORYFDEXTPROC l_glImportMemoryFdEXT;
+ANGLE_UTIL_EXPORT PFNGLMULTIDRAWARRAYSEXTPROC l_glMultiDrawArraysEXT;
+ANGLE_UTIL_EXPORT PFNGLMULTIDRAWELEMENTSEXTPROC l_glMultiDrawElementsEXT;
 ANGLE_UTIL_EXPORT PFNGLMULTIDRAWARRAYSINDIRECTEXTPROC l_glMultiDrawArraysIndirectEXT;
 ANGLE_UTIL_EXPORT PFNGLMULTIDRAWELEMENTSINDIRECTEXTPROC l_glMultiDrawElementsIndirectEXT;
 ANGLE_UTIL_EXPORT PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC
@@ -1913,14 +1915,14 @@ void LoadUtilGLES(LoadProc loadProc)
         loadProc("glDrawRangeElementsBaseVertexEXT"));
     l_glMultiDrawElementsBaseVertexEXT = reinterpret_cast<PFNGLMULTIDRAWELEMENTSBASEVERTEXEXTPROC>(
         loadProc("glMultiDrawElementsBaseVertexEXT"));
-    l_glBufferStorageExternalEXT =
-        reinterpret_cast<PFNGLBUFFERSTORAGEEXTERNALEXTPROC>(loadProc("glBufferStorageExternalEXT"));
-    l_glFramebufferTextureEXT =
-        reinterpret_cast<PFNGLFRAMEBUFFERTEXTUREEXTPROC>(loadProc("glFramebufferTextureEXT"));
     l_glDrawArraysInstancedEXT =
         reinterpret_cast<PFNGLDRAWARRAYSINSTANCEDEXTPROC>(loadProc("glDrawArraysInstancedEXT"));
     l_glDrawElementsInstancedEXT =
         reinterpret_cast<PFNGLDRAWELEMENTSINSTANCEDEXTPROC>(loadProc("glDrawElementsInstancedEXT"));
+    l_glBufferStorageExternalEXT =
+        reinterpret_cast<PFNGLBUFFERSTORAGEEXTERNALEXTPROC>(loadProc("glBufferStorageExternalEXT"));
+    l_glFramebufferTextureEXT =
+        reinterpret_cast<PFNGLFRAMEBUFFERTEXTUREEXTPROC>(loadProc("glFramebufferTextureEXT"));
     l_glVertexAttribDivisorEXT =
         reinterpret_cast<PFNGLVERTEXATTRIBDIVISOREXTPROC>(loadProc("glVertexAttribDivisorEXT"));
     l_glFlushMappedBufferRangeEXT = reinterpret_cast<PFNGLFLUSHMAPPEDBUFFERRANGEEXTPROC>(
@@ -1953,6 +1955,10 @@ void LoadUtilGLES(LoadProc loadProc)
         loadProc("glTexStorageMem3DMultisampleEXT"));
     l_glImportMemoryFdEXT =
         reinterpret_cast<PFNGLIMPORTMEMORYFDEXTPROC>(loadProc("glImportMemoryFdEXT"));
+    l_glMultiDrawArraysEXT =
+        reinterpret_cast<PFNGLMULTIDRAWARRAYSEXTPROC>(loadProc("glMultiDrawArraysEXT"));
+    l_glMultiDrawElementsEXT =
+        reinterpret_cast<PFNGLMULTIDRAWELEMENTSEXTPROC>(loadProc("glMultiDrawElementsEXT"));
     l_glMultiDrawArraysIndirectEXT = reinterpret_cast<PFNGLMULTIDRAWARRAYSINDIRECTEXTPROC>(
         loadProc("glMultiDrawArraysIndirectEXT"));
     l_glMultiDrawElementsIndirectEXT = reinterpret_cast<PFNGLMULTIDRAWELEMENTSINDIRECTEXTPROC>(
