@@ -7060,6 +7060,11 @@ void Context::getAttachedShaders(ShaderProgramID program,
 
 GLint Context::getAttribLocation(ShaderProgramID program, const GLchar *name)
 {
+    if (ANGLE_UNLIKELY(nameStartsWithReservedPrefix(name)))
+    {
+        return -1;
+    }
+
     Program *programObject = getProgramResolveLink(program);
     ASSERT(programObject);
     return programObject->getExecutable().getAttributeLocation(name);
@@ -7348,6 +7353,11 @@ void Context::getUniformivRobust(ShaderProgramID program,
 
 GLint Context::getUniformLocation(ShaderProgramID program, const GLchar *name)
 {
+    if (ANGLE_UNLIKELY(nameStartsWithReservedPrefix(name)))
+    {
+        return -1;
+    }
+
     Program *programObject = getProgramResolveLink(program);
     ASSERT(programObject);
     return programObject->getExecutable().getUniformLocation(name).value;
@@ -9862,7 +9872,8 @@ ErrorSet::ErrorSet(Debug *debug,
       mResetStatus(GraphicsResetStatus::NoError),
       mSkipValidation(GetNoError(attribs)),
       mContextLost(0),
-      mHasAnyErrors(0)
+      mHasAnyErrors(0),
+      mPushedErrors(0)
 {}
 
 ErrorSet::~ErrorSet() = default;
@@ -9941,6 +9952,7 @@ void ErrorSet::pushError(GLenum errorCode)
         std::lock_guard<std::mutex> lock(mMutex);
         mErrors.insert(errorCode);
         mHasAnyErrors = 1;
+        mPushedErrors++;
     }
 }
 

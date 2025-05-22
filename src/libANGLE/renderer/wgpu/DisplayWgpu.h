@@ -10,12 +10,12 @@
 #ifndef LIBANGLE_RENDERER_WGPU_DISPLAYWGPU_H_
 #define LIBANGLE_RENDERER_WGPU_DISPLAYWGPU_H_
 
-#include <dawn/native/DawnNative.h>
-#include <dawn/webgpu_cpp.h>
+#include <webgpu/webgpu.h>
 
 #include "libANGLE/renderer/DisplayImpl.h"
 #include "libANGLE/renderer/ShareGroupImpl.h"
 #include "libANGLE/renderer/wgpu/wgpu_format_utils.h"
+#include "libANGLE/renderer/wgpu/wgpu_utils.h"
 
 namespace rx
 {
@@ -92,12 +92,13 @@ class DisplayWgpu : public DisplayImpl
 
     angle::NativeWindowSystem getWindowSystem() const override;
 
-    wgpu::Adapter &getAdapter() { return mAdapter; }
-    wgpu::Device &getDevice() { return mDevice; }
-    wgpu::Queue &getQueue() { return mQueue; }
-    wgpu::Instance &getInstance() { return mInstance; }
+    const DawnProcTable *getProcs() const { return &mProcTable; }
+    webgpu::AdapterHandle getAdapter() { return mAdapter; }
+    webgpu::DeviceHandle getDevice() { return mDevice; }
+    webgpu::QueueHandle getQueue() { return mQueue; }
+    webgpu::InstanceHandle getInstance() { return mInstance; }
 
-    const wgpu::Limits getLimitsWgpu() const { return mLimitsWgpu; }
+    const WGPULimits &getLimitsWgpu() const { return mLimitsWgpu; }
 
     const gl::Caps &getGLCaps() const { return mGLCaps; }
     const gl::TextureCapsMap &getGLTextureCaps() const { return mGLTextureCaps; }
@@ -116,12 +117,14 @@ class DisplayWgpu : public DisplayImpl
 
     egl::Error createWgpuDevice();
 
-    wgpu::Adapter mAdapter;
-    wgpu::Instance mInstance;
-    wgpu::Device mDevice;
-    wgpu::Queue mQueue;
+    DawnProcTable mProcTable;
 
-    wgpu::Limits mLimitsWgpu;
+    webgpu::AdapterHandle mAdapter;
+    webgpu::InstanceHandle mInstance;
+    webgpu::DeviceHandle mDevice;
+    webgpu::QueueHandle mQueue;
+
+    WGPULimits mLimitsWgpu;
 
     gl::Caps mGLCaps;
     gl::TextureCapsMap mGLTextureCaps;

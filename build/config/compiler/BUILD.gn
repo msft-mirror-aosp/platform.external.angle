@@ -318,6 +318,16 @@ config("compiler") {
     ":clang_warning_suppression",
   ]
 
+  # TODO(https://crbug.com/404297941): Disable clang_warning_suppression
+  # configuration because the ICECC build doesn't distribute the
+  # warning_suppression.txt file to other ICECC nodes. As a result, the nodes
+  # cannot locate the file during target compilation. Therefore, we are
+  # disabling the clang_warning_suppression configuration for ICECC builds for
+  # now.
+  if (cc_wrapper == "icecc") {
+    configs -= [ ":clang_warning_suppression" ]
+  }
+
   # Here we enable -fno-delete-null-pointer-checks, which makes various nullptr
   # operations (e.g. dereferencing) into defined behavior. This avoids deletion
   # of some security-critical code: see https://crbug.com/1139129.
@@ -625,13 +635,6 @@ config("compiler") {
     if (is_linux && use_lld && !llvm_android_mainline && current_cpu != "arm" &&
         default_toolchain != "//build/toolchain/cros:target") {
       cflags += [ "-Wa,--crel,--allow-experimental-crel" ]
-    }
-
-    # TODO(crbug.com/413427035): Remove once
-    # https://github.com/llvm/llvm-project/pull/136867/ is landed.
-    if (!is_win && !llvm_android_mainline &&
-        default_toolchain != "//build/toolchain/cros:target") {
-      cflags += [ "-fextend-variable-liveness=none" ]
     }
   }
 
@@ -2099,6 +2102,26 @@ config("default_warnings") {
         # annotation completeness, this warning exception can be removed.
         "-Wno-nullability-completeness",
       ]
+
+      if (llvm_force_head_revision) {
+        cflags_cc += [
+          # TODO(crbug.com/417996267): Fix and re-enable
+          "-Wno-character-conversion",
+
+          # Rust bindgen gets these flags, but uses pinned clang, so it doesn't
+          # recognize the new warning. Remove this during the clang roll.
+          "-Wno-unknown-warning-option",
+        ]
+
+        cflags_objcc = [
+          # TODO(crbug.com/417996267): Fix and re-enable
+          "-Wno-character-conversion",
+
+          # Rust bindgen gets these flags, but uses pinned clang, so it doesn't
+          # recognize the new warning. Remove this during the clang roll.
+          "-Wno-unknown-warning-option",
+        ]
+      }
     }
 
     if (is_wasm) {
@@ -2942,7 +2965,16 @@ config("symbols") {
         # Disable putting the compiler command line into the debug info to
         # prevent some types of non-determinism.
         "-gno-codeview-command-line",
+
+        # Deterministically choose one source line number out of all merged
+        # source line numbers to avoid line 0 debug info when multiple
+        # instructions are merged.
+        # See https://crbug.com/415272777.
+        "-mllvm",
+        "-pick-merged-source-locations"
       ]
+
+      rustflags = [ "-Cllvm-args=-pick-merged-source-locations"]
     } else {
       cflags = [ "/Zi" ]  # Produce PDB file, no edit and continue.
     }

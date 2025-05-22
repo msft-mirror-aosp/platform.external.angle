@@ -10,7 +10,7 @@
 #include "common/debug.h"
 #include "libANGLE/renderer/wgpu/wgpu_utils.h"
 
-#include <dawn/webgpu_cpp.h>
+#include <webgpu/webgpu.h>
 #include <unordered_set>
 
 namespace rx
@@ -260,7 +260,7 @@ class CommandBuffer
     bool hasSetViewportCommand() const { return mHasSetViewportCommand; }
     bool hasSetBlendConstantCommand() const { return mHasSetBlendConstantCommand; }
 
-    void recordCommands(RenderPassEncoderHandle encoder);
+    void recordCommands(const DawnProcTable *wgpu, RenderPassEncoderHandle encoder);
 
   private:
     struct CommandBlock
