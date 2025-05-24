@@ -290,6 +290,24 @@ ANGLE_INLINE bool ValidateUniformValue(const Context *context,
     return true;
 }
 
+template <typename ParamType>
+ANGLE_INLINE bool ValidateUniformValuePointer(const Context *context,
+                                              angle::EntryPoint entryPoint,
+                                              const ParamType *value)
+{
+    if (ANGLE_UNLIKELY(value == nullptr))
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, err::kInvalidUniformValuePointer);
+        return false;
+    }
+
+    return true;
+}
+
+template bool ValidateUniformValuePointer(const Context *, angle::EntryPoint, const GLfloat *);
+template bool ValidateUniformValuePointer(const Context *, angle::EntryPoint, const GLint *);
+template bool ValidateUniformValuePointer(const Context *, angle::EntryPoint, const GLuint *);
+
 bool ValidateUniformMatrixValue(const Context *context,
                                 angle::EntryPoint entryPoint,
                                 GLenum valueType,
@@ -530,8 +548,7 @@ bool ValidateGetVertexAttribBase(const Context *context,
                                  GLuint index,
                                  GLenum pname,
                                  GLsizei *length,
-                                 bool pointer,
-                                 bool pureIntegerEntryPoint);
+                                 bool pointer);
 
 ANGLE_INLINE bool ValidateVertexFormat(const Context *context,
                                        angle::EntryPoint entryPoint,

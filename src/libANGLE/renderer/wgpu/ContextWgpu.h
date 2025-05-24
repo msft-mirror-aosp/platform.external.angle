@@ -10,7 +10,7 @@
 #ifndef LIBANGLE_RENDERER_WGPU_CONTEXTWGPU_H_
 #define LIBANGLE_RENDERER_WGPU_CONTEXTWGPU_H_
 
-#include <dawn/webgpu_cpp.h>
+#include <webgpu/webgpu.h>
 
 #include "image_util/loadimage.h"
 #include "libANGLE/renderer/ContextImpl.h"
@@ -297,16 +297,17 @@ class ContextWgpu : public ContextImpl
 
     const angle::ImageLoadContext &getImageLoadContext() const { return mImageLoadContext; }
 
-    DisplayWgpu *getDisplay() { return mDisplay; }
-    wgpu::Device &getDevice() { return mDisplay->getDevice(); }
-    wgpu::Queue &getQueue() { return mDisplay->getQueue(); }
-    wgpu::Instance &getInstance() { return mDisplay->getInstance(); }
+    DisplayWgpu *getDisplay() const { return mDisplay; }
+    const DawnProcTable *getProcs() const { return mDisplay->getProcs(); }
+    webgpu::DeviceHandle getDevice() const { return mDisplay->getDevice(); }
+    webgpu::QueueHandle getQueue() const { return mDisplay->getQueue(); }
+    webgpu::InstanceHandle getInstance() const { return mDisplay->getInstance(); }
     angle::ImageLoadContext &getImageLoadContext() { return mImageLoadContext; }
     const webgpu::Format &getFormat(GLenum internalFormat) const
     {
         return mDisplay->getFormat(internalFormat);
     }
-    angle::Result startRenderPass(const wgpu::RenderPassDescriptor &desc);
+    angle::Result startRenderPass(const webgpu::PackedRenderPassDescriptor &desc);
     angle::Result endRenderPass(webgpu::RenderPassClosureReason closureReason);
 
     bool hasActiveRenderPass() { return mCurrentRenderPass != nullptr; }
@@ -315,9 +316,9 @@ class ContextWgpu : public ContextImpl
 
     angle::Result flush(webgpu::RenderPassClosureReason);
 
-    void setColorAttachmentFormat(size_t colorIndex, wgpu::TextureFormat format);
-    void setColorAttachmentFormats(const gl::DrawBuffersArray<wgpu::TextureFormat> &formats);
-    void setDepthStencilFormat(wgpu::TextureFormat format);
+    void setColorAttachmentFormat(size_t colorIndex, WGPUTextureFormat format);
+    void setColorAttachmentFormats(const gl::DrawBuffersArray<WGPUTextureFormat> &formats);
+    void setDepthStencilFormat(WGPUTextureFormat format);
     void setVertexAttribute(size_t attribIndex, webgpu::PackedVertexAttribute newAttrib);
 
     void invalidateVertexBuffer(size_t slot);
@@ -327,10 +328,10 @@ class ContextWgpu : public ContextImpl
     void invalidateDriverUniforms();
 
     void ensureCommandEncoderCreated();
-    wgpu::CommandEncoder &getCurrentCommandEncoder();
+    webgpu::CommandEncoderHandle &getCurrentCommandEncoder();
 
     // Driver uniforms are managed by ContextWgpu.
-    wgpu::BindGroupLayout getDriverUniformBindGroupLayout()
+    webgpu::BindGroupLayoutHandle getDriverUniformBindGroupLayout()
     {
         ASSERT(mDriverUniformsBindGroupLayout);
         return mDriverUniformsBindGroupLayout;
@@ -411,8 +412,8 @@ class ContextWgpu : public ContextImpl
 
     DisplayWgpu *mDisplay;
 
-    wgpu::CommandEncoder mCurrentCommandEncoder;
-    wgpu::RenderPassEncoder mCurrentRenderPass;
+    webgpu::CommandEncoderHandle mCurrentCommandEncoder;
+    webgpu::RenderPassEncoderHandle mCurrentRenderPass;
 
     webgpu::CommandBuffer mCommandBuffer;
 
@@ -426,10 +427,10 @@ class ContextWgpu : public ContextImpl
     // set of driver uniforms has changed.
     DriverUniforms mDriverUniforms;
     // Holds the binding group layout for the driver uniforms.
-    wgpu::BindGroupLayout mDriverUniformsBindGroupLayout;
+    webgpu::BindGroupLayoutHandle mDriverUniformsBindGroupLayout;
     // Holds the most recent driver uniforms BindGroup. Note there may be others in the
     // command buffer.
-    wgpu::BindGroup mDriverUniformsBindGroup;
+    webgpu::BindGroupHandle mDriverUniformsBindGroup;
 };
 
 }  // namespace rx

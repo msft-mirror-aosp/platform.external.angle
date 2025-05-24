@@ -7,8 +7,8 @@
 #ifndef LIBANGLE_RENDERER_WGPU_PIPELINE_STATE_H_
 #define LIBANGLE_RENDERER_WGPU_PIPELINE_STATE_H_
 
-#include <dawn/webgpu_cpp.h>
 #include <stdint.h>
+#include <webgpu/webgpu.h>
 #include <limits>
 
 #include "libANGLE/Constants.h"
@@ -151,7 +151,7 @@ class RenderPipelineDesc final
 
     bool setVertexAttribute(size_t attribIndex, PackedVertexAttribute &newAttrib);
     bool setColorAttachmentFormat(size_t colorIndex, WGPUTextureFormat format);
-    bool setDepthStencilAttachmentFormat(wgpu::TextureFormat format);
+    bool setDepthStencilAttachmentFormat(WGPUTextureFormat format);
     bool setDepthFunc(WGPUCompareFunction compareFunc);
     bool setStencilFrontFunc(WGPUCompareFunction compareFunc);
     bool setStencilFrontOps(WGPUStencilOperation failOp,

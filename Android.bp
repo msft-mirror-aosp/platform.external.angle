@@ -95,7 +95,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r28_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-21-init-9266-g09006611-2\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-21-init-11777-gfd3fecfc-1\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -1317,6 +1317,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -1849,6 +1852,9 @@ cc_library_static {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -1953,6 +1959,7 @@ cc_library_static {
         "third_party/spirv-tools/src/source/val/validate_ray_tracing_reorder.cpp",
         "third_party/spirv-tools/src/source/val/validate_scopes.cpp",
         "third_party/spirv-tools/src/source/val/validate_small_type_uses.cpp",
+        "third_party/spirv-tools/src/source/val/validate_tensor.cpp",
         "third_party/spirv-tools/src/source/val/validate_tensor_layout.cpp",
         "third_party/spirv-tools/src/source/val/validate_type.cpp",
         "third_party/spirv-tools/src/source/val/validation_state.cpp",
@@ -1963,6 +1970,9 @@ cc_library_static {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -2086,6 +2096,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -2134,6 +2147,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -4556,6 +4572,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -4603,6 +4622,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -4644,6 +4666,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -4692,6 +4717,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -4744,6 +4772,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -4785,6 +4816,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -4829,6 +4863,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -4843,6 +4880,7 @@ cc_defaults {
         "buildtools_third_party_libc++_std_uchar_h",
         "buildtools_third_party_libc++_std_wctype_h",
         "third_party_abseil_cpp_absl_container_common_policy_traits",
+        "third_party_abseil_cpp_absl_container_container_memory",
         "third_party_abseil_cpp_absl_meta_type_traits",
     ],
     local_include_dirs: [
@@ -4874,6 +4912,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -4938,6 +4979,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -4979,6 +5023,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5026,6 +5073,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5071,6 +5121,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5112,6 +5165,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5165,6 +5221,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5210,6 +5269,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5258,6 +5320,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5311,6 +5376,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5359,6 +5427,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5408,6 +5479,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5449,6 +5523,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5494,6 +5571,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5541,6 +5621,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5587,6 +5670,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5636,6 +5722,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5689,6 +5778,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5734,6 +5826,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5794,6 +5889,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5852,6 +5950,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5899,6 +6000,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5944,6 +6048,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -5993,6 +6100,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6041,6 +6151,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6089,6 +6202,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6151,6 +6267,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6204,6 +6323,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6249,6 +6371,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6293,6 +6418,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6351,6 +6479,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6411,6 +6542,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6456,6 +6590,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6505,6 +6642,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6560,6 +6700,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6606,6 +6749,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6647,6 +6793,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6694,6 +6843,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6745,6 +6897,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6794,6 +6949,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6843,6 +7001,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6890,6 +7051,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6937,6 +7101,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -6989,6 +7156,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7051,6 +7221,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7096,6 +7269,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7141,6 +7317,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7184,6 +7363,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7230,6 +7412,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7274,6 +7459,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7319,6 +7507,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7367,6 +7558,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7410,6 +7604,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7454,6 +7651,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7497,6 +7697,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7538,6 +7741,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7582,6 +7788,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7624,6 +7833,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7666,6 +7878,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7718,6 +7933,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7761,6 +7979,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7805,6 +8026,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7853,6 +8077,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7895,6 +8122,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7937,6 +8167,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -7979,6 +8212,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8028,6 +8264,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8079,6 +8318,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8126,6 +8368,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8181,6 +8426,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8223,6 +8471,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8265,6 +8516,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8312,6 +8566,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8354,6 +8611,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8396,6 +8656,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8439,6 +8702,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8481,6 +8747,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8525,6 +8794,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8567,6 +8839,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8609,6 +8884,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8650,6 +8928,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8690,6 +8971,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -8731,6 +9015,9 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",
@@ -9159,40 +9446,6 @@ cc_defaults {
 }
 
 cc_defaults {
-    name: "buildtools_third_party_libc++__Builtin_stddef",
-    defaults: [
-        "angle_common_auto_cflags",
-        "angle_common_library_cflags",
-    ],
-    local_include_dirs: [
-        "",
-    ],
-    cflags: [
-        "-U_FORTIFY_SOURCE",
-        "-D_FORTIFY_SOURCE=2",
-        "-D__STDC_CONSTANT_MACROS",
-        "-D__STDC_FORMAT_MACROS",
-        "-Wno-gnu-anonymous-struct",
-        "-Wno-gnu-conditional-omitted-operand",
-        "-Wno-gnu-include-next",
-        "-Wno-gnu-label-as-value",
-        "-Wno-gnu-redeclared-enum",
-        "-Wno-gnu-statement-expression",
-        "-Wno-gnu-zero-variadic-macro-arguments",
-        "-Wno-zero-length-array",
-    ],
-    sdk_version: "current",
-    stl: "libc++_static",
-    arch: {
-        arm64: {
-            cflags: [
-                "-D__ARM_NEON__=1",
-            ],
-        },
-    },
-}
-
-cc_defaults {
     name: "buildtools_third_party_libc++_std_core",
     defaults: [
         "angle_common_auto_cflags",
@@ -9249,75 +9502,7 @@ cc_defaults {
 }
 
 cc_defaults {
-    name: "buildtools_third_party_libc++__Builtin_stdarg",
-    defaults: [
-        "angle_common_auto_cflags",
-        "angle_common_library_cflags",
-    ],
-    local_include_dirs: [
-        "",
-    ],
-    cflags: [
-        "-U_FORTIFY_SOURCE",
-        "-D_FORTIFY_SOURCE=2",
-        "-D__STDC_CONSTANT_MACROS",
-        "-D__STDC_FORMAT_MACROS",
-        "-Wno-gnu-anonymous-struct",
-        "-Wno-gnu-conditional-omitted-operand",
-        "-Wno-gnu-include-next",
-        "-Wno-gnu-label-as-value",
-        "-Wno-gnu-redeclared-enum",
-        "-Wno-gnu-statement-expression",
-        "-Wno-gnu-zero-variadic-macro-arguments",
-        "-Wno-zero-length-array",
-    ],
-    sdk_version: "current",
-    stl: "libc++_static",
-    arch: {
-        arm64: {
-            cflags: [
-                "-D__ARM_NEON__=1",
-            ],
-        },
-    },
-}
-
-cc_defaults {
     name: "buildtools_third_party_libc++__Builtin_stdalign",
-    defaults: [
-        "angle_common_auto_cflags",
-        "angle_common_library_cflags",
-    ],
-    local_include_dirs: [
-        "",
-    ],
-    cflags: [
-        "-U_FORTIFY_SOURCE",
-        "-D_FORTIFY_SOURCE=2",
-        "-D__STDC_CONSTANT_MACROS",
-        "-D__STDC_FORMAT_MACROS",
-        "-Wno-gnu-anonymous-struct",
-        "-Wno-gnu-conditional-omitted-operand",
-        "-Wno-gnu-include-next",
-        "-Wno-gnu-label-as-value",
-        "-Wno-gnu-redeclared-enum",
-        "-Wno-gnu-statement-expression",
-        "-Wno-gnu-zero-variadic-macro-arguments",
-        "-Wno-zero-length-array",
-    ],
-    sdk_version: "current",
-    stl: "libc++_static",
-    arch: {
-        arm64: {
-            cflags: [
-                "-D__ARM_NEON__=1",
-            ],
-        },
-    },
-}
-
-cc_defaults {
-    name: "buildtools_third_party_libc++__Builtin_limits",
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
@@ -9392,10 +9577,115 @@ cc_defaults {
 }
 
 cc_defaults {
+    name: "buildtools_third_party_libc++__Builtin_stddef",
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+    ],
+    local_include_dirs: [
+        "",
+    ],
+    cflags: [
+        "-U_FORTIFY_SOURCE",
+        "-D_FORTIFY_SOURCE=2",
+        "-D__STDC_CONSTANT_MACROS",
+        "-D__STDC_FORMAT_MACROS",
+        "-Wno-gnu-anonymous-struct",
+        "-Wno-gnu-conditional-omitted-operand",
+        "-Wno-gnu-include-next",
+        "-Wno-gnu-label-as-value",
+        "-Wno-gnu-redeclared-enum",
+        "-Wno-gnu-statement-expression",
+        "-Wno-gnu-zero-variadic-macro-arguments",
+        "-Wno-zero-length-array",
+    ],
+    sdk_version: "current",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
+    name: "buildtools_third_party_libc++__Builtin_stdarg",
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+    ],
+    local_include_dirs: [
+        "",
+    ],
+    cflags: [
+        "-U_FORTIFY_SOURCE",
+        "-D_FORTIFY_SOURCE=2",
+        "-D__STDC_CONSTANT_MACROS",
+        "-D__STDC_FORMAT_MACROS",
+        "-Wno-gnu-anonymous-struct",
+        "-Wno-gnu-conditional-omitted-operand",
+        "-Wno-gnu-include-next",
+        "-Wno-gnu-label-as-value",
+        "-Wno-gnu-redeclared-enum",
+        "-Wno-gnu-statement-expression",
+        "-Wno-gnu-zero-variadic-macro-arguments",
+        "-Wno-zero-length-array",
+    ],
+    sdk_version: "current",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
+    name: "buildtools_third_party_libc++__Builtin_limits",
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+    ],
+    local_include_dirs: [
+        "",
+    ],
+    cflags: [
+        "-U_FORTIFY_SOURCE",
+        "-D_FORTIFY_SOURCE=2",
+        "-D__STDC_CONSTANT_MACROS",
+        "-D__STDC_FORMAT_MACROS",
+        "-Wno-gnu-anonymous-struct",
+        "-Wno-gnu-conditional-omitted-operand",
+        "-Wno-gnu-include-next",
+        "-Wno-gnu-label-as-value",
+        "-Wno-gnu-redeclared-enum",
+        "-Wno-gnu-statement-expression",
+        "-Wno-gnu-zero-variadic-macro-arguments",
+        "-Wno-zero-length-array",
+    ],
+    sdk_version: "current",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
     name: "third_party_abseil_cpp_absl_container_flat_hash_map",
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++__Builtin_limits",
+        "buildtools_third_party_libc++__Builtin_stdarg",
+        "buildtools_third_party_libc++__Builtin_stddef",
         "buildtools_third_party_libc++_std",
         "buildtools_third_party_libc++_std_config",
         "buildtools_third_party_libc++_std_core",

@@ -1674,11 +1674,10 @@ def get_validation_expression(api, cmd_name, entry_point_name, internal_params, 
         'GL_EXT_occlusion_query_boolean',
         'GL_OES_EGL_image',
         'GL_OES_EGL_image_external',
-        'GL_OVR_multiview',
     ]
 
-    # Validation expression for always present entry points
-    if sorted(sources) == ["1_0", "2_0"] or sources[0] in skipped_exts:
+    # Validation expression for the entry points from the extensions above
+    if sources[0] in skipped_exts:
         return "bool isCallValid = (context->skipValidation() || {validation_expression});".format(
             validation_expression=expr)
 
@@ -1689,7 +1688,10 @@ def get_validation_expression(api, cmd_name, entry_point_name, internal_params, 
 
     condition = ""
     error_suffix = sources[0].replace("_", "")
-    if sorted(sources) == ["1_0", "3_2"]:
+    if sorted(sources) == ["1_0", "2_0"]:
+        # Entry points existing in all context versions
+        condition = "true"
+    elif sorted(sources) == ["1_0", "3_2"]:
         # glGetPointerv is a special case: defined in ES 1.0 and ES 3.2 only
         condition = "context->getClientVersion() < ES_2_0 || context->getClientVersion() >= ES_3_2"
         error_suffix = "1Or32"
@@ -1700,10 +1702,23 @@ def get_validation_expression(api, cmd_name, entry_point_name, internal_params, 
     else:
         assert (sources[0].startswith("GL_"))
         exts = map(lambda x: "context->getExtensions().{}".format(get_camel_case(x)), sources)
-        condition = " || ".join(list(exts))
+        condition = " || ".join(sorted(list(exts)))
         error_suffix = "EXT"
 
-    record_error = "RecordVersionErrorES{}(context, {});".format(error_suffix, entry_point_name)
+    record_error = "else {{RecordVersionErrorES{}(context, {});}}".format(
+        error_suffix, entry_point_name) if condition != "true" else ""
+
+    check_consistency = not is_context_private_state_command(api, cmd_name)
+
+    pre_validation = """#if defined(ANGLE_ENABLE_ASSERTS)
+    const uint32_t errorCount = context->getPushedErrorCount();
+#endif
+""" if check_consistency else ""
+
+    post_validation = """
+#if defined(ANGLE_ENABLE_ASSERTS)
+    ASSERT(context->getPushedErrorCount() - errorCount == (isCallValid ? 0 : 1));
+#endif""" if check_consistency else ""
 
     # Validation logic for entry points with conditional support
     return """bool isCallValid = context->skipValidation();
@@ -1711,14 +1726,15 @@ if (!isCallValid)
 {{
     if (ANGLE_LIKELY({support_condition}))
     {{
-        isCallValid = {validation_expression};
+        {pre_validation}isCallValid = {validation_expression};{post_validation}
     }}
-    else
-    {{
-        {record_error}
-    }}
+    {record_error}
 }}""".format(
-        support_condition=condition, validation_expression=expr, record_error=record_error)
+        support_condition=condition,
+        pre_validation=pre_validation,
+        validation_expression=expr,
+        post_validation=post_validation,
+        record_error=record_error)
 
 
 def entry_point_export(api):
