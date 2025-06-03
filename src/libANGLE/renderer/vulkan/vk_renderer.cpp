@@ -251,8 +251,6 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDrawIndexed-None-09003",
     // https://anglebug.com/42266764
     "VUID-VkDescriptorImageInfo-imageView-07796",
-    // https://issuetracker.google.com/303441816
-    "VUID-VkRenderPassBeginInfo-renderPass-00904",
     // http://anglebug.com/42266888
     "VUID-VkMemoryAllocateInfo-allocationSize-01742",
     "VUID-VkMemoryDedicatedAllocateInfo-image-01878",
@@ -4843,6 +4841,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     const bool isSamsung  = IsSamsung(mPhysicalDeviceProperties.vendorID);
     const bool isSwiftShader =
         IsSwiftshader(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID);
+    const bool isLavapipe =
+        IsLavapipe(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID);
+    const bool isSoftwareRenderer = isSwiftShader || isLavapipe;
 
     const bool isGalaxyS23 =
         IsGalaxyS23(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID);
@@ -4908,8 +4909,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // Due to these key architectural differences, some operations improve performance on one while
     // deteriorating performance on the other.  ANGLE will accordingly make some decisions based on
     // the device architecture for optimal performance on both.
-    const bool isImmediateModeRenderer = isNvidia || isAMD || isIntel || isSamsung || isSwiftShader;
-    const bool isTileBasedRenderer     = isARM || isPowerVR || isQualcomm || isBroadcom || isApple;
+    const bool isImmediateModeRenderer =
+        isNvidia || isAMD || isIntel || isSamsung || isSoftwareRenderer;
+    const bool isTileBasedRenderer = isARM || isPowerVR || isQualcomm || isBroadcom || isApple;
 
     // Make sure all known architectures are accounted for.
     if (!isImmediateModeRenderer && !isTileBasedRenderer && !isMockICDEnabled())
@@ -5398,7 +5400,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(
         &mFeatures, exposeES32ForTesting,
         mFeatures.exposeNonConformantExtensionsAndVersions.enabled &&
-            (isSwiftShader ||
+            (isSoftwareRenderer ||
              IsPixel4(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID) ||
              (IsLinux() && isNvidia && driverVersion < angle::VersionTriple(441, 0, 0)) ||
              (IsWindows() && isIntel)));
@@ -6034,11 +6036,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 #endif
 
     // VkEvent has much bigger overhead. Until we know that it helps desktop GPUs, we restrict it to
-    // TBRs. Also enabled for SwiftShader so that we get more test coverage in bots.
+    // TBRs. Also enabled for testing drivers to get more test coverage in bots.
     ANGLE_FEATURE_CONDITION(&mFeatures, useVkEventForImageBarrier,
-                            isTileBasedRenderer || isSwiftShader);
+                            isTileBasedRenderer || isSoftwareRenderer);
     ANGLE_FEATURE_CONDITION(&mFeatures, useVkEventForBufferBarrier,
-                            isTileBasedRenderer || isSwiftShader);
+                            isTileBasedRenderer || isSoftwareRenderer);
     // vkCmdResetEvent adds extra GPU overhead and ARM prefers CPU overhead of creating/destroying
     // VkEvent instead of GPU overhead associated with vkCmdResetEvent.
     ANGLE_FEATURE_CONDITION(&mFeatures, recycleVkEvent, !isARM);
@@ -6122,8 +6124,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsSynchronization2,
                             mSynchronization2Features.synchronization2 == VK_TRUE);
 
-    // Disable descriptorSet cache for SwiftShader to ensure the code path gets tested.
-    ANGLE_FEATURE_CONDITION(&mFeatures, descriptorSetCache, !isSwiftShader);
+    // Disable descriptorSet cache for testing drivers to ensure the code path gets tested.
+    ANGLE_FEATURE_CONDITION(&mFeatures, descriptorSetCache, !isSoftwareRenderer);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsImageCompressionControl,
                             mImageCompressionControlFeatures.imageCompressionControl == VK_TRUE);
