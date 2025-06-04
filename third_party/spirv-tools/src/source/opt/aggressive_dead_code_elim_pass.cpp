@@ -971,7 +971,6 @@ Pass::Status AggressiveDCEPass::Process() {
 void AggressiveDCEPass::InitExtensions() {
   extensions_allowlist_.clear();
 
-  // clang-format off
   extensions_allowlist_.insert({
       "SPV_AMD_shader_explicit_vertex_parameter",
       "SPV_AMD_shader_trinary_minmax",
@@ -1039,9 +1038,9 @@ void AggressiveDCEPass::InitExtensions() {
       "SPV_KHR_ray_tracing_position_fetch",
       "SPV_KHR_fragment_shading_rate",
       "SPV_KHR_quad_control",
-      "SPV_NV_shader_invocation_reorder"
+      "SPV_NV_shader_invocation_reorder",
+      "SPV_NV_cluster_acceleration_structure",
   });
-  // clang-format on
 }
 
 Instruction* AggressiveDCEPass::GetHeaderBranch(BasicBlock* blk) {
