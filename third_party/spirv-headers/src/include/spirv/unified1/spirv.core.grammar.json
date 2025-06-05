@@ -10845,6 +10845,45 @@
       ],
       "capabilities" : [ "MaskedGatherScatterINTEL" ],
       "version" : "None"
+    },
+    {
+      "opname" : "OpConvertHandleToImageINTEL",
+      "class"  : "Image",
+      "opcode" : 6529,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdRef",           "name" : "Operand" }
+      ],
+      "capabilities" : [ "BindlessImagesINTEL" ],
+      "provisional"  : true,
+      "version" : "None"
+    },
+    {
+      "opname" : "OpConvertHandleToSamplerINTEL",
+      "class"  : "Image",
+      "opcode" : 6530,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdRef",           "name" : "Operand" }
+      ],
+      "capabilities" : [ "BindlessImagesINTEL" ],
+      "provisional"  : true,
+      "version" : "None"
+    },
+    {
+      "opname" : "OpConvertHandleToSampledImageINTEL",
+      "class"  : "Image",
+      "opcode" : 6531,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdRef",           "name" : "Operand" }
+      ],
+      "capabilities" : [ "BindlessImagesINTEL" ],
+      "provisional"  : true,
+      "version" : "None"
     }
   ],
   "operand_kinds" : [
@@ -14025,6 +14064,12 @@
           "version" : "1.2"
         },
         {
+          "enumerant" : "SaturatedToLargestFloat8NormalConversionEXT",
+          "value" : 4216,
+          "capabilities" : [ "Float8EXT" ],
+          "version": "None"
+        },
+        {
           "enumerant" : "NoSignedWrap",
           "value" : 4469,
           "extensions" : [ "SPV_KHR_no_integer_wrap_decoration" ],
@@ -16214,6 +16259,18 @@
           "version" : "None"
         },
         {
+          "enumerant" : "Float8EXT",
+          "value" : 4212,
+          "extensions" : [ "SPV_EXT_float8"],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "Float8CooperativeMatrixEXT",
+          "value" : 4213,
+          "extensions" : [ "SPV_EXT_float8"],
+          "version" : "None"
+        },
+        {
           "enumerant" : "FragmentShadingRateKHR",
           "value" : 4422,
           "capabilities" : [ "Shader" ],
@@ -17445,6 +17502,13 @@
           "value" : 6460,
           "extensions" : [ "SPV_INTEL_maximum_registers" ],
           "version" : "None"
+        },
+        {
+          "enumerant" : "BindlessImagesINTEL",
+          "value" : 6528,
+          "extensions" : [ "SPV_INTEL_bindless_images" ],
+          "provisional" : true,
+          "version" : "None"
         }
       ]
     },
@@ -17870,6 +17934,18 @@
           "enumerant" : "BFloat16KHR",
           "value" : 0,
           "capabilities" : [ "BFloat16TypeKHR" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "Float8E4M3EXT",
+          "value" : 4214,
+          "capabilities" : [ "Float8EXT" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "Float8E5M2EXT",
+          "value" : 4215,
+          "capabilities" : [ "Float8EXT" ],
           "version" : "None"
         }
       ]

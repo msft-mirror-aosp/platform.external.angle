@@ -537,6 +537,7 @@ enum Decoration {
     DecorationMaxByteOffset = 45,
     DecorationAlignmentId = 46,
     DecorationMaxByteOffsetId = 47,
+    DecorationSaturatedToLargestFloat8NormalConversionEXT = 4216,
     DecorationNoSignedWrap = 4469,
     DecorationNoUnsignedWrap = 4470,
     DecorationWeightTextureQCOM = 4487,
@@ -1063,6 +1064,8 @@ enum Capability {
     CapabilityStorageTensorArrayDynamicIndexingARM = 4175,
     CapabilityStorageTensorArrayNonUniformIndexingARM = 4176,
     CapabilityCooperativeMatrixLayoutsARM = 4201,
+    CapabilityFloat8EXT = 4212,
+    CapabilityFloat8CooperativeMatrixEXT = 4213,
     CapabilityFragmentShadingRateKHR = 4422,
     CapabilitySubgroupBallotKHR = 4423,
     CapabilityDrawParameters = 4427,
@@ -1279,6 +1282,7 @@ enum Capability {
     CapabilityMaskedGatherScatterINTEL = 6427,
     CapabilityCacheControlsINTEL = 6441,
     CapabilityRegisterLimitsINTEL = 6460,
+    CapabilityBindlessImagesINTEL = 6528,
     CapabilityMax = 0x7fffffff,
 };
 
@@ -1559,6 +1563,8 @@ enum RawAccessChainOperandsMask {
 
 enum FPEncoding {
     FPEncodingBFloat16KHR = 0,
+    FPEncodingFloat8E4M3EXT = 4214,
+    FPEncodingFloat8E5M2EXT = 4215,
     FPEncodingMax = 0x7fffffff,
 };
 
@@ -2399,6 +2405,9 @@ enum Op {
     OpRoundFToTF32INTEL = 6426,
     OpMaskedGatherINTEL = 6428,
     OpMaskedScatterINTEL = 6429,
+    OpConvertHandleToImageINTEL = 6529,
+    OpConvertHandleToSamplerINTEL = 6530,
+    OpConvertHandleToSampledImageINTEL = 6531,
     OpMax = 0x7fffffff,
 };
 
@@ -3208,6 +3217,9 @@ inline void HasResultAndType(Op opcode, bool *hasResult, bool *hasResultType) {
     case OpRoundFToTF32INTEL: *hasResult = true; *hasResultType = true; break;
     case OpMaskedGatherINTEL: *hasResult = true; *hasResultType = true; break;
     case OpMaskedScatterINTEL: *hasResult = false; *hasResultType = false; break;
+    case OpConvertHandleToImageINTEL: *hasResult = true; *hasResultType = true; break;
+    case OpConvertHandleToSamplerINTEL: *hasResult = true; *hasResultType = true; break;
+    case OpConvertHandleToSampledImageINTEL: *hasResult = true; *hasResultType = true; break;
     }
 }
 inline const char* SourceLanguageToString(SourceLanguage value) {
@@ -3640,6 +3652,7 @@ inline const char* DecorationToString(Decoration value) {
     case DecorationMaxByteOffset: return "MaxByteOffset";
     case DecorationAlignmentId: return "AlignmentId";
     case DecorationMaxByteOffsetId: return "MaxByteOffsetId";
+    case DecorationSaturatedToLargestFloat8NormalConversionEXT: return "SaturatedToLargestFloat8NormalConversionEXT";
     case DecorationNoSignedWrap: return "NoSignedWrap";
     case DecorationNoUnsignedWrap: return "NoUnsignedWrap";
     case DecorationWeightTextureQCOM: return "WeightTextureQCOM";
@@ -3986,6 +3999,8 @@ inline const char* CapabilityToString(Capability value) {
     case CapabilityStorageTensorArrayDynamicIndexingARM: return "StorageTensorArrayDynamicIndexingARM";
     case CapabilityStorageTensorArrayNonUniformIndexingARM: return "StorageTensorArrayNonUniformIndexingARM";
     case CapabilityCooperativeMatrixLayoutsARM: return "CooperativeMatrixLayoutsARM";
+    case CapabilityFloat8EXT: return "Float8EXT";
+    case CapabilityFloat8CooperativeMatrixEXT: return "Float8CooperativeMatrixEXT";
     case CapabilityFragmentShadingRateKHR: return "FragmentShadingRateKHR";
     case CapabilitySubgroupBallotKHR: return "SubgroupBallotKHR";
     case CapabilityDrawParameters: return "DrawParameters";
@@ -4174,6 +4189,7 @@ inline const char* CapabilityToString(Capability value) {
     case CapabilityMaskedGatherScatterINTEL: return "MaskedGatherScatterINTEL";
     case CapabilityCacheControlsINTEL: return "CacheControlsINTEL";
     case CapabilityRegisterLimitsINTEL: return "RegisterLimitsINTEL";
+    case CapabilityBindlessImagesINTEL: return "BindlessImagesINTEL";
     default: return "Unknown";
     }
 }
@@ -4329,6 +4345,8 @@ inline const char* NamedMaximumNumberOfRegistersToString(NamedMaximumNumberOfReg
 inline const char* FPEncodingToString(FPEncoding value) {
     switch (value) {
     case FPEncodingBFloat16KHR: return "BFloat16KHR";
+    case FPEncodingFloat8E4M3EXT: return "Float8E4M3EXT";
+    case FPEncodingFloat8E5M2EXT: return "Float8E5M2EXT";
     default: return "Unknown";
     }
 }
@@ -5164,6 +5182,9 @@ inline const char* OpToString(Op value) {
     case OpRoundFToTF32INTEL: return "OpRoundFToTF32INTEL";
     case OpMaskedGatherINTEL: return "OpMaskedGatherINTEL";
     case OpMaskedScatterINTEL: return "OpMaskedScatterINTEL";
+    case OpConvertHandleToImageINTEL: return "OpConvertHandleToImageINTEL";
+    case OpConvertHandleToSamplerINTEL: return "OpConvertHandleToSamplerINTEL";
+    case OpConvertHandleToSampledImageINTEL: return "OpConvertHandleToSampledImageINTEL";
     default: return "Unknown";
     }
 }

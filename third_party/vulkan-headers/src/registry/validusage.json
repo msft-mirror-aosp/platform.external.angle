@@ -1,9 +1,9 @@
 {
   "version info": {
     "schema version": 2,
-    "api version": "1.4.315",
-    "comment": "from git branch: github-main commit: 112aee75d162412a4623e7d22a3de52e0233cbf5",
-    "date": "2025-05-09 11:30:16Z"
+    "api version": "1.4.316",
+    "comment": "from git branch: github-main commit: dd1a021e15026b17c6f844cb42a59036b9f9a9b8",
+    "date": "2025-05-30 15:00:46Z"
   },
   "validation": {
     "vkGetInstanceProcAddr": {
@@ -905,7 +905,7 @@
         },
         {
           "vuid": "VUID-VkDeviceCreateInfo-pNext-pNext",
-          "text": "Each <code>pNext</code> member of any structure (including this one) in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be either <code>NULL</code> or a pointer to a valid instance of <a href=\"#VkDeviceDeviceMemoryReportCreateInfoEXT\">VkDeviceDeviceMemoryReportCreateInfoEXT</a>, <a href=\"#VkDeviceDiagnosticsConfigCreateInfoNV\">VkDeviceDiagnosticsConfigCreateInfoNV</a>, <a href=\"#VkDeviceGroupDeviceCreateInfo\">VkDeviceGroupDeviceCreateInfo</a>, <a href=\"#VkDeviceMemoryOverallocationCreateInfoAMD\">VkDeviceMemoryOverallocationCreateInfoAMD</a>, <a href=\"#VkDevicePipelineBinaryInternalCacheControlKHR\">VkDevicePipelineBinaryInternalCacheControlKHR</a>, <a href=\"#VkDevicePrivateDataCreateInfo\">VkDevicePrivateDataCreateInfo</a>, <a href=\"#VkDeviceQueueShaderCoreControlCreateInfoARM\">VkDeviceQueueShaderCoreControlCreateInfoARM</a>, <a href=\"#VkExternalComputeQueueDeviceCreateInfoNV\">VkExternalComputeQueueDeviceCreateInfoNV</a>, <a href=\"#VkPhysicalDevice16BitStorageFeatures\">VkPhysicalDevice16BitStorageFeatures</a>, <a href=\"#VkPhysicalDevice4444FormatsFeaturesEXT\">VkPhysicalDevice4444FormatsFeaturesEXT</a>, <a href=\"#VkPhysicalDevice8BitStorageFeatures\">VkPhysicalDevice8BitStorageFeatures</a>, <a href=\"#VkPhysicalDeviceASTCDecodeFeaturesEXT\">VkPhysicalDeviceASTCDecodeFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceAccelerationStructureFeaturesKHR\">VkPhysicalDeviceAccelerationStructureFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceAddressBindingReportFeaturesEXT\">VkPhysicalDeviceAddressBindingReportFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceAmigoProfilingFeaturesSEC\">VkPhysicalDeviceAmigoProfilingFeaturesSEC</a>, <a href=\"#VkPhysicalDeviceAntiLagFeaturesAMD\">VkPhysicalDeviceAntiLagFeaturesAMD</a>, <a href=\"#VkPhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT\">VkPhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT\">VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT\">VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceBorderColorSwizzleFeaturesEXT\">VkPhysicalDeviceBorderColorSwizzleFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceBufferDeviceAddressFeatures\">VkPhysicalDeviceBufferDeviceAddressFeatures</a>, <a href=\"#VkPhysicalDeviceBufferDeviceAddressFeaturesEXT\">VkPhysicalDeviceBufferDeviceAddressFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceClusterAccelerationStructureFeaturesNV\">VkPhysicalDeviceClusterAccelerationStructureFeaturesNV</a>, <a href=\"#VkPhysicalDeviceClusterCullingShaderFeaturesHUAWEI\">VkPhysicalDeviceClusterCullingShaderFeaturesHUAWEI</a>, <a href=\"#VkPhysicalDeviceCoherentMemoryFeaturesAMD\">VkPhysicalDeviceCoherentMemoryFeaturesAMD</a>, <a href=\"#VkPhysicalDeviceColorWriteEnableFeaturesEXT\">VkPhysicalDeviceColorWriteEnableFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceCommandBufferInheritanceFeaturesNV\">VkPhysicalDeviceCommandBufferInheritanceFeaturesNV</a>, <a href=\"#VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR\">VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceConditionalRenderingFeaturesEXT\">VkPhysicalDeviceConditionalRenderingFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceCooperativeMatrix2FeaturesNV\">VkPhysicalDeviceCooperativeMatrix2FeaturesNV</a>, <a href=\"#VkPhysicalDeviceCooperativeMatrixFeaturesKHR\">VkPhysicalDeviceCooperativeMatrixFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceCooperativeMatrixFeaturesNV\">VkPhysicalDeviceCooperativeMatrixFeaturesNV</a>, <a href=\"#VkPhysicalDeviceCooperativeVectorFeaturesNV\">VkPhysicalDeviceCooperativeVectorFeaturesNV</a>, <a href=\"#VkPhysicalDeviceCopyMemoryIndirectFeaturesNV\">VkPhysicalDeviceCopyMemoryIndirectFeaturesNV</a>, <a href=\"#VkPhysicalDeviceCornerSampledImageFeaturesNV\">VkPhysicalDeviceCornerSampledImageFeaturesNV</a>, <a href=\"#VkPhysicalDeviceCoverageReductionModeFeaturesNV\">VkPhysicalDeviceCoverageReductionModeFeaturesNV</a>, <a href=\"#VkPhysicalDeviceCubicClampFeaturesQCOM\">VkPhysicalDeviceCubicClampFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceCubicWeightsFeaturesQCOM\">VkPhysicalDeviceCubicWeightsFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceCudaKernelLaunchFeaturesNV\">VkPhysicalDeviceCudaKernelLaunchFeaturesNV</a>, <a href=\"#VkPhysicalDeviceCustomBorderColorFeaturesEXT\">VkPhysicalDeviceCustomBorderColorFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV\">VkPhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV</a>, <a href=\"#VkPhysicalDeviceDepthBiasControlFeaturesEXT\">VkPhysicalDeviceDepthBiasControlFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDepthClampControlFeaturesEXT\">VkPhysicalDeviceDepthClampControlFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDepthClampZeroOneFeaturesKHR\">VkPhysicalDeviceDepthClampZeroOneFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceDepthClipControlFeaturesEXT\">VkPhysicalDeviceDepthClipControlFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDepthClipEnableFeaturesEXT\">VkPhysicalDeviceDepthClipEnableFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDescriptorBufferFeaturesEXT\">VkPhysicalDeviceDescriptorBufferFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDescriptorIndexingFeatures\">VkPhysicalDeviceDescriptorIndexingFeatures</a>, <a href=\"#VkPhysicalDeviceDescriptorPoolOverallocationFeaturesNV\">VkPhysicalDeviceDescriptorPoolOverallocationFeaturesNV</a>, <a href=\"#VkPhysicalDeviceDescriptorSetHostMappingFeaturesVALVE\">VkPhysicalDeviceDescriptorSetHostMappingFeaturesVALVE</a>, <a href=\"#VkPhysicalDeviceDeviceGeneratedCommandsComputeFeaturesNV\">VkPhysicalDeviceDeviceGeneratedCommandsComputeFeaturesNV</a>, <a href=\"#VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT\">VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV\">VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</a>, <a href=\"#VkPhysicalDeviceDeviceMemoryReportFeaturesEXT\">VkPhysicalDeviceDeviceMemoryReportFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDiagnosticsConfigFeaturesNV\">VkPhysicalDeviceDiagnosticsConfigFeaturesNV</a>, <a href=\"#VkPhysicalDeviceDisplacementMicromapFeaturesNV\">VkPhysicalDeviceDisplacementMicromapFeaturesNV</a>, <a href=\"#VkPhysicalDeviceDynamicRenderingFeatures\">VkPhysicalDeviceDynamicRenderingFeatures</a>, <a href=\"#VkPhysicalDeviceDynamicRenderingLocalReadFeatures\">VkPhysicalDeviceDynamicRenderingLocalReadFeatures</a>, <a href=\"#VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT\">VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceExclusiveScissorFeaturesNV\">VkPhysicalDeviceExclusiveScissorFeaturesNV</a>, <a href=\"#VkPhysicalDeviceExtendedDynamicState2FeaturesEXT\">VkPhysicalDeviceExtendedDynamicState2FeaturesEXT</a>, <a href=\"#VkPhysicalDeviceExtendedDynamicState3FeaturesEXT\">VkPhysicalDeviceExtendedDynamicState3FeaturesEXT</a>, <a href=\"#VkPhysicalDeviceExtendedDynamicStateFeaturesEXT\">VkPhysicalDeviceExtendedDynamicStateFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceExtendedSparseAddressSpaceFeaturesNV\">VkPhysicalDeviceExtendedSparseAddressSpaceFeaturesNV</a>, <a href=\"#VkPhysicalDeviceExternalFormatResolveFeaturesANDROID\">VkPhysicalDeviceExternalFormatResolveFeaturesANDROID</a>, <a href=\"#VkPhysicalDeviceExternalMemoryRDMAFeaturesNV\">VkPhysicalDeviceExternalMemoryRDMAFeaturesNV</a>, <a href=\"#VkPhysicalDeviceExternalMemoryScreenBufferFeaturesQNX\">VkPhysicalDeviceExternalMemoryScreenBufferFeaturesQNX</a>, <a href=\"#VkPhysicalDeviceFaultFeaturesEXT\">VkPhysicalDeviceFaultFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceFeatures2\">VkPhysicalDeviceFeatures2</a>, <a href=\"#VkPhysicalDeviceFragmentDensityMap2FeaturesEXT\">VkPhysicalDeviceFragmentDensityMap2FeaturesEXT</a>, <a href=\"#VkPhysicalDeviceFragmentDensityMapFeaturesEXT\">VkPhysicalDeviceFragmentDensityMapFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceFragmentDensityMapOffsetFeaturesEXT\">VkPhysicalDeviceFragmentDensityMapOffsetFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR\">VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT\">VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceFragmentShadingRateEnumsFeaturesNV\">VkPhysicalDeviceFragmentShadingRateEnumsFeaturesNV</a>, <a href=\"#VkPhysicalDeviceFragmentShadingRateFeaturesKHR\">VkPhysicalDeviceFragmentShadingRateFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceFrameBoundaryFeaturesEXT\">VkPhysicalDeviceFrameBoundaryFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceGlobalPriorityQueryFeatures\">VkPhysicalDeviceGlobalPriorityQueryFeatures</a>, <a href=\"#VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT\">VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceHdrVividFeaturesHUAWEI\">VkPhysicalDeviceHdrVividFeaturesHUAWEI</a>, <a href=\"#VkPhysicalDeviceHostImageCopyFeatures\">VkPhysicalDeviceHostImageCopyFeatures</a>, <a href=\"#VkPhysicalDeviceHostQueryResetFeatures\">VkPhysicalDeviceHostQueryResetFeatures</a>, <a href=\"#VkPhysicalDeviceImage2DViewOf3DFeaturesEXT\">VkPhysicalDeviceImage2DViewOf3DFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceImageAlignmentControlFeaturesMESA\">VkPhysicalDeviceImageAlignmentControlFeaturesMESA</a>, <a href=\"#VkPhysicalDeviceImageCompressionControlFeaturesEXT\">VkPhysicalDeviceImageCompressionControlFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceImageCompressionControlSwapchainFeaturesEXT\">VkPhysicalDeviceImageCompressionControlSwapchainFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceImageProcessing2FeaturesQCOM\">VkPhysicalDeviceImageProcessing2FeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceImageProcessingFeaturesQCOM\">VkPhysicalDeviceImageProcessingFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceImageRobustnessFeatures\">VkPhysicalDeviceImageRobustnessFeatures</a>, <a href=\"#VkPhysicalDeviceImageSlicedViewOf3DFeaturesEXT\">VkPhysicalDeviceImageSlicedViewOf3DFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceImageViewMinLodFeaturesEXT\">VkPhysicalDeviceImageViewMinLodFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceImagelessFramebufferFeatures\">VkPhysicalDeviceImagelessFramebufferFeatures</a>, <a href=\"#VkPhysicalDeviceIndexTypeUint8Features\">VkPhysicalDeviceIndexTypeUint8Features</a>, <a href=\"#VkPhysicalDeviceInheritedViewportScissorFeaturesNV\">VkPhysicalDeviceInheritedViewportScissorFeaturesNV</a>, <a href=\"#VkPhysicalDeviceInlineUniformBlockFeatures\">VkPhysicalDeviceInlineUniformBlockFeatures</a>, <a href=\"#VkPhysicalDeviceInvocationMaskFeaturesHUAWEI\">VkPhysicalDeviceInvocationMaskFeaturesHUAWEI</a>, <a href=\"#VkPhysicalDeviceLegacyDitheringFeaturesEXT\">VkPhysicalDeviceLegacyDitheringFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceLegacyVertexAttributesFeaturesEXT\">VkPhysicalDeviceLegacyVertexAttributesFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceLineRasterizationFeatures\">VkPhysicalDeviceLineRasterizationFeatures</a>, <a href=\"#VkPhysicalDeviceLinearColorAttachmentFeaturesNV\">VkPhysicalDeviceLinearColorAttachmentFeaturesNV</a>, <a href=\"#VkPhysicalDeviceMaintenance4Features\">VkPhysicalDeviceMaintenance4Features</a>, <a href=\"#VkPhysicalDeviceMaintenance5Features\">VkPhysicalDeviceMaintenance5Features</a>, <a href=\"#VkPhysicalDeviceMaintenance6Features\">VkPhysicalDeviceMaintenance6Features</a>, <a href=\"#VkPhysicalDeviceMaintenance7FeaturesKHR\">VkPhysicalDeviceMaintenance7FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceMaintenance8FeaturesKHR\">VkPhysicalDeviceMaintenance8FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceMapMemoryPlacedFeaturesEXT\">VkPhysicalDeviceMapMemoryPlacedFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceMemoryDecompressionFeaturesNV\">VkPhysicalDeviceMemoryDecompressionFeaturesNV</a>, <a href=\"#VkPhysicalDeviceMemoryPriorityFeaturesEXT\">VkPhysicalDeviceMemoryPriorityFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceMeshShaderFeaturesEXT\">VkPhysicalDeviceMeshShaderFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceMeshShaderFeaturesNV\">VkPhysicalDeviceMeshShaderFeaturesNV</a>, <a href=\"#VkPhysicalDeviceMultiDrawFeaturesEXT\">VkPhysicalDeviceMultiDrawFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT\">VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceMultiviewFeatures\">VkPhysicalDeviceMultiviewFeatures</a>, <a href=\"#VkPhysicalDeviceMultiviewPerViewRenderAreasFeaturesQCOM\">VkPhysicalDeviceMultiviewPerViewRenderAreasFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM\">VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT\">VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceNestedCommandBufferFeaturesEXT\">VkPhysicalDeviceNestedCommandBufferFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceNonSeamlessCubeMapFeaturesEXT\">VkPhysicalDeviceNonSeamlessCubeMapFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceOpacityMicromapFeaturesEXT\">VkPhysicalDeviceOpacityMicromapFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceOpticalFlowFeaturesNV\">VkPhysicalDeviceOpticalFlowFeaturesNV</a>, <a href=\"#VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT\">VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT</a>, <a href=\"#VkPhysicalDevicePartitionedAccelerationStructureFeaturesNV\">VkPhysicalDevicePartitionedAccelerationStructureFeaturesNV</a>, <a href=\"#VkPhysicalDevicePerStageDescriptorSetFeaturesNV\">VkPhysicalDevicePerStageDescriptorSetFeaturesNV</a>, <a href=\"#VkPhysicalDevicePerformanceQueryFeaturesKHR\">VkPhysicalDevicePerformanceQueryFeaturesKHR</a>, <a href=\"#VkPhysicalDevicePipelineBinaryFeaturesKHR\">VkPhysicalDevicePipelineBinaryFeaturesKHR</a>, <a href=\"#VkPhysicalDevicePipelineCreationCacheControlFeatures\">VkPhysicalDevicePipelineCreationCacheControlFeatures</a>, <a href=\"#VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR\">VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR</a>, <a href=\"#VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT\">VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT</a>, <a href=\"#VkPhysicalDevicePipelineOpacityMicromapFeaturesARM\">VkPhysicalDevicePipelineOpacityMicromapFeaturesARM</a>, <a href=\"#VkPhysicalDevicePipelinePropertiesFeaturesEXT\">VkPhysicalDevicePipelinePropertiesFeaturesEXT</a>, <a href=\"#VkPhysicalDevicePipelineProtectedAccessFeatures\">VkPhysicalDevicePipelineProtectedAccessFeatures</a>, <a href=\"#VkPhysicalDevicePipelineRobustnessFeatures\">VkPhysicalDevicePipelineRobustnessFeatures</a>, <a href=\"#VkPhysicalDevicePortabilitySubsetFeaturesKHR\">VkPhysicalDevicePortabilitySubsetFeaturesKHR</a>, <a href=\"#VkPhysicalDevicePresentBarrierFeaturesNV\">VkPhysicalDevicePresentBarrierFeaturesNV</a>, <a href=\"#VkPhysicalDevicePresentIdFeaturesKHR\">VkPhysicalDevicePresentIdFeaturesKHR</a>, <a href=\"#VkPhysicalDevicePresentMeteringFeaturesNV\">VkPhysicalDevicePresentMeteringFeaturesNV</a>, <a href=\"#VkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT\">VkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT</a>, <a href=\"#VkPhysicalDevicePresentWaitFeaturesKHR\">VkPhysicalDevicePresentWaitFeaturesKHR</a>, <a href=\"#VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT\">VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT</a>, <a href=\"#VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT\">VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT</a>, <a href=\"#VkPhysicalDevicePrivateDataFeatures\">VkPhysicalDevicePrivateDataFeatures</a>, <a href=\"#VkPhysicalDeviceProtectedMemoryFeatures\">VkPhysicalDeviceProtectedMemoryFeatures</a>, <a href=\"#VkPhysicalDeviceProvokingVertexFeaturesEXT\">VkPhysicalDeviceProvokingVertexFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceRGBA10X6FormatsFeaturesEXT\">VkPhysicalDeviceRGBA10X6FormatsFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT\">VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceRawAccessChainsFeaturesNV\">VkPhysicalDeviceRawAccessChainsFeaturesNV</a>, <a href=\"#VkPhysicalDeviceRayQueryFeaturesKHR\">VkPhysicalDeviceRayQueryFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceRayTracingInvocationReorderFeaturesNV\">VkPhysicalDeviceRayTracingInvocationReorderFeaturesNV</a>, <a href=\"#VkPhysicalDeviceRayTracingLinearSweptSpheresFeaturesNV\">VkPhysicalDeviceRayTracingLinearSweptSpheresFeaturesNV</a>, <a href=\"#VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR\">VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceRayTracingMotionBlurFeaturesNV\">VkPhysicalDeviceRayTracingMotionBlurFeaturesNV</a>, <a href=\"#VkPhysicalDeviceRayTracingPipelineFeaturesKHR\">VkPhysicalDeviceRayTracingPipelineFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceRayTracingPositionFetchFeaturesKHR\">VkPhysicalDeviceRayTracingPositionFetchFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceRayTracingValidationFeaturesNV\">VkPhysicalDeviceRayTracingValidationFeaturesNV</a>, <a href=\"#VkPhysicalDeviceRelaxedLineRasterizationFeaturesIMG\">VkPhysicalDeviceRelaxedLineRasterizationFeaturesIMG</a>, <a href=\"#VkPhysicalDeviceRenderPassStripedFeaturesARM\">VkPhysicalDeviceRenderPassStripedFeaturesARM</a>, <a href=\"#VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV\">VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV</a>, <a href=\"#VkPhysicalDeviceRobustness2FeaturesKHR\">VkPhysicalDeviceRobustness2FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceSamplerYcbcrConversionFeatures\">VkPhysicalDeviceSamplerYcbcrConversionFeatures</a>, <a href=\"#VkPhysicalDeviceScalarBlockLayoutFeatures\">VkPhysicalDeviceScalarBlockLayoutFeatures</a>, <a href=\"#VkPhysicalDeviceSchedulingControlsFeaturesARM\">VkPhysicalDeviceSchedulingControlsFeaturesARM</a>, <a href=\"#VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures\">VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures</a>, <a href=\"#VkPhysicalDeviceShaderAtomicFloat16VectorFeaturesNV\">VkPhysicalDeviceShaderAtomicFloat16VectorFeaturesNV</a>, <a href=\"#VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT\">VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT</a>, <a href=\"#VkPhysicalDeviceShaderAtomicFloatFeaturesEXT\">VkPhysicalDeviceShaderAtomicFloatFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceShaderAtomicInt64Features\">VkPhysicalDeviceShaderAtomicInt64Features</a>, <a href=\"#VkPhysicalDeviceShaderBfloat16FeaturesKHR\">VkPhysicalDeviceShaderBfloat16FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceShaderClockFeaturesKHR\">VkPhysicalDeviceShaderClockFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceShaderCoreBuiltinsFeaturesARM\">VkPhysicalDeviceShaderCoreBuiltinsFeaturesARM</a>, <a href=\"#VkPhysicalDeviceShaderDemoteToHelperInvocationFeatures\">VkPhysicalDeviceShaderDemoteToHelperInvocationFeatures</a>, <a href=\"#VkPhysicalDeviceShaderDrawParametersFeatures\">VkPhysicalDeviceShaderDrawParametersFeatures</a>, <a href=\"#VkPhysicalDeviceShaderEarlyAndLateFragmentTestsFeaturesAMD\">VkPhysicalDeviceShaderEarlyAndLateFragmentTestsFeaturesAMD</a>, <a href=\"#VkPhysicalDeviceShaderEnqueueFeaturesAMDX\">VkPhysicalDeviceShaderEnqueueFeaturesAMDX</a>, <a href=\"#VkPhysicalDeviceShaderExpectAssumeFeatures\">VkPhysicalDeviceShaderExpectAssumeFeatures</a>, <a href=\"#VkPhysicalDeviceShaderFloat16Int8Features\">VkPhysicalDeviceShaderFloat16Int8Features</a>, <a href=\"#VkPhysicalDeviceShaderFloatControls2Features\">VkPhysicalDeviceShaderFloatControls2Features</a>, <a href=\"#VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT\">VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT</a>, <a href=\"#VkPhysicalDeviceShaderImageFootprintFeaturesNV\">VkPhysicalDeviceShaderImageFootprintFeaturesNV</a>, <a href=\"#VkPhysicalDeviceShaderIntegerDotProductFeatures\">VkPhysicalDeviceShaderIntegerDotProductFeatures</a>, <a href=\"#VkPhysicalDeviceShaderIntegerFunctions2FeaturesINTEL\">VkPhysicalDeviceShaderIntegerFunctions2FeaturesINTEL</a>, <a href=\"#VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR\">VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceShaderModuleIdentifierFeaturesEXT\">VkPhysicalDeviceShaderModuleIdentifierFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceShaderObjectFeaturesEXT\">VkPhysicalDeviceShaderObjectFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceShaderQuadControlFeaturesKHR\">VkPhysicalDeviceShaderQuadControlFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR\">VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceShaderReplicatedCompositesFeaturesEXT\">VkPhysicalDeviceShaderReplicatedCompositesFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceShaderSMBuiltinsFeaturesNV\">VkPhysicalDeviceShaderSMBuiltinsFeaturesNV</a>, <a href=\"#VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures\">VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures</a>, <a href=\"#VkPhysicalDeviceShaderSubgroupRotateFeatures\">VkPhysicalDeviceShaderSubgroupRotateFeatures</a>, <a href=\"#VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR\">VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceShaderTerminateInvocationFeatures\">VkPhysicalDeviceShaderTerminateInvocationFeatures</a>, <a href=\"#VkPhysicalDeviceShaderTileImageFeaturesEXT\">VkPhysicalDeviceShaderTileImageFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceShadingRateImageFeaturesNV\">VkPhysicalDeviceShadingRateImageFeaturesNV</a>, <a href=\"#VkPhysicalDeviceSubgroupSizeControlFeatures\">VkPhysicalDeviceSubgroupSizeControlFeatures</a>, <a href=\"#VkPhysicalDeviceSubpassMergeFeedbackFeaturesEXT\">VkPhysicalDeviceSubpassMergeFeedbackFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceSubpassShadingFeaturesHUAWEI\">VkPhysicalDeviceSubpassShadingFeaturesHUAWEI</a>, <a href=\"#VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT\">VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT</a>, <a href=\"#VkPhysicalDeviceSynchronization2Features\">VkPhysicalDeviceSynchronization2Features</a>, <a href=\"#VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT\">VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceTextureCompressionASTCHDRFeatures\">VkPhysicalDeviceTextureCompressionASTCHDRFeatures</a>, <a href=\"#VkPhysicalDeviceTileMemoryHeapFeaturesQCOM\">VkPhysicalDeviceTileMemoryHeapFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceTilePropertiesFeaturesQCOM\">VkPhysicalDeviceTilePropertiesFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceTileShadingFeaturesQCOM\">VkPhysicalDeviceTileShadingFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceTimelineSemaphoreFeatures\">VkPhysicalDeviceTimelineSemaphoreFeatures</a>, <a href=\"#VkPhysicalDeviceTransformFeedbackFeaturesEXT\">VkPhysicalDeviceTransformFeedbackFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceUniformBufferStandardLayoutFeatures\">VkPhysicalDeviceUniformBufferStandardLayoutFeatures</a>, <a href=\"#VkPhysicalDeviceVariablePointersFeatures\">VkPhysicalDeviceVariablePointersFeatures</a>, <a href=\"#VkPhysicalDeviceVertexAttributeDivisorFeatures\">VkPhysicalDeviceVertexAttributeDivisorFeatures</a>, <a href=\"#VkPhysicalDeviceVertexAttributeRobustnessFeaturesEXT\">VkPhysicalDeviceVertexAttributeRobustnessFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT\">VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceVideoEncodeAV1FeaturesKHR\">VkPhysicalDeviceVideoEncodeAV1FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceVideoEncodeQuantizationMapFeaturesKHR\">VkPhysicalDeviceVideoEncodeQuantizationMapFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceVideoMaintenance1FeaturesKHR\">VkPhysicalDeviceVideoMaintenance1FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceVideoMaintenance2FeaturesKHR\">VkPhysicalDeviceVideoMaintenance2FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceVulkan11Features\">VkPhysicalDeviceVulkan11Features</a>, <a href=\"#VkPhysicalDeviceVulkan12Features\">VkPhysicalDeviceVulkan12Features</a>, <a href=\"#VkPhysicalDeviceVulkan13Features\">VkPhysicalDeviceVulkan13Features</a>, <a href=\"#VkPhysicalDeviceVulkan14Features\">VkPhysicalDeviceVulkan14Features</a>, <a href=\"#VkPhysicalDeviceVulkanMemoryModelFeatures\">VkPhysicalDeviceVulkanMemoryModelFeatures</a>, <a href=\"#VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR\">VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceYcbcr2Plane444FormatsFeaturesEXT\">VkPhysicalDeviceYcbcr2Plane444FormatsFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceYcbcrDegammaFeaturesQCOM\">VkPhysicalDeviceYcbcrDegammaFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceYcbcrImageArraysFeaturesEXT\">VkPhysicalDeviceYcbcrImageArraysFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceZeroInitializeDeviceMemoryFeaturesEXT\">VkPhysicalDeviceZeroInitializeDeviceMemoryFeaturesEXT</a>, or <a href=\"#VkPhysicalDeviceZeroInitializeWorkgroupMemoryFeatures\">VkPhysicalDeviceZeroInitializeWorkgroupMemoryFeatures</a>",
+          "text": "Each <code>pNext</code> member of any structure (including this one) in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be either <code>NULL</code> or a pointer to a valid instance of <a href=\"#VkDeviceDeviceMemoryReportCreateInfoEXT\">VkDeviceDeviceMemoryReportCreateInfoEXT</a>, <a href=\"#VkDeviceDiagnosticsConfigCreateInfoNV\">VkDeviceDiagnosticsConfigCreateInfoNV</a>, <a href=\"#VkDeviceGroupDeviceCreateInfo\">VkDeviceGroupDeviceCreateInfo</a>, <a href=\"#VkDeviceMemoryOverallocationCreateInfoAMD\">VkDeviceMemoryOverallocationCreateInfoAMD</a>, <a href=\"#VkDevicePipelineBinaryInternalCacheControlKHR\">VkDevicePipelineBinaryInternalCacheControlKHR</a>, <a href=\"#VkDevicePrivateDataCreateInfo\">VkDevicePrivateDataCreateInfo</a>, <a href=\"#VkDeviceQueueShaderCoreControlCreateInfoARM\">VkDeviceQueueShaderCoreControlCreateInfoARM</a>, <a href=\"#VkExternalComputeQueueDeviceCreateInfoNV\">VkExternalComputeQueueDeviceCreateInfoNV</a>, <a href=\"#VkPhysicalDevice16BitStorageFeatures\">VkPhysicalDevice16BitStorageFeatures</a>, <a href=\"#VkPhysicalDevice4444FormatsFeaturesEXT\">VkPhysicalDevice4444FormatsFeaturesEXT</a>, <a href=\"#VkPhysicalDevice8BitStorageFeatures\">VkPhysicalDevice8BitStorageFeatures</a>, <a href=\"#VkPhysicalDeviceASTCDecodeFeaturesEXT\">VkPhysicalDeviceASTCDecodeFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceAccelerationStructureFeaturesKHR\">VkPhysicalDeviceAccelerationStructureFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceAddressBindingReportFeaturesEXT\">VkPhysicalDeviceAddressBindingReportFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceAmigoProfilingFeaturesSEC\">VkPhysicalDeviceAmigoProfilingFeaturesSEC</a>, <a href=\"#VkPhysicalDeviceAntiLagFeaturesAMD\">VkPhysicalDeviceAntiLagFeaturesAMD</a>, <a href=\"#VkPhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT\">VkPhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT\">VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT\">VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceBorderColorSwizzleFeaturesEXT\">VkPhysicalDeviceBorderColorSwizzleFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceBufferDeviceAddressFeatures\">VkPhysicalDeviceBufferDeviceAddressFeatures</a>, <a href=\"#VkPhysicalDeviceBufferDeviceAddressFeaturesEXT\">VkPhysicalDeviceBufferDeviceAddressFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceClusterAccelerationStructureFeaturesNV\">VkPhysicalDeviceClusterAccelerationStructureFeaturesNV</a>, <a href=\"#VkPhysicalDeviceClusterCullingShaderFeaturesHUAWEI\">VkPhysicalDeviceClusterCullingShaderFeaturesHUAWEI</a>, <a href=\"#VkPhysicalDeviceCoherentMemoryFeaturesAMD\">VkPhysicalDeviceCoherentMemoryFeaturesAMD</a>, <a href=\"#VkPhysicalDeviceColorWriteEnableFeaturesEXT\">VkPhysicalDeviceColorWriteEnableFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceCommandBufferInheritanceFeaturesNV\">VkPhysicalDeviceCommandBufferInheritanceFeaturesNV</a>, <a href=\"#VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR\">VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceConditionalRenderingFeaturesEXT\">VkPhysicalDeviceConditionalRenderingFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceCooperativeMatrix2FeaturesNV\">VkPhysicalDeviceCooperativeMatrix2FeaturesNV</a>, <a href=\"#VkPhysicalDeviceCooperativeMatrixFeaturesKHR\">VkPhysicalDeviceCooperativeMatrixFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceCooperativeMatrixFeaturesNV\">VkPhysicalDeviceCooperativeMatrixFeaturesNV</a>, <a href=\"#VkPhysicalDeviceCooperativeVectorFeaturesNV\">VkPhysicalDeviceCooperativeVectorFeaturesNV</a>, <a href=\"#VkPhysicalDeviceCopyMemoryIndirectFeaturesNV\">VkPhysicalDeviceCopyMemoryIndirectFeaturesNV</a>, <a href=\"#VkPhysicalDeviceCornerSampledImageFeaturesNV\">VkPhysicalDeviceCornerSampledImageFeaturesNV</a>, <a href=\"#VkPhysicalDeviceCoverageReductionModeFeaturesNV\">VkPhysicalDeviceCoverageReductionModeFeaturesNV</a>, <a href=\"#VkPhysicalDeviceCubicClampFeaturesQCOM\">VkPhysicalDeviceCubicClampFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceCubicWeightsFeaturesQCOM\">VkPhysicalDeviceCubicWeightsFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceCudaKernelLaunchFeaturesNV\">VkPhysicalDeviceCudaKernelLaunchFeaturesNV</a>, <a href=\"#VkPhysicalDeviceCustomBorderColorFeaturesEXT\">VkPhysicalDeviceCustomBorderColorFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV\">VkPhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV</a>, <a href=\"#VkPhysicalDeviceDepthBiasControlFeaturesEXT\">VkPhysicalDeviceDepthBiasControlFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDepthClampControlFeaturesEXT\">VkPhysicalDeviceDepthClampControlFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDepthClampZeroOneFeaturesKHR\">VkPhysicalDeviceDepthClampZeroOneFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceDepthClipControlFeaturesEXT\">VkPhysicalDeviceDepthClipControlFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDepthClipEnableFeaturesEXT\">VkPhysicalDeviceDepthClipEnableFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDescriptorBufferFeaturesEXT\">VkPhysicalDeviceDescriptorBufferFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDescriptorIndexingFeatures\">VkPhysicalDeviceDescriptorIndexingFeatures</a>, <a href=\"#VkPhysicalDeviceDescriptorPoolOverallocationFeaturesNV\">VkPhysicalDeviceDescriptorPoolOverallocationFeaturesNV</a>, <a href=\"#VkPhysicalDeviceDescriptorSetHostMappingFeaturesVALVE\">VkPhysicalDeviceDescriptorSetHostMappingFeaturesVALVE</a>, <a href=\"#VkPhysicalDeviceDeviceGeneratedCommandsComputeFeaturesNV\">VkPhysicalDeviceDeviceGeneratedCommandsComputeFeaturesNV</a>, <a href=\"#VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT\">VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV\">VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</a>, <a href=\"#VkPhysicalDeviceDeviceMemoryReportFeaturesEXT\">VkPhysicalDeviceDeviceMemoryReportFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceDiagnosticsConfigFeaturesNV\">VkPhysicalDeviceDiagnosticsConfigFeaturesNV</a>, <a href=\"#VkPhysicalDeviceDisplacementMicromapFeaturesNV\">VkPhysicalDeviceDisplacementMicromapFeaturesNV</a>, <a href=\"#VkPhysicalDeviceDynamicRenderingFeatures\">VkPhysicalDeviceDynamicRenderingFeatures</a>, <a href=\"#VkPhysicalDeviceDynamicRenderingLocalReadFeatures\">VkPhysicalDeviceDynamicRenderingLocalReadFeatures</a>, <a href=\"#VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT\">VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceExclusiveScissorFeaturesNV\">VkPhysicalDeviceExclusiveScissorFeaturesNV</a>, <a href=\"#VkPhysicalDeviceExtendedDynamicState2FeaturesEXT\">VkPhysicalDeviceExtendedDynamicState2FeaturesEXT</a>, <a href=\"#VkPhysicalDeviceExtendedDynamicState3FeaturesEXT\">VkPhysicalDeviceExtendedDynamicState3FeaturesEXT</a>, <a href=\"#VkPhysicalDeviceExtendedDynamicStateFeaturesEXT\">VkPhysicalDeviceExtendedDynamicStateFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceExtendedSparseAddressSpaceFeaturesNV\">VkPhysicalDeviceExtendedSparseAddressSpaceFeaturesNV</a>, <a href=\"#VkPhysicalDeviceExternalFormatResolveFeaturesANDROID\">VkPhysicalDeviceExternalFormatResolveFeaturesANDROID</a>, <a href=\"#VkPhysicalDeviceExternalMemoryRDMAFeaturesNV\">VkPhysicalDeviceExternalMemoryRDMAFeaturesNV</a>, <a href=\"#VkPhysicalDeviceExternalMemoryScreenBufferFeaturesQNX\">VkPhysicalDeviceExternalMemoryScreenBufferFeaturesQNX</a>, <a href=\"#VkPhysicalDeviceFaultFeaturesEXT\">VkPhysicalDeviceFaultFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceFeatures2\">VkPhysicalDeviceFeatures2</a>, <a href=\"#VkPhysicalDeviceFormatPackFeaturesARM\">VkPhysicalDeviceFormatPackFeaturesARM</a>, <a href=\"#VkPhysicalDeviceFragmentDensityMap2FeaturesEXT\">VkPhysicalDeviceFragmentDensityMap2FeaturesEXT</a>, <a href=\"#VkPhysicalDeviceFragmentDensityMapFeaturesEXT\">VkPhysicalDeviceFragmentDensityMapFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceFragmentDensityMapOffsetFeaturesEXT\">VkPhysicalDeviceFragmentDensityMapOffsetFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR\">VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT\">VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceFragmentShadingRateEnumsFeaturesNV\">VkPhysicalDeviceFragmentShadingRateEnumsFeaturesNV</a>, <a href=\"#VkPhysicalDeviceFragmentShadingRateFeaturesKHR\">VkPhysicalDeviceFragmentShadingRateFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceFrameBoundaryFeaturesEXT\">VkPhysicalDeviceFrameBoundaryFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceGlobalPriorityQueryFeatures\">VkPhysicalDeviceGlobalPriorityQueryFeatures</a>, <a href=\"#VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT\">VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceHdrVividFeaturesHUAWEI\">VkPhysicalDeviceHdrVividFeaturesHUAWEI</a>, <a href=\"#VkPhysicalDeviceHostImageCopyFeatures\">VkPhysicalDeviceHostImageCopyFeatures</a>, <a href=\"#VkPhysicalDeviceHostQueryResetFeatures\">VkPhysicalDeviceHostQueryResetFeatures</a>, <a href=\"#VkPhysicalDeviceImage2DViewOf3DFeaturesEXT\">VkPhysicalDeviceImage2DViewOf3DFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceImageAlignmentControlFeaturesMESA\">VkPhysicalDeviceImageAlignmentControlFeaturesMESA</a>, <a href=\"#VkPhysicalDeviceImageCompressionControlFeaturesEXT\">VkPhysicalDeviceImageCompressionControlFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceImageCompressionControlSwapchainFeaturesEXT\">VkPhysicalDeviceImageCompressionControlSwapchainFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceImageProcessing2FeaturesQCOM\">VkPhysicalDeviceImageProcessing2FeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceImageProcessingFeaturesQCOM\">VkPhysicalDeviceImageProcessingFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceImageRobustnessFeatures\">VkPhysicalDeviceImageRobustnessFeatures</a>, <a href=\"#VkPhysicalDeviceImageSlicedViewOf3DFeaturesEXT\">VkPhysicalDeviceImageSlicedViewOf3DFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceImageViewMinLodFeaturesEXT\">VkPhysicalDeviceImageViewMinLodFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceImagelessFramebufferFeatures\">VkPhysicalDeviceImagelessFramebufferFeatures</a>, <a href=\"#VkPhysicalDeviceIndexTypeUint8Features\">VkPhysicalDeviceIndexTypeUint8Features</a>, <a href=\"#VkPhysicalDeviceInheritedViewportScissorFeaturesNV\">VkPhysicalDeviceInheritedViewportScissorFeaturesNV</a>, <a href=\"#VkPhysicalDeviceInlineUniformBlockFeatures\">VkPhysicalDeviceInlineUniformBlockFeatures</a>, <a href=\"#VkPhysicalDeviceInvocationMaskFeaturesHUAWEI\">VkPhysicalDeviceInvocationMaskFeaturesHUAWEI</a>, <a href=\"#VkPhysicalDeviceLegacyDitheringFeaturesEXT\">VkPhysicalDeviceLegacyDitheringFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceLegacyVertexAttributesFeaturesEXT\">VkPhysicalDeviceLegacyVertexAttributesFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceLineRasterizationFeatures\">VkPhysicalDeviceLineRasterizationFeatures</a>, <a href=\"#VkPhysicalDeviceLinearColorAttachmentFeaturesNV\">VkPhysicalDeviceLinearColorAttachmentFeaturesNV</a>, <a href=\"#VkPhysicalDeviceMaintenance4Features\">VkPhysicalDeviceMaintenance4Features</a>, <a href=\"#VkPhysicalDeviceMaintenance5Features\">VkPhysicalDeviceMaintenance5Features</a>, <a href=\"#VkPhysicalDeviceMaintenance6Features\">VkPhysicalDeviceMaintenance6Features</a>, <a href=\"#VkPhysicalDeviceMaintenance7FeaturesKHR\">VkPhysicalDeviceMaintenance7FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceMaintenance8FeaturesKHR\">VkPhysicalDeviceMaintenance8FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceMapMemoryPlacedFeaturesEXT\">VkPhysicalDeviceMapMemoryPlacedFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceMemoryDecompressionFeaturesNV\">VkPhysicalDeviceMemoryDecompressionFeaturesNV</a>, <a href=\"#VkPhysicalDeviceMemoryPriorityFeaturesEXT\">VkPhysicalDeviceMemoryPriorityFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceMeshShaderFeaturesEXT\">VkPhysicalDeviceMeshShaderFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceMeshShaderFeaturesNV\">VkPhysicalDeviceMeshShaderFeaturesNV</a>, <a href=\"#VkPhysicalDeviceMultiDrawFeaturesEXT\">VkPhysicalDeviceMultiDrawFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT\">VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceMultiviewFeatures\">VkPhysicalDeviceMultiviewFeatures</a>, <a href=\"#VkPhysicalDeviceMultiviewPerViewRenderAreasFeaturesQCOM\">VkPhysicalDeviceMultiviewPerViewRenderAreasFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM\">VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT\">VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceNestedCommandBufferFeaturesEXT\">VkPhysicalDeviceNestedCommandBufferFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceNonSeamlessCubeMapFeaturesEXT\">VkPhysicalDeviceNonSeamlessCubeMapFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceOpacityMicromapFeaturesEXT\">VkPhysicalDeviceOpacityMicromapFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceOpticalFlowFeaturesNV\">VkPhysicalDeviceOpticalFlowFeaturesNV</a>, <a href=\"#VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT\">VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT</a>, <a href=\"#VkPhysicalDevicePartitionedAccelerationStructureFeaturesNV\">VkPhysicalDevicePartitionedAccelerationStructureFeaturesNV</a>, <a href=\"#VkPhysicalDevicePerStageDescriptorSetFeaturesNV\">VkPhysicalDevicePerStageDescriptorSetFeaturesNV</a>, <a href=\"#VkPhysicalDevicePerformanceQueryFeaturesKHR\">VkPhysicalDevicePerformanceQueryFeaturesKHR</a>, <a href=\"#VkPhysicalDevicePipelineBinaryFeaturesKHR\">VkPhysicalDevicePipelineBinaryFeaturesKHR</a>, <a href=\"#VkPhysicalDevicePipelineCreationCacheControlFeatures\">VkPhysicalDevicePipelineCreationCacheControlFeatures</a>, <a href=\"#VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR\">VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR</a>, <a href=\"#VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT\">VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT</a>, <a href=\"#VkPhysicalDevicePipelineOpacityMicromapFeaturesARM\">VkPhysicalDevicePipelineOpacityMicromapFeaturesARM</a>, <a href=\"#VkPhysicalDevicePipelinePropertiesFeaturesEXT\">VkPhysicalDevicePipelinePropertiesFeaturesEXT</a>, <a href=\"#VkPhysicalDevicePipelineProtectedAccessFeatures\">VkPhysicalDevicePipelineProtectedAccessFeatures</a>, <a href=\"#VkPhysicalDevicePipelineRobustnessFeatures\">VkPhysicalDevicePipelineRobustnessFeatures</a>, <a href=\"#VkPhysicalDevicePortabilitySubsetFeaturesKHR\">VkPhysicalDevicePortabilitySubsetFeaturesKHR</a>, <a href=\"#VkPhysicalDevicePresentBarrierFeaturesNV\">VkPhysicalDevicePresentBarrierFeaturesNV</a>, <a href=\"#VkPhysicalDevicePresentIdFeaturesKHR\">VkPhysicalDevicePresentIdFeaturesKHR</a>, <a href=\"#VkPhysicalDevicePresentMeteringFeaturesNV\">VkPhysicalDevicePresentMeteringFeaturesNV</a>, <a href=\"#VkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT\">VkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT</a>, <a href=\"#VkPhysicalDevicePresentWaitFeaturesKHR\">VkPhysicalDevicePresentWaitFeaturesKHR</a>, <a href=\"#VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT\">VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT</a>, <a href=\"#VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT\">VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT</a>, <a href=\"#VkPhysicalDevicePrivateDataFeatures\">VkPhysicalDevicePrivateDataFeatures</a>, <a href=\"#VkPhysicalDeviceProtectedMemoryFeatures\">VkPhysicalDeviceProtectedMemoryFeatures</a>, <a href=\"#VkPhysicalDeviceProvokingVertexFeaturesEXT\">VkPhysicalDeviceProvokingVertexFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceRGBA10X6FormatsFeaturesEXT\">VkPhysicalDeviceRGBA10X6FormatsFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT\">VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceRawAccessChainsFeaturesNV\">VkPhysicalDeviceRawAccessChainsFeaturesNV</a>, <a href=\"#VkPhysicalDeviceRayQueryFeaturesKHR\">VkPhysicalDeviceRayQueryFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceRayTracingInvocationReorderFeaturesNV\">VkPhysicalDeviceRayTracingInvocationReorderFeaturesNV</a>, <a href=\"#VkPhysicalDeviceRayTracingLinearSweptSpheresFeaturesNV\">VkPhysicalDeviceRayTracingLinearSweptSpheresFeaturesNV</a>, <a href=\"#VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR\">VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceRayTracingMotionBlurFeaturesNV\">VkPhysicalDeviceRayTracingMotionBlurFeaturesNV</a>, <a href=\"#VkPhysicalDeviceRayTracingPipelineFeaturesKHR\">VkPhysicalDeviceRayTracingPipelineFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceRayTracingPositionFetchFeaturesKHR\">VkPhysicalDeviceRayTracingPositionFetchFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceRayTracingValidationFeaturesNV\">VkPhysicalDeviceRayTracingValidationFeaturesNV</a>, <a href=\"#VkPhysicalDeviceRelaxedLineRasterizationFeaturesIMG\">VkPhysicalDeviceRelaxedLineRasterizationFeaturesIMG</a>, <a href=\"#VkPhysicalDeviceRenderPassStripedFeaturesARM\">VkPhysicalDeviceRenderPassStripedFeaturesARM</a>, <a href=\"#VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV\">VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV</a>, <a href=\"#VkPhysicalDeviceRobustness2FeaturesKHR\">VkPhysicalDeviceRobustness2FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceSamplerYcbcrConversionFeatures\">VkPhysicalDeviceSamplerYcbcrConversionFeatures</a>, <a href=\"#VkPhysicalDeviceScalarBlockLayoutFeatures\">VkPhysicalDeviceScalarBlockLayoutFeatures</a>, <a href=\"#VkPhysicalDeviceSchedulingControlsFeaturesARM\">VkPhysicalDeviceSchedulingControlsFeaturesARM</a>, <a href=\"#VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures\">VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures</a>, <a href=\"#VkPhysicalDeviceShaderAtomicFloat16VectorFeaturesNV\">VkPhysicalDeviceShaderAtomicFloat16VectorFeaturesNV</a>, <a href=\"#VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT\">VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT</a>, <a href=\"#VkPhysicalDeviceShaderAtomicFloatFeaturesEXT\">VkPhysicalDeviceShaderAtomicFloatFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceShaderAtomicInt64Features\">VkPhysicalDeviceShaderAtomicInt64Features</a>, <a href=\"#VkPhysicalDeviceShaderBfloat16FeaturesKHR\">VkPhysicalDeviceShaderBfloat16FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceShaderClockFeaturesKHR\">VkPhysicalDeviceShaderClockFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceShaderCoreBuiltinsFeaturesARM\">VkPhysicalDeviceShaderCoreBuiltinsFeaturesARM</a>, <a href=\"#VkPhysicalDeviceShaderDemoteToHelperInvocationFeatures\">VkPhysicalDeviceShaderDemoteToHelperInvocationFeatures</a>, <a href=\"#VkPhysicalDeviceShaderDrawParametersFeatures\">VkPhysicalDeviceShaderDrawParametersFeatures</a>, <a href=\"#VkPhysicalDeviceShaderEarlyAndLateFragmentTestsFeaturesAMD\">VkPhysicalDeviceShaderEarlyAndLateFragmentTestsFeaturesAMD</a>, <a href=\"#VkPhysicalDeviceShaderEnqueueFeaturesAMDX\">VkPhysicalDeviceShaderEnqueueFeaturesAMDX</a>, <a href=\"#VkPhysicalDeviceShaderExpectAssumeFeatures\">VkPhysicalDeviceShaderExpectAssumeFeatures</a>, <a href=\"#VkPhysicalDeviceShaderFloat16Int8Features\">VkPhysicalDeviceShaderFloat16Int8Features</a>, <a href=\"#VkPhysicalDeviceShaderFloatControls2Features\">VkPhysicalDeviceShaderFloatControls2Features</a>, <a href=\"#VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT\">VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT</a>, <a href=\"#VkPhysicalDeviceShaderImageFootprintFeaturesNV\">VkPhysicalDeviceShaderImageFootprintFeaturesNV</a>, <a href=\"#VkPhysicalDeviceShaderIntegerDotProductFeatures\">VkPhysicalDeviceShaderIntegerDotProductFeatures</a>, <a href=\"#VkPhysicalDeviceShaderIntegerFunctions2FeaturesINTEL\">VkPhysicalDeviceShaderIntegerFunctions2FeaturesINTEL</a>, <a href=\"#VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR\">VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceShaderModuleIdentifierFeaturesEXT\">VkPhysicalDeviceShaderModuleIdentifierFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceShaderObjectFeaturesEXT\">VkPhysicalDeviceShaderObjectFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceShaderQuadControlFeaturesKHR\">VkPhysicalDeviceShaderQuadControlFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR\">VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceShaderReplicatedCompositesFeaturesEXT\">VkPhysicalDeviceShaderReplicatedCompositesFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceShaderSMBuiltinsFeaturesNV\">VkPhysicalDeviceShaderSMBuiltinsFeaturesNV</a>, <a href=\"#VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures\">VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures</a>, <a href=\"#VkPhysicalDeviceShaderSubgroupRotateFeatures\">VkPhysicalDeviceShaderSubgroupRotateFeatures</a>, <a href=\"#VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR\">VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceShaderTerminateInvocationFeatures\">VkPhysicalDeviceShaderTerminateInvocationFeatures</a>, <a href=\"#VkPhysicalDeviceShaderTileImageFeaturesEXT\">VkPhysicalDeviceShaderTileImageFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceShadingRateImageFeaturesNV\">VkPhysicalDeviceShadingRateImageFeaturesNV</a>, <a href=\"#VkPhysicalDeviceSubgroupSizeControlFeatures\">VkPhysicalDeviceSubgroupSizeControlFeatures</a>, <a href=\"#VkPhysicalDeviceSubpassMergeFeedbackFeaturesEXT\">VkPhysicalDeviceSubpassMergeFeedbackFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceSubpassShadingFeaturesHUAWEI\">VkPhysicalDeviceSubpassShadingFeaturesHUAWEI</a>, <a href=\"#VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT\">VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT</a>, <a href=\"#VkPhysicalDeviceSynchronization2Features\">VkPhysicalDeviceSynchronization2Features</a>, <a href=\"#VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT\">VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceTextureCompressionASTCHDRFeatures\">VkPhysicalDeviceTextureCompressionASTCHDRFeatures</a>, <a href=\"#VkPhysicalDeviceTileMemoryHeapFeaturesQCOM\">VkPhysicalDeviceTileMemoryHeapFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceTilePropertiesFeaturesQCOM\">VkPhysicalDeviceTilePropertiesFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceTileShadingFeaturesQCOM\">VkPhysicalDeviceTileShadingFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceTimelineSemaphoreFeatures\">VkPhysicalDeviceTimelineSemaphoreFeatures</a>, <a href=\"#VkPhysicalDeviceTransformFeedbackFeaturesEXT\">VkPhysicalDeviceTransformFeedbackFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceUniformBufferStandardLayoutFeatures\">VkPhysicalDeviceUniformBufferStandardLayoutFeatures</a>, <a href=\"#VkPhysicalDeviceVariablePointersFeatures\">VkPhysicalDeviceVariablePointersFeatures</a>, <a href=\"#VkPhysicalDeviceVertexAttributeDivisorFeatures\">VkPhysicalDeviceVertexAttributeDivisorFeatures</a>, <a href=\"#VkPhysicalDeviceVertexAttributeRobustnessFeaturesEXT\">VkPhysicalDeviceVertexAttributeRobustnessFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT\">VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceVideoEncodeAV1FeaturesKHR\">VkPhysicalDeviceVideoEncodeAV1FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceVideoEncodeQuantizationMapFeaturesKHR\">VkPhysicalDeviceVideoEncodeQuantizationMapFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceVideoMaintenance1FeaturesKHR\">VkPhysicalDeviceVideoMaintenance1FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceVideoMaintenance2FeaturesKHR\">VkPhysicalDeviceVideoMaintenance2FeaturesKHR</a>, <a href=\"#VkPhysicalDeviceVulkan11Features\">VkPhysicalDeviceVulkan11Features</a>, <a href=\"#VkPhysicalDeviceVulkan12Features\">VkPhysicalDeviceVulkan12Features</a>, <a href=\"#VkPhysicalDeviceVulkan13Features\">VkPhysicalDeviceVulkan13Features</a>, <a href=\"#VkPhysicalDeviceVulkan14Features\">VkPhysicalDeviceVulkan14Features</a>, <a href=\"#VkPhysicalDeviceVulkanMemoryModelFeatures\">VkPhysicalDeviceVulkanMemoryModelFeatures</a>, <a href=\"#VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR\">VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR</a>, <a href=\"#VkPhysicalDeviceYcbcr2Plane444FormatsFeaturesEXT\">VkPhysicalDeviceYcbcr2Plane444FormatsFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceYcbcrDegammaFeaturesQCOM\">VkPhysicalDeviceYcbcrDegammaFeaturesQCOM</a>, <a href=\"#VkPhysicalDeviceYcbcrImageArraysFeaturesEXT\">VkPhysicalDeviceYcbcrImageArraysFeaturesEXT</a>, <a href=\"#VkPhysicalDeviceZeroInitializeDeviceMemoryFeaturesEXT\">VkPhysicalDeviceZeroInitializeDeviceMemoryFeaturesEXT</a>, or <a href=\"#VkPhysicalDeviceZeroInitializeWorkgroupMemoryFeatures\">VkPhysicalDeviceZeroInitializeWorkgroupMemoryFeatures</a>",
           "page": "chapters/devsandqueues.html"
         },
         {
@@ -24347,7 +24347,7 @@
         },
         {
           "vuid": "VUID-VkImageCreateInfo-usage-10245",
-          "text": "If <code>usage</code> includes <code>VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT</code>, then the <a href=\"#features-hostImageCopy\"><code>hostImageCopy</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "If <code>usage</code> includes <code>VK_IMAGE_USAGE_HOST_TRANSFER_BIT</code>, then the <a href=\"#features-hostImageCopy\"><code>hostImageCopy</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "chapters/resources.html"
         },
         {
@@ -26080,7 +26080,7 @@
         },
         {
           "vuid": "VUID-VkAccelerationStructureCreateInfoKHR-offset-03616",
-          "text": "The sum of <code>offset</code> and <code>size</code> <strong class=\"purple\">must</strong> be less than the size of <code>buffer</code>",
+          "text": "The sum of <code>offset</code> and <code>size</code> <strong class=\"purple\">must</strong> be less than or equal to the size of <code>buffer</code>",
           "page": "chapters/resources.html"
         },
         {
@@ -26894,7 +26894,7 @@
         },
         {
           "vuid": "VUID-VkMicromapCreateInfoEXT-offset-07437",
-          "text": "The sum of <code>offset</code> and <code>size</code> <strong class=\"purple\">must</strong> be less than the size of <code>buffer</code>",
+          "text": "The sum of <code>offset</code> and <code>size</code> <strong class=\"purple\">must</strong> be less than or equal to the size of <code>buffer</code>",
           "page": "chapters/resources.html"
         },
         {
@@ -31246,7 +31246,7 @@
       "core": [
         {
           "vuid": "VUID-vkCmdBindDescriptorSets-pDescriptorSets-00358",
-          "text": "Each element of <code>pDescriptorSets</code> <strong class=\"purple\">must</strong> have been allocated with a <code>VkDescriptorSetLayout</code> that matches (is the same as, or identically defined as) the <code>VkDescriptorSetLayout</code> at set <em>n</em> in <code>layout</code>, where <em>n</em> is the sum of <code>firstSet</code> and the index into <code>pDescriptorSets</code>",
+          "text": "Each element of <code>pDescriptorSets</code> that is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>     <strong class=\"purple\">must</strong> have been allocated with a <code>VkDescriptorSetLayout</code> that     matches (is the same as, or identically defined as) the     <code>VkDescriptorSetLayout</code> at set <em>n</em> in <code>layout</code>, where <em>n</em> is the     sum of <code>firstSet</code> and the index into <code>pDescriptorSets</code>",
           "page": "chapters/descriptorsets.html"
         },
         {
@@ -31389,7 +31389,7 @@
       "core": [
         {
           "vuid": "VUID-VkBindDescriptorSetsInfo-pDescriptorSets-00358",
-          "text": "Each element of <code>pDescriptorSets</code> <strong class=\"purple\">must</strong> have been allocated with a <code>VkDescriptorSetLayout</code> that matches (is the same as, or identically defined as) the <code>VkDescriptorSetLayout</code> at set <em>n</em> in <code>layout</code>, where <em>n</em> is the sum of <code>firstSet</code> and the index into <code>pDescriptorSets</code>",
+          "text": "Each element of <code>pDescriptorSets</code> that is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>     <strong class=\"purple\">must</strong> have been allocated with a <code>VkDescriptorSetLayout</code> that     matches (is the same as, or identically defined as) the     <code>VkDescriptorSetLayout</code> at set <em>n</em> in <code>layout</code>, where <em>n</em> is the     sum of <code>firstSet</code> and the index into <code>pDescriptorSets</code>",
           "page": "chapters/descriptorsets.html"
         },
         {
@@ -39090,21 +39090,6 @@
           "page": "chapters/copies.html"
         },
         {
-          "vuid": "VUID-vkCmdCopyImage-dstImage-01732",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>dstOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>dstSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
-          "page": "chapters/copies.html"
-        },
-        {
-          "vuid": "VUID-vkCmdCopyImage-dstImage-01733",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>dstOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>dstSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
-          "page": "chapters/copies.html"
-        },
-        {
-          "vuid": "VUID-vkCmdCopyImage-dstImage-01734",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>dstOffset.z</code> and <code>extent.depth</code> does not equal the depth of the subresource specified by <code>dstSubresource</code>, <code>extent.depth</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent depth</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
-          "page": "chapters/copies.html"
-        },
-        {
           "vuid": "VUID-vkCmdCopyImage-aspect-06662",
           "text": "If the <code>aspect</code> member of any element of <code>pRegions</code> includes any flag other than <code>VK_IMAGE_ASPECT_STENCIL_BIT</code> or <code>srcImage</code> was not created with <a href=\"#VkImageStencilUsageCreateInfo\">separate stencil usage</a>, <code>VK_IMAGE_USAGE_TRANSFER_SRC_BIT</code> <strong class=\"purple\">must</strong> have been included in the <a href=\"#VkImageCreateInfo\">VkImageCreateInfo</a>::<code>usage</code> used to create <code>srcImage</code>",
           "page": "chapters/copies.html"
@@ -39651,21 +39636,6 @@
           "page": "chapters/copies.html"
         },
         {
-          "vuid": "VUID-VkCopyImageInfo2-dstImage-01732",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>dstOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>dstSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
-          "page": "chapters/copies.html"
-        },
-        {
-          "vuid": "VUID-VkCopyImageInfo2-dstImage-01733",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>dstOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>dstSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
-          "page": "chapters/copies.html"
-        },
-        {
-          "vuid": "VUID-VkCopyImageInfo2-dstImage-01734",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>dstOffset.z</code> and <code>extent.depth</code> does not equal the depth of the subresource specified by <code>dstSubresource</code>, <code>extent.depth</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent depth</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
-          "page": "chapters/copies.html"
-        },
-        {
           "vuid": "VUID-VkCopyImageInfo2-aspect-06662",
           "text": "If the <code>aspect</code> member of any element of <code>pRegions</code> includes any flag other than <code>VK_IMAGE_ASPECT_STENCIL_BIT</code> or <code>srcImage</code> was not created with <a href=\"#VkImageStencilUsageCreateInfo\">separate stencil usage</a>, <code>VK_IMAGE_USAGE_TRANSFER_SRC_BIT</code> <strong class=\"purple\">must</strong> have been included in the <a href=\"#VkImageCreateInfo\">VkImageCreateInfo</a>::<code>usage</code> used to create <code>srcImage</code>",
           "page": "chapters/copies.html"
@@ -39841,11 +39811,6 @@
         {
           "vuid": "VUID-vkCmdCopyBufferToImage-dstImage-07969",
           "text": "<code>dstImage</code> <strong class=\"purple\">must</strong> not have been created with <code>flags</code> containing <code>VK_IMAGE_CREATE_SUBSAMPLED_BIT_EXT</code>",
-          "page": "chapters/copies.html"
-        },
-        {
-          "vuid": "VUID-vkCmdCopyBufferToImage-imageSubresource-07970",
-          "text": "The image region specified by each element of <code>pRegions</code> <strong class=\"purple\">must</strong> be contained within the specified <code>imageSubresource</code> of <code>dstImage</code>",
           "page": "chapters/copies.html"
         },
         {
@@ -40145,11 +40110,6 @@
         {
           "vuid": "VUID-vkCmdCopyImageToBuffer-srcImage-07969",
           "text": "<code>srcImage</code> <strong class=\"purple\">must</strong> not have been created with <code>flags</code> containing <code>VK_IMAGE_CREATE_SUBSAMPLED_BIT_EXT</code>",
-          "page": "chapters/copies.html"
-        },
-        {
-          "vuid": "VUID-vkCmdCopyImageToBuffer-imageSubresource-07970",
-          "text": "The image region specified by each element of <code>pRegions</code> <strong class=\"purple\">must</strong> be contained within the specified <code>imageSubresource</code> of <code>srcImage</code>",
           "page": "chapters/copies.html"
         },
         {
@@ -41279,11 +41239,6 @@
           "page": "chapters/copies.html"
         },
         {
-          "vuid": "VUID-VkCopyMemoryToImageInfo-imageSubresource-07970",
-          "text": "The image region specified by each element of <code>pRegions</code> <strong class=\"purple\">must</strong> be contained within the specified <code>imageSubresource</code> of <code>dstImage</code>",
-          "page": "chapters/copies.html"
-        },
-        {
           "vuid": "VUID-VkCopyMemoryToImageInfo-imageSubresource-07971",
           "text": "For each element of <code>pRegions</code>, <code>imageOffset.x</code> and <span class=\"eq\">(<code>imageExtent.width</code> +  <code>imageOffset.x</code>)</span> <strong class=\"purple\">must</strong> both be greater than or equal to <code>0</code> and less than or equal to the width of the specified <code>imageSubresource</code> of <code>dstImage</code>",
           "page": "chapters/copies.html"
@@ -41593,11 +41548,6 @@
         {
           "vuid": "VUID-VkCopyImageToMemoryInfo-srcImage-07969",
           "text": "<code>srcImage</code> <strong class=\"purple\">must</strong> not have been created with <code>flags</code> containing <code>VK_IMAGE_CREATE_SUBSAMPLED_BIT_EXT</code>",
-          "page": "chapters/copies.html"
-        },
-        {
-          "vuid": "VUID-VkCopyImageToMemoryInfo-imageSubresource-07970",
-          "text": "The image region specified by each element of <code>pRegions</code> <strong class=\"purple\">must</strong> be contained within the specified <code>imageSubresource</code> of <code>srcImage</code>",
           "page": "chapters/copies.html"
         },
         {
@@ -41918,11 +41868,6 @@
           "page": "chapters/copies.html"
         },
         {
-          "vuid": "VUID-VkCopyImageToImageInfo-srcSubresource-07970",
-          "text": "The image region specified by each element of <code>pRegions</code> <strong class=\"purple\">must</strong> be contained within the specified <code>srcSubresource</code> of <code>srcImage</code>",
-          "page": "chapters/copies.html"
-        },
-        {
           "vuid": "VUID-VkCopyImageToImageInfo-srcSubresource-07971",
           "text": "For each element of <code>pRegions</code>, <code>srcOffset.x</code> and <span class=\"eq\">(<code>extent.width</code> +  <code>srcOffset.x</code>)</span> <strong class=\"purple\">must</strong> both be greater than or equal to <code>0</code> and less than or equal to the width of the specified <code>srcSubresource</code> of <code>srcImage</code>",
           "page": "chapters/copies.html"
@@ -42080,11 +42025,6 @@
         {
           "vuid": "VUID-VkCopyImageToImageInfo-dstImage-07969",
           "text": "<code>dstImage</code> <strong class=\"purple\">must</strong> not have been created with <code>flags</code> containing <code>VK_IMAGE_CREATE_SUBSAMPLED_BIT_EXT</code>",
-          "page": "chapters/copies.html"
-        },
-        {
-          "vuid": "VUID-VkCopyImageToImageInfo-dstSubresource-07970",
-          "text": "The image region specified by each element of <code>pRegions</code> <strong class=\"purple\">must</strong> be contained within the specified <code>dstSubresource</code> of <code>dstImage</code>",
           "page": "chapters/copies.html"
         },
         {
@@ -42528,16 +42468,6 @@
           "page": "chapters/copies.html"
         },
         {
-          "vuid": "VUID-vkCmdBlitImage-pRegions-00215",
-          "text": "The source region specified by each element of <code>pRegions</code> <strong class=\"purple\">must</strong> be a region that is contained within <code>srcImage</code>",
-          "page": "chapters/copies.html"
-        },
-        {
-          "vuid": "VUID-vkCmdBlitImage-pRegions-00216",
-          "text": "The destination region specified by each element of <code>pRegions</code> <strong class=\"purple\">must</strong> be a region that is contained within <code>dstImage</code>",
-          "page": "chapters/copies.html"
-        },
-        {
           "vuid": "VUID-vkCmdBlitImage-pRegions-00217",
           "text": "The union of all destination regions, specified by the elements of <code>pRegions</code>, <strong class=\"purple\">must</strong> not overlap in memory with any texel that <strong class=\"purple\">may</strong> be sampled during the blit operation",
           "page": "chapters/copies.html"
@@ -42909,16 +42839,6 @@
     },
     "VkBlitImageInfo2": {
       "core": [
-        {
-          "vuid": "VUID-VkBlitImageInfo2-pRegions-00215",
-          "text": "The source region specified by each element of <code>pRegions</code> <strong class=\"purple\">must</strong> be a region that is contained within <code>srcImage</code>",
-          "page": "chapters/copies.html"
-        },
-        {
-          "vuid": "VUID-VkBlitImageInfo2-pRegions-00216",
-          "text": "The destination region specified by each element of <code>pRegions</code> <strong class=\"purple\">must</strong> be a region that is contained within <code>dstImage</code>",
-          "page": "chapters/copies.html"
-        },
         {
           "vuid": "VUID-VkBlitImageInfo2-pRegions-00217",
           "text": "The union of all destination regions, specified by the elements of <code>pRegions</code>, <strong class=\"purple\">must</strong> not overlap in memory with any texel that <strong class=\"purple\">may</strong> be sampled during the blit operation",
@@ -44916,7 +44836,7 @@
         },
         {
           "vuid": "VUID-vkCmdDraw-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -45865,6 +45785,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDraw-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDraw-commandBuffer-02712",
           "text": "If <code>commandBuffer</code> is a protected command buffer and <a href=\"#limits-protectedNoFault\"><code>protectedNoFault</code></a> is not supported, any resource written to by the <code>VkPipeline</code> object bound to the pipeline bind point used by this command <strong class=\"purple\">must</strong> not be an unprotected resource",
           "page": "chapters/drawing.html"
@@ -46555,7 +46480,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexed-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -47504,6 +47429,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawIndexed-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawIndexed-commandBuffer-02712",
           "text": "If <code>commandBuffer</code> is a protected command buffer and <a href=\"#limits-protectedNoFault\"><code>protectedNoFault</code></a> is not supported, any resource written to by the <code>VkPipeline</code> object bound to the pipeline bind point used by this command <strong class=\"purple\">must</strong> not be an unprotected resource",
           "page": "chapters/drawing.html"
@@ -48204,7 +48134,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -49153,6 +49083,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawMultiEXT-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMultiEXT-commandBuffer-02712",
           "text": "If <code>commandBuffer</code> is a protected command buffer and <a href=\"#limits-protectedNoFault\"><code>protectedNoFault</code></a> is not supported, any resource written to by the <code>VkPipeline</code> object bound to the pipeline bind point used by this command <strong class=\"purple\">must</strong> not be an unprotected resource",
           "page": "chapters/drawing.html"
@@ -49863,7 +49798,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -50812,6 +50747,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawMultiIndexedEXT-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-commandBuffer-02712",
           "text": "If <code>commandBuffer</code> is a protected command buffer and <a href=\"#limits-protectedNoFault\"><code>protectedNoFault</code></a> is not supported, any resource written to by the <code>VkPipeline</code> object bound to the pipeline bind point used by this command <strong class=\"purple\">must</strong> not be an unprotected resource",
           "page": "chapters/drawing.html"
@@ -51537,7 +51477,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirect-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -52486,6 +52426,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawIndirect-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawIndirect-None-04007",
           "text": "All vertex input bindings accessed via vertex input variables declared in the vertex shader entry point&#8217;s interface <strong class=\"purple\">must</strong> have either valid or <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a> buffers bound",
           "page": "chapters/drawing.html"
@@ -53225,7 +53170,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -54174,6 +54119,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawIndirectCount-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawIndirectCount-None-04007",
           "text": "All vertex input bindings accessed via vertex input variables declared in the vertex shader entry point&#8217;s interface <strong class=\"purple\">must</strong> have either valid or <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a> buffers bound",
           "page": "chapters/drawing.html"
@@ -54914,7 +54864,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -55863,6 +55813,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawIndexedIndirect-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-None-04007",
           "text": "All vertex input bindings accessed via vertex input variables declared in the vertex shader entry point&#8217;s interface <strong class=\"purple\">must</strong> have either valid or <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a> buffers bound",
           "page": "chapters/drawing.html"
@@ -56612,7 +56567,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -57561,6 +57516,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawIndexedIndirectCount-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-None-04007",
           "text": "All vertex input bindings accessed via vertex input variables declared in the vertex shader entry point&#8217;s interface <strong class=\"purple\">must</strong> have either valid or <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a> buffers bound",
           "page": "chapters/drawing.html"
@@ -58306,7 +58266,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -59255,6 +59215,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-None-04007",
           "text": "All vertex input bindings accessed via vertex input variables declared in the vertex shader entry point&#8217;s interface <strong class=\"purple\">must</strong> have either valid or <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a> buffers bound",
           "page": "chapters/drawing.html"
@@ -60102,7 +60067,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -61051,6 +61016,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawMeshTasksNV-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-stage-06480",
           "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "chapters/drawing.html"
@@ -61646,7 +61616,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -62595,6 +62565,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-stage-06480",
           "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "chapters/drawing.html"
@@ -63249,7 +63224,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -64198,6 +64173,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-stage-06480",
           "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "chapters/drawing.html"
@@ -64863,7 +64843,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -65812,6 +65792,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawMeshTasksEXT-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-stage-06480",
           "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "chapters/drawing.html"
@@ -66442,7 +66427,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -67391,6 +67376,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-stage-06480",
           "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "chapters/drawing.html"
@@ -68080,7 +68070,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -69029,6 +69019,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-stage-06480",
           "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "chapters/drawing.html"
@@ -69694,7 +69689,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -70643,6 +70638,11 @@
           "page": "chapters/drawing.html"
         },
         {
+          "vuid": "VUID-vkCmdDrawClusterHUAWEI-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/drawing.html"
+        },
+        {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-stage-06480",
           "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "chapters/drawing.html"
@@ -71253,7 +71253,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/drawing.html"
         },
         {
@@ -72199,6 +72199,11 @@
         {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-None-10677",
           "text": "If the <a href=\"#renderpass-per-tile-execution-model\">per-tile execution model</a> is enabled, the <a href=\"#features-tileShadingPerTileDraw\">tileShadingPerTileDraw</a> feature <strong class=\"purple\">must</strong> be enabled",
+          "page": "chapters/drawing.html"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
           "page": "chapters/drawing.html"
         },
         {
@@ -78907,6 +78912,11 @@
           "page": "chapters/dispatch.html"
         },
         {
+          "vuid": "VUID-vkCmdDispatchTileQCOM-pDispatchTileInfo-parameter",
+          "text": "<code>pDispatchTileInfo</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkDispatchTileInfoQCOM\">VkDispatchTileInfoQCOM</a> structure",
+          "page": "chapters/dispatch.html"
+        },
+        {
           "vuid": "VUID-vkCmdDispatchTileQCOM-commandBuffer-recording",
           "text": "<code>commandBuffer</code> <strong class=\"purple\">must</strong> be in the <a href=\"#commandbuffers-lifecycle\">recording state</a>",
           "page": "chapters/dispatch.html"
@@ -81459,7 +81469,7 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/device_generated_commands/generatedcommands.html"
         },
         {
@@ -82408,6 +82418,11 @@
           "page": "chapters/device_generated_commands/generatedcommands.html"
         },
         {
+          "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
+          "page": "chapters/device_generated_commands/generatedcommands.html"
+        },
+        {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-None-04007",
           "text": "All vertex input bindings accessed via vertex input variables declared in the vertex shader entry point&#8217;s interface <strong class=\"purple\">must</strong> have either valid or <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a> buffers bound",
           "page": "chapters/device_generated_commands/generatedcommands.html"
@@ -83331,7 +83346,7 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-None-07844",
-          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code> dynamic state enabled, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, and the <a href=\"#dynamic-state-current-value\">current value</a> of <code>depthTestEnable</code> is <code>VK_TRUE</code>, then <a href=\"#vkCmdSetDepthWriteEnable\">vkCmdSetDepthWriteEnable</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "chapters/device_generated_commands/generatedcommands.html"
         },
         {
@@ -84277,6 +84292,11 @@
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-None-10677",
           "text": "If the <a href=\"#renderpass-per-tile-execution-model\">per-tile execution model</a> is enabled, the <a href=\"#features-tileShadingPerTileDraw\">tileShadingPerTileDraw</a> feature <strong class=\"purple\">must</strong> be enabled",
+          "page": "chapters/device_generated_commands/generatedcommands.html"
+        },
+        {
+          "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-None-10772",
+          "text": "If a shader object is bound to any graphics stage, <em>multiview</em> functionality <strong class=\"purple\">must</strong> not be enabled in the current render pass",
           "page": "chapters/device_generated_commands/generatedcommands.html"
         },
         {
@@ -105330,6 +105350,15 @@
         }
       ]
     },
+    "VkPhysicalDeviceFormatPackFeaturesARM": {
+      "core": [
+        {
+          "vuid": "VUID-VkPhysicalDeviceFormatPackFeaturesARM-sType-sType",
+          "text": "<code>sType</code> <strong class=\"purple\">must</strong> be <code>VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FORMAT_PACK_FEATURES_ARM</code>",
+          "page": "chapters/features.html"
+        }
+      ]
+    },
     "VkPhysicalDevicePushDescriptorProperties": {
       "core": [
         {
@@ -108787,6 +108816,11 @@
         {
           "vuid": "VUID-RuntimeSpirv-shaderDeviceClock-06268",
           "text": "If the <a href=\"#features-shaderDeviceClock\"><code>shaderDeviceClock</code></a> feature is not enabled, the <code>Device</code> scope <strong class=\"purple\">must</strong> not be used for <code>OpReadClockKHR</code>",
+          "page": "appendices/spirvenv.html"
+        },
+        {
+          "vuid": "VUID-RuntimeSpirv-shaderRelaxedExtendedInstruction-10773",
+          "text": "If the <a href=\"#features-shaderRelaxedExtendedInstruction\"><code>shaderRelaxedExtendedInstruction</code></a> feature is not enabled, the <code>OpExtInstWithForwardRefsKHR</code> <strong class=\"purple\">must</strong> not be used",
           "page": "appendices/spirvenv.html"
         },
         {
