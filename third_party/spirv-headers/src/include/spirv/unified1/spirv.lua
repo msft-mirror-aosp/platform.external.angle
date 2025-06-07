@@ -528,6 +528,7 @@ spv = {
         MaxByteOffset = 45,
         AlignmentId = 46,
         MaxByteOffsetId = 47,
+        SaturatedToLargestFloat8NormalConversionEXT = 4216,
         NoSignedWrap = 4469,
         NoUnsignedWrap = 4470,
         WeightTextureQCOM = 4487,
@@ -1054,6 +1055,8 @@ spv = {
         StorageTensorArrayDynamicIndexingARM = 4175,
         StorageTensorArrayNonUniformIndexingARM = 4176,
         CooperativeMatrixLayoutsARM = 4201,
+        Float8EXT = 4212,
+        Float8CooperativeMatrixEXT = 4213,
         FragmentShadingRateKHR = 4422,
         SubgroupBallotKHR = 4423,
         DrawParameters = 4427,
@@ -1270,6 +1273,7 @@ spv = {
         MaskedGatherScatterINTEL = 6427,
         CacheControlsINTEL = 6441,
         RegisterLimitsINTEL = 6460,
+        BindlessImagesINTEL = 6528,
         Max = 0x7fffffff,
     },
 
@@ -1550,6 +1554,8 @@ spv = {
 
     FPEncoding = {
         BFloat16KHR = 0,
+        Float8E4M3EXT = 4214,
+        Float8E5M2EXT = 4215,
         Max = 0x7fffffff,
     },
 
@@ -2390,6 +2396,9 @@ spv = {
         OpRoundFToTF32INTEL = 6426,
         OpMaskedGatherINTEL = 6428,
         OpMaskedScatterINTEL = 6429,
+        OpConvertHandleToImageINTEL = 6529,
+        OpConvertHandleToSamplerINTEL = 6530,
+        OpConvertHandleToSampledImageINTEL = 6531,
         Max = 0x7fffffff,
     },
 

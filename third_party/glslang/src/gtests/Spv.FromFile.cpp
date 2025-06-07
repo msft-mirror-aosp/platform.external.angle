@@ -770,6 +770,8 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.nv.lss-allops.rchit",
         "spv.nv.lss-allops.rmiss",
         "spv.nv.lss-allops.frag",
+        "spv.nv.lss-spheregeomcap.rgen",
+        "spv.nv.lss-lssgeomcap.rgen",
 
     })),
     FileNameAsCustomTestSuffix
@@ -896,6 +898,15 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.tpipBlockMatchGatherSSD.frag",
         "spv.tpipBlockMatchWindowSAD.frag",
         "spv.tpipBlockMatchWindowSSD.frag",
+        "spv.qcom.tileShading.0.comp",
+        "spv.qcom.tileShading.1.comp",
+        "spv.qcom.es.tileShading.0.comp",
+        "spv.qcom.es.tileShading.1.comp",
+        "spv.qcom.es.tileShading.2.comp",
+        "spv.qcom.tileShading.0.frag",
+        "spv.qcom.tileShading.1.frag",
+        "spv.qcom.es.tileShading.0.frag",
+        "spv.qcom.es.tileShading.1.frag",
     })),
     FileNameAsCustomTestSuffix
 );
