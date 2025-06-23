@@ -27,6 +27,7 @@ class Extension:
     deprecatedBy: (str | None)
     obsoletedBy: (str | None)
     specialUse: list[str]
+    ratified: bool
 
     # These are here to allow for easy reverse lookups
     # To prevent infinite recursion, other classes reference a string back to the Extension class
@@ -80,6 +81,13 @@ class Handle:
     def __lt__(self, other):
         return self.name < other.name
 
+class ExternSync(Enum):
+    NONE          = auto() # no externsync attribute
+    ALWAYS        = auto() # externsync="true"
+    MAYBE         = auto() # externsync="maybe"
+    SUBTYPE       = auto() # externsync="param->member"
+    SUBTYPE_MAYBE = auto() # externsync="maybe:param->member"
+
 @dataclass
 class Param:
     """<command/param>"""
@@ -109,8 +117,9 @@ class Param:
     optional: bool
     optionalPointer: bool # if type contains a pointer, is the pointer value optional
 
-    externSync: bool
-    externSyncPointer: list[str] # if type contains a pointer, might only specific members modified
+    externSync: ExternSync
+    externSyncPointer: (str | None)  # if type contains a pointer (externSync is SUBTYPE*),
+                                     # only a specific member is externally synchronized.
 
     # C string of member, example:
     #   - const void* pNext
@@ -216,7 +225,7 @@ class Member:
     optional: bool
     optionalPointer: bool # if type contains a pointer, is the pointer value optional
 
-    externSync: bool
+    externSync: ExternSync
 
     # C string of member, example:
     #   - const void* pNext
