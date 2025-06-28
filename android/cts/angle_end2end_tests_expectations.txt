@@ -1,0 +1,114 @@
+// Copyright 2025 The ANGLE Project Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// See deqp_support/README.md for format.
+
+// Generic
+// Crashes in setUniformValuesFromBindingQualifiers() because mUniformRealLocationMap is not
+// initialized when the program is loaded from cache.
+42264670 VULKAN : BlitFramebufferTest.BlitDepthStencilPixelByPixel/* = SKIP
+42266349 VULKAN : MultithreadingTestES3.UnsynchronizedTextureReads/* = SKIP
+42266349 VULKAN : MultithreadingTestES3.UnsynchronizedTextureReads2/* = SKIP
+377614665 VULKAN : GLSLTest.StructSamplerVsComma/* = SKIP
+404418769 VULKAN : GLSLTest.MaxVaryingVec2Arrays/* = SKIP
+404418769 VULKAN : GLSLTest.MaxVaryingVec3ArrayAndOneFloatArray/* = SKIP
+410584007 VULKAN : ImageTestES31.UseSourceTextureAsStorageImage/* = SKIP
+
+// ES 3.2 tests are skipped on SwS.
+376899587 VULKAN SWIFTSHADER : */ES3_2* = SKIP
+
+// Vulkan generic
+42265137 VULKAN : UniformTest.UnusedStructInlineUniform/* = SKIP
+42265137 VULKAN : UniformTest.UnusedStructInlineUniformWithSampler/* = SKIP
+42265405 VULKAN : Texture2DTestES3.TextureRGBUpdateWithPBO/ES3_Vulkan* = SKIP
+42265226 VULKAN : GLSLTest_ES3.GLVertexIDIntegerTextureDrawElementsU8Line/* = SKIP
+42265226 VULKAN : GLSLTest_ES3.GLVertexIDIntegerTextureDrawElementsU8LineIds/* = SKIP
+235877059 VULKAN : MultisampleTestES3.ResolveToFBO/ES3_Vulkan_EmulatedPrerotation180 = SKIP
+235877059 VULKAN : MultisampleTestES3.ResolveToFBO/ES3_Vulkan_EmulatedPrerotation270 = SKIP
+// ANGLE is broken if a context is made current before a surface is created in the presence of multiple queue families
+42266900 VULKAN : EGLContextSharingTestNoFixture.*/*ForceDelayedDeviceCreationForTesting* = SKIP
+42266900 VULKAN : EGLSurfacelessContextTest.*/*ForceDelayedDeviceCreationForTesting* = SKIP
+424050949 VULKAN : GLSLTest_ES31.SeparableProgramWithMismatchingShaderInterface/* = SKIP
+
+//Angle has bugs for sampler validation
+401546698 : TextureCubeTest.CubeMapBug2/* = SKIP
+
+// Unimplemented fallback path for when format is not renderable or AHB hasn't specified the GPU_FRAMEBUFFER usage.
+42264676 ANDROID VULKAN : ImageTestES3.RGBXAHBImportNoFramebufferUsage/* = SKIP
+
+42264855 VULKAN : GetImageTest.InconsistentTexture2D/* = SKIP
+
+40050011 SWIFTSHADER : GLSLTest_ES3.UnsuccessfulRelinkWithBindAttribLocation/* = SKIP
+
+// Sampling from a black texture doesn't return exactly 0,0,0,1
+42264328 SWIFTSHADER : FramebufferFetchES31.UniformUsageCombinations/* = SKIP
+
+// Fails on swangle builders
+42266918 SWIFTSHADER : WebGL2GLSLTest.TexelFetchLodOutOfBounds/* = SKIP
+
+42265586 SWIFTSHADER : TransformFeedbackTest.BaseInstance/* = SKIP
+42265586 VULKAN : TransformFeedbackTest.BaseInstance/ES3_Vulkan_NoSupportsTransformFeedbackExtension* = SKIP
+
+// Missing Vulkan image initialization
+42265418 VULKAN : Texture2DTestES3RobustInit.TextureCOMPRESSEDRGB8A1ETC2/* = SKIP
+42265418 VULKAN : Texture2DTestES3RobustInit.TextureCOMPRESSEDSRGB8A1ETC2/* = SKIP
+
+// // Cannot create 2D (array) view of 3D texture.  These fail with validation errors, and cause a crash in syncval.
+42262531 VULKAN : ComputeShaderTest.BindImageTexture3D/* = SKIP
+
+// Produces VVL errors
+42265827 VULKAN : FramebufferTest_ES3.FramebufferConditionalFeedbackLoop/* = SKIP
+42265967 VULKAN : Texture2DTest.TextureMaxSize/* = SKIP
+
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeUnsignedNormalized_* = SKIP
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeSignedNormalized_* = SKIP
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeFloat_* = SKIP
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeUnsignedInteger_* = SKIP
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeSignedInteger_* = SKIP
+343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeStencil_* = SKIP
+
+// Flat shading bug with lighting
+42264726 VULKAN : LightsTest.FlatLitMesh/* = SKIP
+
+42266095 VULKAN : EGLRobustnessTestES3.Context*ResetOnInvalidLocalShaderVariableAccess_ShareGroupAfterProgramCreation/* = SKIP
+
+// EXT_multisample_compatibility exposed for the sake of GLES1, but not implemented on Vulkan
+42266123 VULKAN : EXTMultisampleCompatibilityTest.* = SKIP
+
+// Missing geometry & tesselation shader interactions with clip / cull distance
+42264006 VULKAN : ClipCullDistanceTest.ClipDistanceInteractWithGeometryShader/* = SKIP
+42264006 VULKAN : ClipCullDistanceTest.CullDistanceInteractWithGeometryShader/* = SKIP
+
+// SwiftShader generates framebuffer incomplete errors
+42266785 SWIFTSHADER : EGLSurfaceTest.ShrinkWindowThenScissoredClear/* = SKIP
+42266785 SWIFTSHADER : EGLSurfaceTest.GrowWindowThenScissoredClear/* = SKIP
+42266785 SWIFTSHADER : EGLSurfaceTest3.ShrinkWindowThenScissoredClearBuffer/* = SKIP
+
+42266807 VULKAN : Texture2DBaseMaxTestES3.NotColorRenderableWithColorRenderableBeyondMaxLevel/* = SKIP
+42266807 VULKAN : Texture2DBaseMaxTestES3.DepthRenderableWithColorRenderableBeyondMaxLevel/* = SKIP
+42266807 VULKAN : Texture2DBaseMaxTestES3.NotColorRenderableAfterColorRenderableBelowBaseLevel/* = SKIP
+42266807 VULKAN : Texture2DBaseMaxTestES3.DepthRenderableAfterColorRenderableBelowBaseLevel/* = SKIP
+
+// SPIR-V compilation error
+384593678 VULKAN : SimpleUniformUsageTestES3.CopyOfUniformsWithArrays/* = SKIP
+
+// Fails on Vulkan
+406807990 VULKAN : TextureUploadFormatTest.AllWithPBO/* = SKIP
+
+405286904 SWIFTSHADER : TextureBufferTestES31.UseAsXFBThenAsTextureBuffer/* = SKIP
+406827038 SWIFTSHADER : GLSLTest_ES3.DenormFloatsToIntValues/* = SKIP
+
+// System EGL Failures
+427548010 VULKAN : ImageTest.SourceAHBTarget2DExternalCycleThroughYuvSourcesNoData/* = SKIP
+
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// Slow tests, should appear last in this file
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+42263645 : GLSLTest.VerifyMaxVertexUniformVectors* = TIMEOUT
+42263645 : GLSLTest.VerifyMaxFragmentUniformVectors* = TIMEOUT
+42264781 : MultithreadingTest* = TIMEOUT
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// Please do not add expectations below this line,
+// so that TIMEOUT expectations above don't override more precise SKIP expectations
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
