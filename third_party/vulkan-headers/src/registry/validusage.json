@@ -1,9 +1,9 @@
 {
   "version info": {
     "schema version": 2,
-    "api version": "1.4.319",
-    "comment": "from git branch: github-main commit: 0dd79adbba6afe2b8e135aba53b0af9c87f616e1",
-    "date": "2025-06-20 11:58:49Z"
+    "api version": "1.4.320",
+    "comment": "from git branch: github-main commit: 1eef90d1d1e00c514393544164b0536ec4803cbb",
+    "date": "2025-06-27 10:15:06Z"
   },
   "validation": {
     "vkGetInstanceProcAddr": {
@@ -46397,12 +46397,7 @@
         },
         {
           "vuid": "VUID-vkCmdDraw-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDraw-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -48031,12 +48026,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexed-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawIndexed-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -49675,12 +49665,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMultiEXT-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -51329,12 +51314,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMultiIndexedEXT-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -52998,12 +52978,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirect-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawIndirect-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -54681,12 +54656,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawIndirectCount-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -56365,12 +56335,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawIndexedIndirect-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -58058,12 +58023,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawIndexedIndirectCount-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -59747,12 +59707,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -61538,12 +61493,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMeshTasksNV-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -63077,12 +63027,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -64675,12 +64620,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -66284,12 +66224,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMeshTasksEXT-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -67858,12 +67793,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -69491,12 +69421,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -71100,12 +71025,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawClusterHUAWEI-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -72654,12 +72574,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/drawing.html"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/drawing.html"
         },
         {
@@ -82950,12 +82865,7 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/device_generated_commands/generatedcommands.html"
-        },
-        {
-          "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/device_generated_commands/generatedcommands.html"
         },
         {
@@ -84817,12 +84727,7 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-blendEnable-04727",
-          "text": "If rasterization is not disabled in the bound graphics pipeline, then for each color attachment in the subpass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the <code>blendEnable</code> member of the corresponding element of the <code>pAttachments</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
-          "page": "chapters/device_generated_commands/generatedcommands.html"
-        },
-        {
-          "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-None-08643",
-          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage, and the most recent call to <a href=\"#vkCmdSetRasterizerDiscardEnable\">vkCmdSetRasterizerDiscardEnable</a> in the current command buffer set <code>rasterizerDiscardEnable</code> to <code>VK_FALSE</code>, then for each color attachment in the render pass, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding member of <code>pColorBlendEnables</code> in the most recent call to <code>vkCmdSetColorBlendEnableEXT</code> in the current command buffer that affected that attachment index <strong class=\"purple\">must</strong> have been <code>VK_FALSE</code>",
+          "text": "If a shader object is bound to the <code>VK_SHADER_STAGE_FRAGMENT_BIT</code> stage or a graphics pipeline is bound which was created with <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code> dynamic state enabled, the <a href=\"#dynamic-state-current-value\">current value</a> of <code>rasterizerDiscardEnable</code> is <code>VK_FALSE</code>, then for each color attachment, if the corresponding image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> do not contain <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT</code>, then the corresponding <a href=\"#dynamic-state-current-value\">current value</a> of <code>blendEnable</code> <strong class=\"purple\">must</strong> be <code>VK_FALSE</code>",
           "page": "chapters/device_generated_commands/generatedcommands.html"
         },
         {
@@ -99967,22 +99872,22 @@
         },
         {
           "vuid": "VUID-vkCmdDecodeVideoKHR-pDecodeInfo-10801",
-          "text": "If <code>pDecodeInfo-&gt;pSetupReferenceSlot</code> is <code>NULL</code> or <code>pDecodeInfo-&gt;pSetupReferenceSlot-&gt;pPictureResource</code> does not <a href=\"#video-image-subresource-reference\">refer</a> to the same image subresource as <code>pDecodeInfo-&gt;dstPictureResource</code>, then the image subresource <a href=\"#video-image-subresource-reference\">referred</a> to by <code>pDecodeInfo-&gt;dstPictureResource</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_DECODE_DST_KHR</code> layout at the time the video decode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is <code>VK_TRUE</code>, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
+          "text": "If <code>pDecodeInfo-&gt;pSetupReferenceSlot</code> is <code>NULL</code> or <code>pDecodeInfo-&gt;pSetupReferenceSlot-&gt;pPictureResource</code> does not <a href=\"#video-image-subresource-reference\">refer</a> to the same image subresource as <code>pDecodeInfo-&gt;dstPictureResource</code>, then the image subresource <a href=\"#video-image-subresource-reference\">referred</a> to by <code>pDecodeInfo-&gt;dstPictureResource</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_DECODE_DST_KHR</code> layout at the time the video decode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is enabled, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
           "page": "chapters/videocoding.html"
         },
         {
           "vuid": "VUID-vkCmdDecodeVideoKHR-pDecodeInfo-10802",
-          "text": "If <code>pDecodeInfo-&gt;pSetupReferenceSlot</code> is not <code>NULL</code> and <code>pDecodeInfo-&gt;pSetupReferenceSlot-&gt;pPictureResource</code> <a href=\"#video-image-subresource-reference\">refers</a> to the same image subresource as <code>pDecodeInfo-&gt;dstPictureResource</code>, then the image subresource <a href=\"#video-image-subresource-reference\">referred</a> to by <code>pDecodeInfo-&gt;dstPictureResource</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR</code> layout at the time the video decode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is <code>VK_TRUE</code>, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
+          "text": "If <code>pDecodeInfo-&gt;pSetupReferenceSlot</code> is not <code>NULL</code> and <code>pDecodeInfo-&gt;pSetupReferenceSlot-&gt;pPictureResource</code> <a href=\"#video-image-subresource-reference\">refers</a> to the same image subresource as <code>pDecodeInfo-&gt;dstPictureResource</code>, then the image subresource <a href=\"#video-image-subresource-reference\">referred</a> to by <code>pDecodeInfo-&gt;dstPictureResource</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR</code> layout at the time the video decode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is enabled, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
           "page": "chapters/videocoding.html"
         },
         {
           "vuid": "VUID-vkCmdDecodeVideoKHR-pDecodeInfo-10803",
-          "text": "If <code>pDecodeInfo-&gt;pSetupReferenceSlot</code> is not <code>NULL</code>, then the image subresource <a href=\"#video-image-subresource-reference\">referred</a> to by <code>pDecodeInfo-&gt;pSetupReferenceSlot-&gt;pPictureResource</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR</code> layout at the time the video decode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is <code>VK_TRUE</code>, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
+          "text": "If <code>pDecodeInfo-&gt;pSetupReferenceSlot</code> is not <code>NULL</code>, then the image subresource <a href=\"#video-image-subresource-reference\">referred</a> to by <code>pDecodeInfo-&gt;pSetupReferenceSlot-&gt;pPictureResource</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR</code> layout at the time the video decode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is enabled, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
           "page": "chapters/videocoding.html"
         },
         {
           "vuid": "VUID-vkCmdDecodeVideoKHR-pPictureResource-10804",
-          "text": "The image subresource <a href=\"#video-image-subresource-reference\">referred</a> to by the <code>pPictureResource</code> member of each element of <code>pDecodeInfo-&gt;pReferenceSlots</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR</code> layout at the time the video decode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is <code>VK_TRUE</code>, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
+          "text": "The image subresource <a href=\"#video-image-subresource-reference\">referred</a> to by the <code>pPictureResource</code> member of each element of <code>pDecodeInfo-&gt;pReferenceSlots</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR</code> layout at the time the video decode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is enabled, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
           "page": "chapters/videocoding.html"
         },
         {
@@ -101084,17 +100989,17 @@
         },
         {
           "vuid": "VUID-vkCmdEncodeVideoKHR-pEncodeInfo-10811",
-          "text": "The image subresource <a href=\"#video-image-subresource-reference\">referred</a> to by <code>pEncodeInfo-&gt;srcPictureResource</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_ENCODE_SRC_KHR</code> layout at the time the video encode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is <code>VK_TRUE</code>, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
+          "text": "The image subresource <a href=\"#video-image-subresource-reference\">referred</a> to by <code>pEncodeInfo-&gt;srcPictureResource</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_ENCODE_SRC_KHR</code> layout at the time the video encode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is enabled, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
           "page": "chapters/videocoding.html"
         },
         {
           "vuid": "VUID-vkCmdEncodeVideoKHR-pEncodeInfo-10812",
-          "text": "If <code>pEncodeInfo-&gt;pSetupReferenceSlot</code> is not <code>NULL</code>, then the image subresource <a href=\"#video-image-subresource-reference\">referred</a> to by <code>pEncodeInfo-&gt;pSetupReferenceSlot-&gt;pPictureResource</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_ENCODE_DPB_KHR</code> layout at the time the video encode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is <code>VK_TRUE</code>, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
+          "text": "If <code>pEncodeInfo-&gt;pSetupReferenceSlot</code> is not <code>NULL</code>, then the image subresource <a href=\"#video-image-subresource-reference\">referred</a> to by <code>pEncodeInfo-&gt;pSetupReferenceSlot-&gt;pPictureResource</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_ENCODE_DPB_KHR</code> layout at the time the video encode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is enabled, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
           "page": "chapters/videocoding.html"
         },
         {
           "vuid": "VUID-vkCmdEncodeVideoKHR-pPictureResource-10813",
-          "text": "The image subresource <a href=\"#video-image-subresource-reference\">referred</a> to by the <code>pPictureResource</code> member of each element of <code>pEncodeInfo-&gt;pReferenceSlots</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_ENCODE_DPB_KHR</code> layout at the time the video encode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is <code>VK_TRUE</code>, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
+          "text": "The image subresource <a href=\"#video-image-subresource-reference\">referred</a> to by the <code>pPictureResource</code> member of each element of <code>pEncodeInfo-&gt;pReferenceSlots</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_ENCODE_DPB_KHR</code> layout at the time the video encode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is enabled, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
           "page": "chapters/videocoding.html"
         },
         {
@@ -101139,7 +101044,7 @@
         },
         {
           "vuid": "VUID-vkCmdEncodeVideoKHR-pNext-10314",
-          "text": "If an instance of the <a href=\"#VkVideoEncodeQuantizationMapInfoKHR\">VkVideoEncodeQuantizationMapInfoKHR</a> structure is included in the <code>pNext</code> chain of <code>pEncodeInfo</code> and its <code>quantizationMap</code> member is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, then the image subresource range referenced by <code>quantizationMap</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_ENCODE_QUANTIZATION_MAP_KHR</code> layout at the time the video encode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is <code>VK_TRUE</code>, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
+          "text": "If an instance of the <a href=\"#VkVideoEncodeQuantizationMapInfoKHR\">VkVideoEncodeQuantizationMapInfoKHR</a> structure is included in the <code>pNext</code> chain of <code>pEncodeInfo</code> and its <code>quantizationMap</code> member is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, then the image subresource range referenced by <code>quantizationMap</code> <strong class=\"purple\">must</strong> be in the <code>VK_IMAGE_LAYOUT_VIDEO_ENCODE_QUANTIZATION_MAP_KHR</code> layout at the time the video encode operation is executed on the device , unless the <a href=\"#features-unifiedImageLayoutsVideo\"><code>unifiedImageLayoutsVideo</code></a> feature is enabled, in which case it <strong class=\"purple\">may</strong> be in the <code>VK_IMAGE_LAYOUT_GENERAL</code> layout",
           "page": "chapters/videocoding.html"
         },
         {
@@ -113345,6 +113250,11 @@
         {
           "vuid": "VUID-RuntimeSpirv-pNext-09923",
           "text": "For each <a href=\"#graphs-pipelines\">data graph pipeline</a> created with a <a href=\"#VkDataGraphPipelineShaderModuleCreateInfoARM\">VkDataGraphPipelineShaderModuleCreateInfoARM</a> structure included in the <code>pNext</code> chain of <a href=\"#VkDataGraphPipelineCreateInfoARM\">VkDataGraphPipelineCreateInfoARM</a>, one and only one <a href=\"#VkDataGraphPipelineResourceInfoARM\">VkDataGraphPipelineResourceInfoARM</a> structure that satisfies all the following constraints <strong class=\"purple\">must</strong> be present in <a href=\"#VkDataGraphPipelineCreateInfoARM\">VkDataGraphPipelineCreateInfoARM</a>::<code>pResourceInfos</code> for each <code>OpVariable</code> with a <code>OpTypeTensorARM</code> type that is part of the <code>Interface</code> of the <code>OpGraphEntryPointARM</code> the pipeline is being created for:<div class=\"ulist\">\n<ul>\n<li>\n<p>its <code>descriptorSet</code> member <strong class=\"purple\">must</strong> match the <code>DescriptorSet</code>\ndecoration applied to the <code>OpVariable</code></p>\n</li>\n<li>\n<p>its <code>binding</code> member <strong class=\"purple\">must</strong> match the <code>Binding</code> decoration\napplied to the <code>OpVariable</code></p>\n</li>\n<li>\n<p>its <code>arrayElement</code> member <strong class=\"purple\">must</strong> be zero if <code>OpVariable</code> is not a\n<code>OpTypeArray</code> or if <code>OpVariable</code> is a <code>OpTypeArray</code> of\n<code>OpTypeTensorARM</code> with <code>Shape</code> present</p>\n</li>\n<li>\n<p>its <code>pNext</code> chain <strong class=\"purple\">must</strong> include a <a href=\"#VkTensorDescriptionARM\">VkTensorDescriptionARM</a>\nstructure</p>\n<div class=\"ulist\">\n<ul>\n<li>\n<p>whose <code>dimensionCount</code> is equal to the <code>Rank</code> of the\n<code>OpTypeTensorARM</code> of the <code>OpVariable</code> or its elements</p>\n</li>\n<li>\n<p>whose <code>pDimensions</code> array elements are individually and in order\nequal to the elements of the array that defines the <code>Shape</code> of the\n<code>OpTypeTensorARM</code> of the <code>OpVariable</code> or its elements</p>\n</li>\n<li>\n<p>whose <code>format</code> <a href=\"#spirvenv-tensor-formats\">is compatible</a> with the\n<code>ElementType</code> of the <code>OpTypeTensorARM</code> of the <code>OpVariable</code></p>\n</li>\n</ul>\n</div>\n</li>\n</ul>\n</div>",
+          "page": "appendices/spirvenv.html"
+        },
+        {
+          "vuid": "VUID-RuntimeSpirv-None-10834",
+          "text": "<a href=\"#spirvenv-buffer-indexing\">Buffer indexing calculations</a> <strong class=\"purple\">must</strong> not wrap 32 bits",
           "page": "appendices/spirvenv.html"
         }
       ]
