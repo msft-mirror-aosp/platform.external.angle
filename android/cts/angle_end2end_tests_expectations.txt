@@ -4,103 +4,124 @@
 
 // See deqp_support/README.md for format.
 
-// Generic
-// Crashes in setUniformValuesFromBindingQualifiers() because mUniformRealLocationMap is not
-// initialized when the program is loaded from cache.
-42264670 VULKAN : BlitFramebufferTest.BlitDepthStencilPixelByPixel/* = SKIP
-42266349 VULKAN : MultithreadingTestES3.UnsynchronizedTextureReads/* = SKIP
-42266349 VULKAN : MultithreadingTestES3.UnsynchronizedTextureReads2/* = SKIP
-377614665 VULKAN : GLSLTest.StructSamplerVsComma/* = SKIP
-404418769 VULKAN : GLSLTest.MaxVaryingVec2Arrays/* = SKIP
-404418769 VULKAN : GLSLTest.MaxVaryingVec3ArrayAndOneFloatArray/* = SKIP
-410584007 VULKAN : ImageTestES31.UseSourceTextureAsStorageImage/* = SKIP
-
+// SwiftShader
 // ES 3.2 tests are skipped on SwS.
 376899587 VULKAN SWIFTSHADER : */ES3_2* = SKIP
-
-// Vulkan generic
-42265137 VULKAN : UniformTest.UnusedStructInlineUniform/* = SKIP
-42265137 VULKAN : UniformTest.UnusedStructInlineUniformWithSampler/* = SKIP
-42265405 VULKAN : Texture2DTestES3.TextureRGBUpdateWithPBO/ES3_Vulkan* = SKIP
-42265226 VULKAN : GLSLTest_ES3.GLVertexIDIntegerTextureDrawElementsU8Line/* = SKIP
-42265226 VULKAN : GLSLTest_ES3.GLVertexIDIntegerTextureDrawElementsU8LineIds/* = SKIP
-235877059 VULKAN : MultisampleTestES3.ResolveToFBO/ES3_Vulkan_EmulatedPrerotation180 = SKIP
-235877059 VULKAN : MultisampleTestES3.ResolveToFBO/ES3_Vulkan_EmulatedPrerotation270 = SKIP
-// ANGLE is broken if a context is made current before a surface is created in the presence of multiple queue families
-42266900 VULKAN : EGLContextSharingTestNoFixture.*/*ForceDelayedDeviceCreationForTesting* = SKIP
-42266900 VULKAN : EGLSurfacelessContextTest.*/*ForceDelayedDeviceCreationForTesting* = SKIP
-424050949 VULKAN : GLSLTest_ES31.SeparableProgramWithMismatchingShaderInterface/* = SKIP
-
-//Angle has bugs for sampler validation
-401546698 : TextureCubeTest.CubeMapBug2/* = SKIP
-
-// Unimplemented fallback path for when format is not renderable or AHB hasn't specified the GPU_FRAMEBUFFER usage.
-42264676 ANDROID VULKAN : ImageTestES3.RGBXAHBImportNoFramebufferUsage/* = SKIP
-
-42264855 VULKAN : GetImageTest.InconsistentTexture2D/* = SKIP
-
 40050011 SWIFTSHADER : GLSLTest_ES3.UnsuccessfulRelinkWithBindAttribLocation/* = SKIP
-
-// Sampling from a black texture doesn't return exactly 0,0,0,1
-42264328 SWIFTSHADER : FramebufferFetchES31.UniformUsageCombinations/* = SKIP
-
 // Fails on swangle builders
 42266918 SWIFTSHADER : WebGL2GLSLTest.TexelFetchLodOutOfBounds/* = SKIP
-
 42265586 SWIFTSHADER : TransformFeedbackTest.BaseInstance/* = SKIP
-42265586 VULKAN : TransformFeedbackTest.BaseInstance/ES3_Vulkan_NoSupportsTransformFeedbackExtension* = SKIP
-
-// Missing Vulkan image initialization
-42265418 VULKAN : Texture2DTestES3RobustInit.TextureCOMPRESSEDRGB8A1ETC2/* = SKIP
-42265418 VULKAN : Texture2DTestES3RobustInit.TextureCOMPRESSEDSRGB8A1ETC2/* = SKIP
-
-// // Cannot create 2D (array) view of 3D texture.  These fail with validation errors, and cause a crash in syncval.
-42262531 VULKAN : ComputeShaderTest.BindImageTexture3D/* = SKIP
-
-// Produces VVL errors
-42265827 VULKAN : FramebufferTest_ES3.FramebufferConditionalFeedbackLoop/* = SKIP
-42265967 VULKAN : Texture2DTest.TextureMaxSize/* = SKIP
-
-343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeUnsignedNormalized_* = SKIP
-343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeSignedNormalized_* = SKIP
-343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeFloat_* = SKIP
-343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeUnsignedInteger_* = SKIP
-343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeSignedInteger_* = SKIP
-343922404 VULKAN : IncompatibleTextureTest.Test/ES3_*__SamplerTypeShadow_TextureTypeStencil_* = SKIP
-
-// Flat shading bug with lighting
-42264726 VULKAN : LightsTest.FlatLitMesh/* = SKIP
-
-42266095 VULKAN : EGLRobustnessTestES3.Context*ResetOnInvalidLocalShaderVariableAccess_ShareGroupAfterProgramCreation/* = SKIP
-
-// EXT_multisample_compatibility exposed for the sake of GLES1, but not implemented on Vulkan
-42266123 VULKAN : EXTMultisampleCompatibilityTest.* = SKIP
-
-// Missing geometry & tesselation shader interactions with clip / cull distance
-42264006 VULKAN : ClipCullDistanceTest.ClipDistanceInteractWithGeometryShader/* = SKIP
-42264006 VULKAN : ClipCullDistanceTest.CullDistanceInteractWithGeometryShader/* = SKIP
-
 // SwiftShader generates framebuffer incomplete errors
 42266785 SWIFTSHADER : EGLSurfaceTest.ShrinkWindowThenScissoredClear/* = SKIP
 42266785 SWIFTSHADER : EGLSurfaceTest.GrowWindowThenScissoredClear/* = SKIP
 42266785 SWIFTSHADER : EGLSurfaceTest3.ShrinkWindowThenScissoredClearBuffer/* = SKIP
-
-42266807 VULKAN : Texture2DBaseMaxTestES3.NotColorRenderableWithColorRenderableBeyondMaxLevel/* = SKIP
-42266807 VULKAN : Texture2DBaseMaxTestES3.DepthRenderableWithColorRenderableBeyondMaxLevel/* = SKIP
-42266807 VULKAN : Texture2DBaseMaxTestES3.NotColorRenderableAfterColorRenderableBelowBaseLevel/* = SKIP
-42266807 VULKAN : Texture2DBaseMaxTestES3.DepthRenderableAfterColorRenderableBelowBaseLevel/* = SKIP
-
-// SPIR-V compilation error
-384593678 VULKAN : SimpleUniformUsageTestES3.CopyOfUniformsWithArrays/* = SKIP
-
-// Fails on Vulkan
-406807990 VULKAN : TextureUploadFormatTest.AllWithPBO/* = SKIP
-
 405286904 SWIFTSHADER : TextureBufferTestES31.UseAsXFBThenAsTextureBuffer/* = SKIP
 406827038 SWIFTSHADER : GLSLTest_ES3.DenormFloatsToIntValues/* = SKIP
 
-// System EGL Failures
-427548010 VULKAN : ImageTest.SourceAHBTarget2DExternalCycleThroughYuvSourcesNoData/* = SKIP
+// Known failures on Intel Alder Lake
+409384875 VULKAN : Multiview* = SKIP
+409384875 VULKAN : CopyTextureVariationsTest* = SKIP
+409384875 VULKAN : EGL* = SKIP
+409384875 VULKAN : ImageTest.ANGLEExtensionAvailability/ES2_Vulkan = SKIP
+409384875 VULKAN : ImageTest.Source2DTarget2DArray/ES2_Vulkan = SKIP
+409384875 VULKAN : ImageTest.Source2DTarget2DArray_Colorspace/ES2_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceAHBTarget2DArray/ES2_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceAHBTarget2DArray_Colorspace/ES2_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceAHBTarget2DExternalCycleThroughRgbAndYuvTargets/ES2_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceAHBTarget2DExternalCycleThroughRgbAndYuvTargets/ES3_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceAHBTarget2DExternalCycleThroughYuvSourcesNoData/ES2_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceAHBTarget2DExternalCycleThroughYuvSourcesNoData/ES3_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceAHBTarget2DExternalCycleThroughYuvTargetsNoData/ES2_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceAHBTarget2DExternalCycleThroughYuvTargetsNoData/ES3_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceNativeClientBufferTargetExternal/ES2_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceNativeClientBufferTargetExternal/ES3_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceNativeClientBufferTargetExternal_Colorspace/ES3_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceYUVAHBTargetExternalRGBSampleInitData/ES2_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceYUVAHBTargetExternalRGBSampleInitData/ES3_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceYUVAHBTargetExternalRGBSampleNoData/ES2_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceYUVAHBTargetExternalRGBSampleNoData/ES3_Vulkan = SKIP
+409384875 VULKAN : ImageTest.ValidationGLEGLImageExternalESSL3/ES2_Vulkan = SKIP
+409384875 VULKAN : ImageTest.ValidationGLEGLImageStorage/ES2_Vulkan = SKIP
+409384875 VULKAN : ImageTestES3.SourceYUVAHBTargetExternalCopySrc/ES3_Vulkan = SKIP
+409384875 VULKAN : ImageTestES3.SourceYUVAHBTargetExternalYUVFetchSamplerExternalOES/ES3_Vulkan = SKIP
+409384875 VULKAN : ImageTestES3.SourceYUVAHBTargetExternalYUVFetchVSSamplerExternalOES/ES3_Vulkan = SKIP
+409384875 VULKAN : ImageTestES31.UseSourceTextureAsStorageImage/ES3_1_Vulkan = SKIP
+409384875 VULKAN : AtomicCounterBufferTest.AtomicCounterBufferBindings/ES3_Vulkan = SKIP
+409384875 VULKAN : ClearTestES3.DrawAfterClearWithGaps/ES3_Vulkan = SKIP
+409384875 VULKAN : ClearTestES3.MidRenderPassClearWithGaps/ES3_Vulkan = SKIP
+409384875 VULKAN : ComputeShaderTestES3.NotSupported/ES3_Vulkan = SKIP
+409384875 VULKAN : GLSLTest.VerifyMaxVertexUniformVectorsWithSamplers/ES2_Vulkan = SKIP
+409384875 VULKAN : GLSLTest.VerifyMaxVertexUniformVectorsWithSamplers/ES3_Vulkan = SKIP
+409384875 VULKAN : GLSLTest.VerifyMaxFragmentUniformVectorsWithSamplers/ES2_Vulkan = SKIP
+409384875 VULKAN : GLSLTest.VerifyMaxFragmentUniformVectorsWithSamplers/ES3_Vulkan = SKIP
+409384875 VULKAN : GLSLTest_ES31.SeparableProgramWithMismatchingShaderInterface/ES3_1_Vulkan = SKIP
+409384875 VULKAN : GeometryShaderTestES3.CreateGeometryShaderInES3/ES3_Vulkan = SKIP
+409384875 VULKAN : GetImageTest.InconsistentTexture2D/ES2_Vulkan = SKIP
+409384875 VULKAN : GetImageTest.InconsistentTexture2D/ES3_Vulkan = SKIP
+409384875 VULKAN : ProgramInterfaceTestES31.ArrayofArraysQueries/ES3_1_Vulkan = SKIP
+409384875 VULKAN : ProgramInterfaceTestES31.ArrayofArraysQueries/ES3_1_Vulkan__cached = SKIP
+409384875 VULKAN : ProgramParameterTest.ValidatePname/ES3_Vulkan = SKIP
+409384875 VULKAN : ProgramPipelineTest.GenerateProgramPipelineObject/ES3_Vulkan = SKIP
+409384875 VULKAN : ShaderStorageBufferTest31.ExceedMaxShaderStorageBlockSize/ES3_1_Vulkan = SKIP
+409384875 VULKAN : ValidationStateChangeTest.TransformFeedbackDrawModes/ES3_Vulkan = SKIP
+409384875 VULKAN : TextureCubeTest.CubeMapBug2/ES2_Vulkan = SKIP
+409384875 VULKAN : Texture3DTestES2.DefineTexture2DArrayShouldFail/ES2_Vulkan = SKIP
+409384875 VULKAN : Texture2DBaseMaxTestES3.Fuzz545ImmutableTexRenderFeedback/ES3_Vulkan = SKIP
+409384875 VULKAN : TextureBorderClampTest.TextureBorderClampValidation/ES2_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.SwitchToReadOnlyDepthStencilLeavesOtherAspectsOptimal/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.ColorInvalidateMaskDraw/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.ColorInvalidateDiscardDraw/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.ColorMaskedDraw/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.ColorDiscardDraw/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.DepthStencilInvalidateDrawDisable/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.DepthStencilInvalidateDrawDisableEnable/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.DepthStencilInvalidateDisableEnableDraw/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.DepthStencilInvalidateAndClear/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.DepthStencilInvalidateAndMaskedClear/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.DepthFuncALWAYSWithDepthMaskDisabledShouldNotLoadStore/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.DepthFuncALWAYSWithDepthMaskDisabledThenClearShouldNotLoadStore/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.DepthFuncNEVERWithDepthMaskDisabledShouldNotLoadStore/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.DepthStencilInvalidateDetachModifyTexAttachDrawWithBlend/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.ReadOnlyDepthBufferLayout/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.RenderPassAfterRenderPassWithoutDepthStencilWrite/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.TextureDescriptorsAreShared/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.UniformBufferDescriptorsAreShared/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.ResizeFBOAttachedTexture/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.SetTextureSwizzleWithSameValueOnFBOAttachedTexture/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest.SetTextureSwizzleWithDifferentValueOnFBOAttachedTexture/ES3_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest_ES31.MultisampleResolveBothAttachments/ES3_1_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest_ES31.ColorMaskedFramebufferFetchDraw/ES3_1_Vulkan = SKIP
+409384875 VULKAN : VulkanPerformanceCounterTest_ES31.FramebufferFetchRenderPassThenColorMaskedDraw/ES3_1_Vulkan = SKIP
+409384875 VULKAN : EXTBlendFuncExtendedDrawTestES3.FragmentOutputLocationsInShader/ES3_Vulkan = SKIP
+409384875 VULKAN : EXTBlendFuncExtendedDrawTestES3.FragmentOutputLocationsAPI/ES3_Vulkan = SKIP
+409384875 VULKAN : EXTBlendFuncExtendedDrawTestES3.FragmentOutputLocationsAPIAndAutomatic/ES3_Vulkan = SKIP
+409384875 VULKAN : EXTBlendFuncExtendedDrawTestES3.FragmentArrayOutputLocationsInShader/ES3_Vulkan = SKIP
+409384875 VULKAN : EXTBlendFuncExtendedDrawTestES3.FragmentArrayOutputLocationsAPI/ES3_Vulkan = SKIP
+409384875 VULKAN : CopyTexImageTestES3.RedefineSameLevel/ES3_Vulkan = SKIP
+409384875 VULKAN : DepthStencilFormatsTest.DepthStencilReadback_Float/ES2_Vulkan = SKIP
+409384875 VULKAN : DepthStencilFormatsTest.DepthTextureRender/ES2_Vulkan = SKIP
+409384875 VULKAN : DrawBuffersTest.Gaps/ES2_Vulkan = SKIP
+409384875 VULKAN : DrawBuffersTest.Gaps/ES3_Vulkan = SKIP
+409384875 VULKAN : DrawBuffersTest.BlendWithGaps/ES2_Vulkan = SKIP
+409384875 VULKAN : DrawBuffersTest.BlendWithGaps/ES3_Vulkan = SKIP
+409384875 VULKAN : DrawBuffersTest.FirstAndLast/ES2_Vulkan = SKIP
+409384875 VULKAN : DrawBuffersTest.FirstAndLast/ES3_Vulkan = SKIP
+409384875 VULKAN : DrawBuffersTest.FirstHalfNULL/ES2_Vulkan = SKIP
+409384875 VULKAN : DrawBuffersTest.FirstHalfNULL/ES3_Vulkan = SKIP
+409384875 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachments/ES3_1_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceAHBTarget2DExternalCycleThroughRgbAndYuvSources/ES2_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceAHBTarget2DExternalCycleThroughRgbAndYuvSources/ES3_Vulkan = SKIP
+409384875 VULKAN : EXTMultisampleCompatibilityTest.DrawAndResolve/ES2_Vulkan = SKIP
+409384875 VULKAN : EXTMultisampleCompatibilityTest.DrawAndResolve/ES3_Vulkan = SKIP
+409384875 VULKAN : PbufferColorspaceTest.CreateSurfaceWithColorspace/ES3_Vulkan = SKIP
+409384875 VULKAN : RendererTest.RequestedRendererCreated/ES2_Vulkan = SKIP
+409384875 VULKAN : RendererTest.RequestedRendererCreated/ES3_Vulkan = SKIP
+409384875 VULKAN : RendererTest.RequestedRendererCreated/ES3_1_Vulkan = SKIP
+409384875 VULKAN : RobustFragmentShaderOutputTest.ChangingFramebufferAttachments/ES3_Vulkan = SKIP
+409384875 VULKAN : RobustFragmentShaderOutputTest.ChangingFramebuffers/ES3_Vulkan = SKIP
+409384875 VULKAN : RobustFragmentShaderOutputTest.ChangingProgramOutputs/ES3_Vulkan = SKIP
+409384875 VULKAN : SRGBTextureTest.SRGBValidation/ES2_Vulkan = SKIP
+409384875 VULKAN : SRGBTextureTest.SRGBAValidation/ES2_Vulkan = SKIP
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Slow tests, should appear last in this file
