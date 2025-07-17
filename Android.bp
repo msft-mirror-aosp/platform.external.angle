@@ -1194,6 +1194,7 @@ cc_library_shared {
         "-Wno-gnu-zero-variadic-macro-arguments",
         "-Wno-inconsistent-missing-override",
         "-Wno-redundant-parens",
+        "-Wno-thread-safety",
         "-Wno-zero-length-array",
     ],
     sdk_version: "current",
@@ -1346,6 +1347,7 @@ cc_library_shared {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    afdo: true,
     arch: {
         arm64: {
             cflags: [
@@ -1426,6 +1428,7 @@ cc_library_shared {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    afdo: true,
     arch: {
         arm64: {
             cflags: [
@@ -8146,6 +8149,7 @@ cc_library_shared {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    afdo: true,
     arch: {
         arm64: {
             cflags: [
