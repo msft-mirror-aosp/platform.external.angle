@@ -11,7 +11,6 @@ import android.app.NativeActivity;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
-import android.view.View;
 
 import java.nio.file.Paths;
 
@@ -42,12 +41,6 @@ public final class AngleNativeTest extends NativeActivity {
         }
 
         super.onCreate(bundle);
-        // fullscreen
-        View decorView = getWindow().getDecorView();
-        if (decorView != null) {
-            decorView.setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN);
-        }
     }
 
     String getStdoutFilePath() {
