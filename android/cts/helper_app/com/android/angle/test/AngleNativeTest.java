@@ -8,9 +8,7 @@
 package com.android.angle.test;
 
 import android.app.NativeActivity;
-import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 
 import java.nio.file.Paths;
 
@@ -19,28 +17,9 @@ public final class AngleNativeTest extends NativeActivity {
     private static final String OUTPUT_DIR = "/sdcard/Download";
     private static final String STDOUT_FILENAME = "out.txt";
 
-    @Override
-    public void onCreate(Bundle bundle) {
-        final String angleUtilLibraryName = "angle_util";
-        final String end2endTestsLibraryName = "angle_end2end_tests__library";
-
-        try {
-            // Implements ANativeActivity_onCreate etc.
-            System.loadLibrary(angleUtilLibraryName);
-        } catch (Throwable e) {
-            Log.e(TAG, "Error loading: " + angleUtilLibraryName, e);
-            throw e;
-        }
-
-        try {
-            // Contains all the end2end tests.
-            System.loadLibrary(end2endTestsLibraryName);
-        } catch (Throwable e) {
-            Log.e(TAG, "Error loading: " + end2endTestsLibraryName, e);
-            throw e;
-        }
-
-        super.onCreate(bundle);
+    static {
+        System.loadLibrary("angle_util");
+        System.loadLibrary("angle_end2end_tests__library");
     }
 
     String getStdoutFilePath() {
