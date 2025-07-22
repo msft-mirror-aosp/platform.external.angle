@@ -1475,6 +1475,7 @@ cc_defaults {
         "-Wno-redundant-parens",
         "-Wno-suggest-destructor-override",
         "-Wno-suggest-override",
+        "-Wno-thread-safety",
         "-Wno-unused-private-field",
         "-Wno-unused-variable",
         "-Wno-zero-length-array",
