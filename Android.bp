@@ -1475,6 +1475,7 @@ cc_defaults {
         "-Wno-redundant-parens",
         "-Wno-suggest-destructor-override",
         "-Wno-suggest-override",
+        "-Wno-thread-safety",
         "-Wno-unused-private-field",
         "-Wno-unused-variable",
         "-Wno-zero-length-array",
@@ -4674,6 +4675,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -4702,6 +4704,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -4733,6 +4736,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -4776,6 +4780,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -4804,6 +4809,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -4835,6 +4841,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -4865,6 +4872,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -4920,6 +4928,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -4948,6 +4957,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -4982,6 +4992,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5014,6 +5025,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5042,6 +5054,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5071,6 +5084,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5111,6 +5125,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5142,6 +5157,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5186,6 +5202,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5221,6 +5238,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5257,6 +5275,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5288,6 +5307,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5317,6 +5337,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5351,6 +5372,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5384,6 +5406,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5420,6 +5443,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5460,6 +5484,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5492,6 +5517,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5528,6 +5554,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5584,6 +5611,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5618,6 +5646,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5650,6 +5679,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5684,6 +5714,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5721,6 +5752,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5756,6 +5788,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5800,6 +5833,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5848,6 +5882,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5877,6 +5912,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5911,6 +5947,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5940,6 +5977,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -5998,6 +6036,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6035,6 +6074,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6063,6 +6103,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6113,6 +6154,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6146,6 +6188,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6174,6 +6217,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6204,6 +6248,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6243,6 +6288,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6276,6 +6322,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6318,6 +6365,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6352,6 +6400,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6386,6 +6435,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6421,6 +6471,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6474,6 +6525,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6503,6 +6555,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6537,6 +6590,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6566,6 +6620,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6595,6 +6650,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6624,6 +6680,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6659,6 +6716,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6689,6 +6747,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6723,6 +6782,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6753,6 +6813,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6786,6 +6847,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6817,6 +6879,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6847,6 +6910,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6876,6 +6940,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6904,6 +6969,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6934,6 +7000,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6962,6 +7029,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -6994,6 +7062,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7023,6 +7092,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7059,6 +7129,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7088,6 +7159,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7121,6 +7193,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7149,6 +7222,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7184,6 +7258,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7216,6 +7291,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7245,6 +7321,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7274,6 +7351,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7303,6 +7381,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7332,6 +7411,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7377,6 +7457,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7408,6 +7489,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7453,6 +7535,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7485,6 +7568,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7514,6 +7598,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7543,6 +7628,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7571,6 +7657,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7598,6 +7685,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7626,6 +7714,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7658,6 +7747,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
@@ -7691,6 +7781,7 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
