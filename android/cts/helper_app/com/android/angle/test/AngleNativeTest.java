@@ -35,7 +35,7 @@ public final class AngleNativeTest extends NativeActivity {
 
         // TODO(b/279980674): Remove filter and Enable all tests, filtered by the expectations file.
         // We want to run at least one test to exercise things, and this one is small and passing.
-        commandLineFlags += " --gtest_filter=MemorySizeTest.BasicUsageTexture/* ";
+        commandLineFlags += " --gtest_filter=ClearTest.DefaultFramebuffer/* ";
 
         return commandLineFlags;
     }
