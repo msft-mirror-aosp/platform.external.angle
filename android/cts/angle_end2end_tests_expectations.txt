@@ -35,6 +35,7 @@
 409384875 VULKAN : ImageTest.SourceAHBTarget2DExternalCycleThroughYuvTargetsNoData/ES3_Vulkan = SKIP
 409384875 VULKAN : ImageTest.SourceNativeClientBufferTargetExternal/ES2_Vulkan = SKIP
 409384875 VULKAN : ImageTest.SourceNativeClientBufferTargetExternal/ES3_Vulkan = SKIP
+409384875 VULKAN : ImageTest.SourceNativeClientBufferTargetExternal_Colorspace/ES2_Vulkan = SKIP
 409384875 VULKAN : ImageTest.SourceNativeClientBufferTargetExternal_Colorspace/ES3_Vulkan = SKIP
 409384875 VULKAN : ImageTest.SourceYUVAHBTargetExternalRGBSampleInitData/ES2_Vulkan = SKIP
 409384875 VULKAN : ImageTest.SourceYUVAHBTargetExternalRGBSampleInitData/ES3_Vulkan = SKIP
