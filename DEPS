@@ -275,6 +275,7 @@ vars = {
   'checkout_angle_restricted_trace_higgs_domino_island': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_hill_climb_racing': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_homescapes': 'checkout_angle_restricted_traces',
+  'checkout_angle_restricted_trace_honkai_impact_3rd': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_honkai_star_rail': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_hungry_shark_evolution': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_idle_heroes': 'checkout_angle_restricted_traces',
@@ -288,6 +289,7 @@ vars = {
   'checkout_angle_restricted_trace_kentucky_route_zero': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_klondike_adventures': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_last_shelter_survival': 'checkout_angle_restricted_traces',
+  'checkout_angle_restricted_trace_last_z_survival_shooter': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_league_of_legends_wild_rift': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_lego_legacy': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_life_is_strange': 'checkout_angle_restricted_traces',
@@ -1007,7 +1009,7 @@ deps = {
   },
 
   'third_party/SwiftShader': {
-    'url': Var('swiftshader_git') + '/SwiftShader@b347398f5e864dc2853c15da12efcd33c5412e1b',
+    'url': Var('swiftshader_git') + '/SwiftShader@a84d1801cf7b144da1cd3cca423ef36907c01771',
     'condition': 'not build_with_chromium',
   },
 
@@ -1027,7 +1029,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@0b8bda098b9aec66881812324314085f9bc53983',
+    'url': Var('chromium_git') + '/vulkan-deps@b7374531e4a2dcec81a18fe09d02a2c16668c1a5',
     'condition': 'not build_with_chromium',
   },
 
@@ -1037,7 +1039,7 @@ deps = {
   },
 
   'third_party/lunarg-vulkantools/src': {
-    'url': '{chromium_git}/external/github.com/LunarG/VulkanTools@597e427cce3fc97a8455b26aba1a1189546717c3',
+    'url': '{chromium_git}/external/github.com/LunarG/VulkanTools@192b610c89300a30221b8909bf71dcb12cd3c92d',
     'condition': 'not build_with_chromium',
   },
 
@@ -1047,12 +1049,12 @@ deps = {
   },
 
   'third_party/spirv-headers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@c8ad050fcb29e42a2f57d9f59e97488f465c436d',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@de1807b7cfa8e722979d5ab7b7445b258dbc1836',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/spirv-tools/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@8cf1bf9bb922e33135e6e343a566764015da2dc6',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@04d4deab5d608af8fbe418c422734a73555589c3',
     'condition': 'not build_with_chromium',
   },
 
@@ -1077,7 +1079,7 @@ deps = {
   },
 
   'third_party/vulkan-validation-layers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@dad479f6294df6c7a706964c489926be943a8baf',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@4cf7390eb853a54e7f9ae1c948ac09995ed8b8e5',
     'condition': 'not build_with_chromium',
   },
 
@@ -2431,6 +2433,16 @@ deps = {
       'dep_type': 'cipd',
       'condition': 'checkout_angle_restricted_trace_homescapes',
   },
+  'src/tests/restricted_traces/honkai_impact_3rd': {
+      'packages': [
+        {
+            'package': 'angle/traces/honkai_impact_3rd',
+            'version': 'version:2',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_trace_honkai_impact_3rd',
+  },
   'src/tests/restricted_traces/honkai_star_rail': {
       'packages': [
         {
@@ -2560,6 +2572,16 @@ deps = {
       ],
       'dep_type': 'cipd',
       'condition': 'checkout_angle_restricted_trace_last_shelter_survival',
+  },
+  'src/tests/restricted_traces/last_z_survival_shooter': {
+      'packages': [
+        {
+            'package': 'angle/traces/last_z_survival_shooter',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_trace_last_z_survival_shooter',
   },
   'src/tests/restricted_traces/league_of_legends_wild_rift': {
       'packages': [
