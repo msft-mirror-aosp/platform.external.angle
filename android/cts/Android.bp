@@ -30,4 +30,11 @@ android_test_helper_app {
         "libangle_end2end_tests__library",
         "libangle_util",
     ],
+    static_libs: [
+        "androidx.test.core",
+        "androidx.test.ext.junit",
+        "androidx.test.rules",
+        "flag-junit",
+        "platform-test-annotations",
+    ],
 }
