@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2025 The Android Open Source Project
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<configuration description="ANGLE End2End test cases">
+    <option name="test-suite-tag" value="cts" />
+    <option name="config-descriptor:metadata" key="component" value="graphics" />
+    <option name="config-descriptor:metadata" key="parameter" value="not_instant_app" />
+    <option name="config-descriptor:metadata" key="parameter" value="secondary_user" />
+    <option name="config-descriptor:metadata" key="parameter" value="multi_abi" />
+    <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
+        <!-- Wake and unlock the device so a window can be shown. -->
+        <option name="run-command" value="input keyevent KEYCODE_WAKEUP" />
+        <!-- The end2end tests require the device to be at the Launcher to get a valid surface. -->
+        <!-- Non-HSUM Devices: Dismiss the lock screen (keyguard). -->
+        <option name="run-command" value="wm dismiss-keyguard" />
+        <!-- HSUM Devices: Switch to user 10 to dismiss the login screen. -->
+        <!-- This is expected to fail on non-HSUM devices because user 10 does not exist. -->
+        <!-- TODO(b/420640007, b/424268326) Remove when tradefed can login correctly. -->
+        <option name="run-command" value="am switch-user 10" />
+        <option name="run-command" value="am wait-for-broadcast-idle" />
+        <!-- Disable "unsafe app" notification -->
+        <option name="run-command" value="settings put global verifier_engprod 1" />
+        <option name="run-command" value="settings put global verifier_verify_adb_installs 0" />
+    </target_preparer>
+    <target_preparer class="com.android.tradefed.targetprep.suite.SuiteApkInstaller">
+        <option name="cleanup-apks" value="true" />
+        <option name="test-file-name" value="AngleEnd2EndTestsHelper.apk" />
+    </target_preparer>
+    <target_preparer class="com.android.compatibility.common.tradefed.targetprep.FilePusher">
+        <option name="push-file" key="angle_end2end_tests_expectations.txt"
+        value="/sdcard/chromium_tests_root/src/tests/angle_end2end_tests_expectations.txt" />
+        <option name="cleanup" value="true" />
+    </target_preparer>
+    <test class="com.android.tradefed.testtype.HostTest" >
+        <option name="class" value="com.android.angle.cts.AngleEnd2EndHostTest" />
+    </test>
+</configuration>

@@ -1,14 +1,22 @@
-// Copyright 2025 The ANGLE Project Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-//
-// AngleNativeTest:
-//   Helper to run Angle tests inside NativeActivity.
+/*
+ * Copyright (C) 2025 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.android.angle.test;
 
 import android.app.NativeActivity;
-import android.os.Handler;
 import android.util.Log;
 
 import java.io.IOException;
@@ -17,7 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public final class AngleNativeTest extends NativeActivity {
-    private static final String TAG = "NativeTest";
+    private static final String TAG = "AngleNativeTest";
     // On the device, maps to: /data/media/[0|10]
     // See: https://source.android.com/docs/devices/admin/multi-user-testing
     private static final String OUTPUT_DIRECTORY = "/sdcard";
@@ -40,10 +48,8 @@ public final class AngleNativeTest extends NativeActivity {
         return commandLineFlags;
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
-
+    /** Run the ANGLE end2end tests. */
+    public void runEnd2EndTests() {
         Path stdoutFilePath = Paths.get(OUTPUT_DIRECTORY).resolve(STDOUT_FILENAME);
 
         try {
@@ -54,22 +60,7 @@ public final class AngleNativeTest extends NativeActivity {
             throw new AssertionError("Failed to delete stdout file '" + stdoutFilePath + "'", e);
         }
 
-        final Runnable runTestsTask =
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        nativeRunTests(getCommandLineFlags(), "", stdoutFilePath.toString());
-                        finish();
-                    }
-                };
-        final Handler handler = new Handler();
-        final Runnable startTestThreadTask = new Runnable() {
-            @Override
-            public void run() {
-                new Thread(runTestsTask).start();
-            }
-        };
-        handler.post(startTestThreadTask);
+        nativeRunTests(getCommandLineFlags(), "", stdoutFilePath.toString());
     }
 
     private native void nativeRunTests(

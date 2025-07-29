@@ -30,4 +30,33 @@ android_test_helper_app {
         "libangle_end2end_tests__library",
         "libangle_util",
     ],
+    static_libs: [
+        "androidx.test.core",
+        "androidx.test.ext.junit",
+        "androidx.test.rules",
+        "flag-junit",
+        "platform-test-annotations",
+    ],
+}
+
+java_test_host {
+    name: "CtsAngleEnd2EndTests",
+    srcs: ["src/com/angle/cts/AngleEnd2EndHostTest.java"],
+    test_suites: [
+        "cts",
+        "dts",
+        "general-tests",
+    ],
+    libs: [
+        "compatibility-host-util",
+        "cts-tradefed",
+        "junit",
+        "tradefed",
+    ],
+    device_common_data: [
+        ":AngleEnd2EndTestsHelper",
+    ],
+    data: [
+        "angle_end2end_tests_expectations.txt",
+    ],
 }
