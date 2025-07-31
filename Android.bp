@@ -888,6 +888,7 @@ cc_library_shared {
         "src/tests/egl_tests/EGLChooseConfigTest.cpp",
         "src/tests/egl_tests/EGLContextASANTest.cpp",
         "src/tests/egl_tests/EGLContextCompatibilityTest.cpp",
+        "src/tests/egl_tests/EGLContextPassthroughShadersTest.cpp",
         "src/tests/egl_tests/EGLContextSharingTest.cpp",
         "src/tests/egl_tests/EGLCreateContextAttribsTest.cpp",
         "src/tests/egl_tests/EGLDebugTest.cpp",
