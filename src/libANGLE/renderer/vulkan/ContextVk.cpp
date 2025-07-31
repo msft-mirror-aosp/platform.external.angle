@@ -1615,7 +1615,7 @@ angle::Result ContextVk::setupIndexedDraw(const gl::Context *context,
     }
 
     VertexArrayVk *vertexArrayVk         = getVertexArray();
-    const gl::Buffer *elementArrayBuffer = vertexArrayVk->getState().getElementArrayBuffer();
+    const gl::Buffer *elementArrayBuffer = vertexArrayVk->getElementArrayBuffer();
     if (!elementArrayBuffer)
     {
         BufferBindingDirty bindingDirty;
@@ -1772,6 +1772,10 @@ angle::Result ContextVk::setupLineLoopIndirectDraw(const gl::Context *context,
 
     vk::BufferHelper *indexBufferHelperOut    = nullptr;
     vk::BufferHelper *indirectBufferHelperOut = nullptr;
+
+    // Reset the index buffer offset
+    mGraphicsDirtyBits.set(DIRTY_BIT_INDEX_BUFFER);
+    mCurrentIndexBufferOffset = 0;
 
     VertexArrayVk *vertexArrayVk = getVertexArray();
     ANGLE_TRY(vertexArrayVk->handleLineLoopIndirectDraw(context, indirectBuffer,
@@ -6205,9 +6209,10 @@ BufferImpl *ContextVk::createBuffer(const gl::BufferState &state)
     return new BufferVk(state);
 }
 
-VertexArrayImpl *ContextVk::createVertexArray(const gl::VertexArrayState &state)
+VertexArrayImpl *ContextVk::createVertexArray(const gl::VertexArrayState &state,
+                                              const gl::VertexArrayBuffers &vertexArrayBuffers)
 {
-    return new VertexArrayVk(this, state);
+    return new VertexArrayVk(this, state, vertexArrayBuffers);
 }
 
 QueryImpl *ContextVk::createQuery(gl::QueryType type)

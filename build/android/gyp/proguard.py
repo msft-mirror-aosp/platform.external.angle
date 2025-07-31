@@ -20,10 +20,6 @@ import action_helpers  # build_utils adds //build to sys.path.
 import zip_helpers
 
 _IGNORE_WARNINGS = (
-    # E.g. Triggers for weblayer_instrumentation_test_apk since both it and its
-    # apk_under_test have no shared_libraries.
-    # https://crbug.com/1364192 << To fix this in a better way.
-    r'Missing class org.chromium.build.NativeLibraries',
     # Caused by protobuf runtime using -identifiernamestring in a way that
     # doesn't work with R8. Looks like:
     # Rule matches the static final field `...`, which may have been inlined...
@@ -52,6 +48,8 @@ _IGNORE_WARNINGS = (
         r'EditorDialogToolbar',
         # https://crbug.com/1441226
         r'PaymentRequest[BH]',
+        # This service is defined in Native not Java.
+        r'NativeServiceSandboxedProcessService',
     ]) + ')',
     # We enforce that this class is removed via -checkdiscard.
     r'FastServiceLoader\.class:.*Could not inline ServiceLoader\.load',
