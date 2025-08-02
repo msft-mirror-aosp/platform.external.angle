@@ -95,7 +95,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r28_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-21-init-16348-gbd809ffb-13\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-21-init-16348-gbd809ffb-14\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -2735,6 +2735,7 @@ cc_genrule {
         "src/common/entry_points_enum_autogen.h",
         "src/common/event_tracer.cpp",
         "src/common/event_tracer.h",
+        "src/common/frame_capture_binary_data.h",
         "src/common/frame_capture_utils.h",
         "src/common/frame_capture_utils_autogen.h",
         "src/common/gl_enum_utils.h",

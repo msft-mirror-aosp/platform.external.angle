@@ -196,7 +196,7 @@ void WriteStringParamReplay(ReplayWriter &replayWriter,
         // Store in binary file if the string is too long.
         // Round up to 16-byte boundary for cross ABI safety.
         const size_t offset = binaryData->append(str.data(), str.size() + 1);
-        out << "(const char *)&gBinaryData[" << offset << "]";
+        out << "(const char *)GetBinaryData(" << offset << ")";
     }
     else if (str.find('\n') != std::string::npos)
     {
@@ -440,7 +440,7 @@ void WriteInitReplayCall(bool compression,
         const char *name = GetResourceIDTypeName(resourceID);
         out << "    // max" << name << " = " << maxIDs[resourceID] << "\n";
     }
-    out << "    InitializeReplay4(\"" << binaryDataFileName << "\", " << maxClientArraySize << ", "
+    out << "    InitializeReplay5(\"" << binaryDataFileName << "\", " << maxClientArraySize << ", "
         << readBufferSize << ", " << resourceIDBufferSize << ", " << contextID;
 
     for (ResourceIDType resourceID : AllEnums<ResourceIDType>())
@@ -451,6 +451,8 @@ void WriteInitReplayCall(bool compression,
     }
 
     out << ");\n";
+    // Load binary data
+    out << "    InitializeBinaryDataLoader();\n";
 }
 
 void DeleteResourcesInReset(std::stringstream &out,
@@ -2682,6 +2684,7 @@ void CaptureVertexArrayState(std::vector<CallCapture> *setupCalls,
 
         const gl::VertexAttribute &attrib = vertexAttribs[attribIndex];
         const gl::VertexBinding &binding  = vertexBindings[attrib.bindingIndex];
+        gl::Buffer *buffer                = vertexArray->getVertexArrayBuffer(attrib.bindingIndex);
 
         if (attrib.enabled != defaultAttrib.enabled)
         {
@@ -2700,17 +2703,15 @@ void CaptureVertexArrayState(std::vector<CallCapture> *setupCalls,
 
         // Don't capture CaptureVertexAttribPointer calls when a non-default VAO is bound, the array
         // buffer is null and a non-null attrib pointer is used.
-        bool skipInvalidAttrib = vertexArray->id().value != 0 &&
-                                 binding.getBuffer().get() == nullptr && attrib.pointer != nullptr;
+        bool skipInvalidAttrib =
+            vertexArray->id().value != 0 && buffer == nullptr && attrib.pointer != nullptr;
 
         if (!skipInvalidAttrib &&
             (attrib.format != defaultAttrib.format || attrib.pointer != defaultAttrib.pointer ||
              binding.getStride() != defaultBinding.getStride() ||
-             attrib.bindingIndex != defaultAttrib.bindingIndex ||
-             binding.getBuffer().get() != nullptr))
+             attrib.bindingIndex != defaultAttrib.bindingIndex || buffer != nullptr))
         {
             // Each attribute can pull from a separate buffer, so check the binding
-            gl::Buffer *buffer = binding.getBuffer().get();
             if (buffer != replayState->getArrayBuffer())
             {
                 replayState->setBufferBinding(context, gl::BufferBinding::Array, buffer);
@@ -2796,13 +2797,13 @@ void CaptureVertexArrayState(std::vector<CallCapture> *setupCalls,
     for (size_t bindingIndex : vertexPointerBindings.flip())
     {
         const gl::VertexBinding &binding = vertexBindings[bindingIndex];
+        gl::Buffer *buffer               = vertexArray->getVertexArrayBuffer(bindingIndex);
 
-        if (binding.getBuffer().id().value != 0)
+        if (buffer)
         {
-            Capture(setupCalls,
-                    CaptureBindVertexBuffer(*replayState, true, static_cast<GLuint>(bindingIndex),
-                                            binding.getBuffer().id(), binding.getOffset(),
-                                            binding.getStride()));
+            Capture(setupCalls, CaptureBindVertexBuffer(
+                                    *replayState, true, static_cast<GLuint>(bindingIndex),
+                                    buffer->id(), binding.getOffset(), binding.getStride()));
         }
 
         if (binding.getDivisor() != 0)
@@ -6246,49 +6247,6 @@ void CoherentBufferTracker::removeBuffer(gl::BufferID id)
     mBuffers.erase(id.value);
 }
 
-size_t FrameCaptureBinaryData::append(const void *data, size_t size)
-{
-    if (mData.empty())
-    {
-        mData.resize(1);
-    }
-
-    // Limit blocks of binary data to avoid allocating large vectors.  The following 512MB value
-    // works with Chrome captures, but is otherwise arbitrary.
-    constexpr size_t kMaxDataBlockSize = 512 * 1024 * 1024;
-
-    ASSERT(mTotalSize % kBinaryAlignment == 0);
-    const size_t offset         = mTotalSize;
-    const size_t sizeToIncrease = rx::roundUpPow2(size, kBinaryAlignment);
-
-    ASSERT(mData.back().size() % kBinaryAlignment == 0);
-    size_t offsetInLastElement = mData.back().size();
-    if (offsetInLastElement + sizeToIncrease > kMaxDataBlockSize)
-    {
-        // Add a new data block to append to so that each block is capped at kMaxDataBlockSize
-        // bytes.
-        mData.emplace_back();
-        offsetInLastElement = 0;
-    }
-
-    mData.back().resize(offsetInLastElement + sizeToIncrease);
-    memcpy(mData.back().data() + offsetInLastElement, data, size);
-    if (sizeToIncrease != size)
-    {
-        // Make sure the padding does not include garbage.
-        memset(mData.back().data() + offsetInLastElement + size, 0, sizeToIncrease - size);
-    }
-    mTotalSize += sizeToIncrease;
-
-    return offset;
-}
-
-void FrameCaptureBinaryData::clear()
-{
-    mData.clear();
-    mTotalSize = 0;
-}
-
 void *FrameCaptureShared::maybeGetShadowMemoryPointer(gl::Buffer *buffer,
                                                       GLsizeiptr length,
                                                       GLbitfield access)
@@ -8374,14 +8332,19 @@ void FrameCaptureShared::onEndFrame(gl::Context *context)
     {
         if (mFrameIndex == mCaptureStartFrame - 1)
         {
-            // Update output directory location
-            getOutputDirectory();
+            initalizeTraceStorage();
             // Trigger MEC.
             runMidExecutionCapture(context);
         }
         mFrameIndex++;
         reset();
         return;
+    }
+
+    // If not MEC, initialize capture storage
+    if (mFrameIndex == 1 && mCaptureStartFrame == 1)
+    {
+        initalizeTraceStorage();
     }
 
     ASSERT(isCaptureActive());
@@ -8415,10 +8378,8 @@ void FrameCaptureShared::onEndFrame(gl::Context *context)
 
         // Save the index files after the last frame.
         writeCppReplayIndexFiles(context, false);
-        SaveBinaryData(mCompression, mOutDirectory, kSharedContextId, mCaptureLabel, mBinaryData);
-        mBinaryData.clear();
+
         mWroteIndexFile = true;
-        INFO() << "Finished recording graphics API capture";
     }
 
     reset();
@@ -8439,13 +8400,15 @@ void FrameCaptureShared::onDestroyContext(const gl::Context *context)
         mFrameIndex -= 1;
         mCaptureEndFrame = mFrameIndex;
         writeCppReplayIndexFiles(context, true);
-        SaveBinaryData(mCompression, mOutDirectory, kSharedContextId, mCaptureLabel, mBinaryData);
-        mBinaryData.clear();
+
         mWroteIndexFile = true;
     }
 }
 
-void FrameCaptureShared::onMakeCurrent(const gl::Context *context, const egl::Surface *drawSurface)
+void FrameCaptureShared::onMakeCurrent(const gl::Context *context,
+                                       const egl::Surface *drawSurface,
+                                       EGLint surfaceWidth,
+                                       EGLint surfaceHeight)
 {
     if (!drawSurface)
     {
@@ -8454,8 +8417,16 @@ void FrameCaptureShared::onMakeCurrent(const gl::Context *context, const egl::Su
 
     // Track the width, height and color space of the draw surface as provided to makeCurrent
     SurfaceParams &params = mDrawSurfaceParams[context->id()];
-    params.extents        = gl::Extents(drawSurface->getWidth(), drawSurface->getHeight(), 1);
+    params.extents        = gl::Extents(surfaceWidth, surfaceHeight, 1);
     params.colorSpace     = egl::FromEGLenum<egl::ColorSpace>(drawSurface->getGLColorspace());
+}
+
+void FrameCaptureShared::initalizeTraceStorage()
+{
+    // Update output directory location
+    getOutputDirectory();
+    std::string fileName = GetBinaryDataFilePath(mCompression, mCaptureLabel);
+    mBinaryData.initializeBinaryDataStore(mCompression, mOutDirectory, fileName);
 }
 
 void StateResetHelper::setDefaultResetCalls(const gl::Context *context,
@@ -8769,6 +8740,21 @@ void FrameCaptureShared::writeJSON(const gl::Context *context)
     json.addBool("IsRobustResourceInitEnabled", glState.isRobustResourceInitEnabled());
     json.endGroup();
 
+    json.startGroup("BinaryMetadata");
+    json.addScalar("Version", mIndexInfo.version);
+    json.addScalar("BlockCount", mIndexInfo.blockCount);
+    // These values are handled as strings to avoid json-related underflows
+    std::stringstream blockSizeString;
+    blockSizeString << mIndexInfo.blockSize;
+    json.addString("BlockSize", blockSizeString.str());
+    std::stringstream resSizeString;
+    resSizeString << mIndexInfo.residentSize;
+    json.addString("ResidentSize", resSizeString.str());
+    std::stringstream offsetString;
+    offsetString << mIndexInfo.indexOffset;
+    json.addString("IndexOffset", offsetString.str());
+    json.endGroup();
+
     {
         const std::vector<std::string> &traceFiles = mReplayWriter.getAndResetWrittenFiles();
         json.addVectorOfStrings("TraceFiles", traceFiles);
@@ -8906,6 +8892,8 @@ void FrameCaptureShared::writeCppReplayIndexFiles(const gl::Context *context,
 
     mReplayWriter.saveIndexFilesAndHeader();
 
+    // Finalize binary data file
+    mIndexInfo = mBinaryData.closeBinaryDataStore();
     writeJSON(context);
 }
 
