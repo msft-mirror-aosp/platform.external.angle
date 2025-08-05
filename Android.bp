@@ -1031,6 +1031,7 @@ cc_library_shared {
         "src/tests/gl_tests/ShaderNonConstGlobalInitializerTest.cpp",
         "src/tests/gl_tests/ShaderOpTest.cpp",
         "src/tests/gl_tests/ShaderStorageBufferTest.cpp",
+        "src/tests/gl_tests/ShadingRateEXTTest.cpp",
         "src/tests/gl_tests/ShadingRateQcomTest.cpp",
         "src/tests/gl_tests/ShadowSamplerFunctionsTest.cpp",
         "src/tests/gl_tests/SimpleOperationTest.cpp",
