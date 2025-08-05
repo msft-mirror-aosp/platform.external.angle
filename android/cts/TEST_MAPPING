@@ -1,0 +1,7 @@
+{
+  "desktop-postsubmit": [
+    {
+      "name": "CtsAngleEnd2EndTests"
+    }
+  ]
+}
