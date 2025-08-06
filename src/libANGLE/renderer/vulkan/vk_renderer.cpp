@@ -4082,6 +4082,10 @@ void Renderer::initDeviceExtensionEntryPoints()
     {
         InitDeviceFaultFunctions(mDevice);
     }
+    if (mFeatures.supportsMaintenance5.enabled)
+    {
+        InitMaintenance5Functions(mDevice);
+    }
     // Extensions promoted to Vulkan 1.2
     {
         if (mFeatures.supportsHostQueryReset.enabled)
