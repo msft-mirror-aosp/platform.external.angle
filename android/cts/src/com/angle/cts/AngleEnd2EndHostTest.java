@@ -216,32 +216,43 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test implements IDeviceT
         Path testResultsPath = getDeviceFilePath(RESULTS_FILE_NAME);
         mDevice.deleteFile(testResultsPath.toString());
 
-        // We don't have feedback for individual test progress, so set all the timeouts to the same
-        // overall end2end test suite limit.
-        Duration timeout = Duration.ofMinutes(20);
-        runDeviceTests(
-                mDevice,
-                "com.android.angle.test",
-                "com.android.angle.test.AngleEnd2EndTest",
-                "testAngleEnd2End",
-                timeout.toMillis(),
-                timeout.toMillis(),
-                timeout.toMillis());
-
-        collectDeviceLogs(listener);
-
-        Optional<JSONObject> testResults = getTestResults();
-        if (testResults.isEmpty()) {
-            String errorMsg = "Failed to get test results";
-            // Mark the whole invocation as failed, since we haven't started recording the test
-            // results yet.
+        try {
+            // We don't have feedback for individual test progress, so set all the timeouts to the
+            // same overall end2end test suite limit.
+            Duration timeout = Duration.ofMinutes(20);
+            runDeviceTests(
+                    mDevice,
+                    "com.android.angle.test",
+                    "com.android.angle.test.AngleEnd2EndTest",
+                    "testAngleEnd2End",
+                    timeout.toMillis(),
+                    timeout.toMillis(),
+                    timeout.toMillis());
+        } catch (DeviceNotAvailableException e) {
+            // Only handle DeviceNotAvailableException and mark the whole invocation as failed,
+            // since it means we can't get any device logs or results to parse for pass/fail/crash.
+            String errorMsg = String.format("Device lost: %s", e);
             FailureDescription failure =
                     FailureDescription.create(errorMsg)
-                            .setErrorIdentifier(TestErrorIdentifier.OUTPUT_PARSER_ERROR);
+                            .setErrorIdentifier(TestErrorIdentifier.TEST_ABORTED);
             listener.invocationFailed(failure);
-            return;
-        }
+        } finally {
+            // Always collect and parse the logs, regardless of pass/fail/crash. This should make it
+            // easier to determine which test crashed, if one occurs.
+            collectDeviceLogs(listener);
 
-        parseResults(listener, testResults.get());
+            Optional<JSONObject> testResults = getTestResults();
+            if (testResults.isEmpty()) {
+                String errorMsg = "Failed to get test results";
+                // Mark the whole invocation as failed, since we haven't started recording the test
+                // results yet.
+                FailureDescription failure =
+                        FailureDescription.create(errorMsg)
+                                .setErrorIdentifier(TestErrorIdentifier.OUTPUT_PARSER_ERROR);
+                listener.invocationFailed(failure);
+            } else {
+                parseResults(listener, testResults.get());
+            }
+        }
     }
 }
