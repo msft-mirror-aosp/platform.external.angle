@@ -36,9 +36,8 @@ import tempfile
 # Set up path to be able to import action_helpers
 sys.path.append(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir,
-                 os.pardir, 'build'))
+                 os.pardir, os.pardir, 'build'))
 import action_helpers
-
 
 RUSTC_VERSION_LINE = re.compile(r"(\w+): (.*)")
 
@@ -62,28 +61,24 @@ def host_triple(rustc_path):
   return known_vars["host"]
 
 
-def set_cargo_cfg_target_env_variables(rustc_path, env):
-  """ Sets CARGO_CFG_TARGET_... based on output from rustc. """
-  target_triple = env["TARGET"]
-  assert target_triple
+def set_cargo_cfg_target_env_variables(rustc_print_cfg_path, env):
+  """ Sets `CARGO_CFG_TARGET_...` in `env` based on output from rustc.
 
-  # TODO(lukasza): Check if command-line flags other `--target` may affect the
-  # output of `--print-cfg`.  If so, then consider also passing extra `args`
-  # (derived from `rustflags` maybe?).
-  args = [rustc_path, "--print=cfg", f"--target={target_triple}"]
-
-  proc = subprocess.Popen(args, stdout=subprocess.PIPE)
-  for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
-    line = line.strip()
-    if "=" not in line: continue
-    key, value = line.split("=")
-    if key.startswith("target_"):
-      key = "CARGO_CFG_" + key.upper()
-      value = value.strip('"')
-      if key in env:
-        env[key] = env[key] + f",{value}"
-      else:
-        env[key] = value
+      `rustc_print_cfg_path` should be a path to the output of
+      `//build/rust/gni_impl:rustc_print_cfg`
+  """
+  with open(rustc_print_cfg_path, 'r') as file:
+    for line in file:
+      line = line.strip()
+      if "=" not in line: continue
+      key, value = line.split("=")
+      if key.startswith("target_"):
+        key = "CARGO_CFG_" + key.upper()
+        value = value.strip('"')
+        if key in env:
+          env[key] = env[key] + f",{value}"
+        else:
+          env[key] = value
 
 
 # Before 1.77, the format was `cargo:rustc-cfg=`. As of 1.77 the format is now
@@ -99,8 +94,11 @@ def main():
   parser.add_argument('--output',
                       required=True,
                       help='where to write output rustc flags')
-  parser.add_argument('--target', help='rust target triple')
-  parser.add_argument('--target-abi', help='rust target_abi')
+  parser.add_argument('--target', required=True, help='rust target triple')
+  parser.add_argument(
+      '--rustc-print-cfg-path',
+      required=True,
+      help='path to output from //build/rust/gni_impl:rustc_print_cfg')
   parser.add_argument('--features', help='features', nargs='+')
   parser.add_argument('--env', help='environment variable', nargs='+')
   parser.add_argument('--rustflags',
@@ -131,11 +129,8 @@ def main():
     env["OUT_DIR"] = tempdir
     env["CARGO_MANIFEST_DIR"] = os.path.abspath(args.src_dir)
     env["HOST"] = host_triple(rustc_path)
-    if args.target is None:
-      env["TARGET"] = env["HOST"]
-    else:
-      env["TARGET"] = args.target
-    set_cargo_cfg_target_env_variables(rustc_path, env)
+    env["TARGET"] = args.target
+    set_cargo_cfg_target_env_variables(args.rustc_print_cfg_path, env)
     if args.features:
       for f in args.features:
         feature_name = f.upper().replace("-", "_")
