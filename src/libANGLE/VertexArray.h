@@ -248,6 +248,12 @@ class VertexArrayPrivate : public angle::NonCopyable
 
     void setVertexAttribBinding(size_t attribIndex, GLuint bindingIndex);
     void setVertexAttribDivisor(size_t index, GLuint divisor);
+    void setVertexAttribFormat(size_t attribIndex,
+                               GLint size,
+                               VertexAttribType type,
+                               bool normalized,
+                               bool pureInteger,
+                               GLuint relativeOffset);
 
   protected:
     ~VertexArrayPrivate();
@@ -261,7 +267,6 @@ class VertexArrayPrivate : public angle::NonCopyable
 
     // These are used to optimize draw call validation.
     void updateCachedElementLimit(const VertexBinding &binding, GLint64 bufferSize);
-    void updateCachedTransformFeedbackBindingValidation(size_t bindingIndex, const Buffer *buffer);
     void updateCachedArrayBuffersMasks(bool isMapped,
                                        bool isImmutable,
                                        bool isPersistent,
@@ -283,14 +288,14 @@ class VertexArrayPrivate : public angle::NonCopyable
     DirtyBindingBitsArray mDirtyBindingBits;
     Optional<DirtyBits> mDirtyBitsGuard;
 
-    AttributesMask mCachedTransformFeedbackConflictedBindingsMask;
-
     mutable IndexRangeInlineCache mIndexRangeInlineCache;
     bool mBufferAccessValidationEnabled;
 
     // Cached buffer size indexed by bindingIndex, only used when mBufferAccessValidationEnabled is
     // true.
     std::vector<GLint64> mCachedBufferSize;
+    // Cached XFB property indexed by bindingIndex, only used for webGL
+    VertexArrayBufferBindingMask mCachedBufferPropertyTransformFeedbackConflict;
 
     // Cached buffer properties indexed by bindingIndex
     VertexArrayBufferBindingMask mBufferBindingMask;
@@ -339,13 +344,6 @@ class VertexArray final : public VertexArrayPrivate, public LabeledObject, publi
                                  GLsizei stride,
                                  const void *pointer,
                                  bool *isVertexAttribDirtyOut);
-
-    void setVertexAttribFormat(size_t attribIndex,
-                               GLint size,
-                               VertexAttribType type,
-                               bool normalized,
-                               bool pureInteger,
-                               GLuint relativeOffset);
 
     void bindElementBuffer(const Context *context, Buffer *boundBuffer);
 
@@ -416,6 +414,7 @@ class VertexArray final : public VertexArrayPrivate, public LabeledObject, publi
     void setDependentDirtyBits(bool contentsChanged,
                                VertexArrayBufferBindingMask bufferBindingMask);
     void updateCachedMappedArrayBuffersBinding(size_t bindingIndex);
+    void updateCachedTransformFeedbackBindingValidation(size_t bindingIndex);
 
     VertexArrayBuffers mVertexArrayBuffers;
     rx::VertexArrayImpl *mVertexArray;
