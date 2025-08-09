@@ -2043,6 +2043,7 @@ cc_library_static {
         "third_party/spirv-tools/src/source/val/validate_execution_limitations.cpp",
         "third_party/spirv-tools/src/source/val/validate_extensions.cpp",
         "third_party/spirv-tools/src/source/val/validate_function.cpp",
+        "third_party/spirv-tools/src/source/val/validate_graph.cpp",
         "third_party/spirv-tools/src/source/val/validate_id.cpp",
         "third_party/spirv-tools/src/source/val/validate_image.cpp",
         "third_party/spirv-tools/src/source/val/validate_instruction.cpp",
