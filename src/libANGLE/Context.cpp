@@ -687,6 +687,7 @@ Context::Context(egl::Display *display,
              GetIsExternal(attribs),
              GetPassthroughShaders(display, attribs)),
       mShared(shareContext != nullptr || shareTextures != nullptr || shareSemaphores != nullptr),
+      mSharedContext(shareContext != nullptr),
       mDisplayTextureShareGroup(shareTextures != nullptr),
       mDisplaySemaphoreShareGroup(shareSemaphores != nullptr),
       mErrors(&mState.getDebug(), display->getFrontendFeatures(), attribs),
@@ -7304,6 +7305,8 @@ void Context::getShaderPrecisionFormat(GLenum shadertype,
                                        GLint *range,
                                        GLint *precision)
 {
+    ASSERT(range != nullptr && precision != nullptr);
+
     switch (shadertype)
     {
         case GL_VERTEX_SHADER:
