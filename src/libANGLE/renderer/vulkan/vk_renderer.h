@@ -876,7 +876,7 @@ class Renderer : angle::NonCopyable
         mRasterizationOrderAttachmentAccessFeatures;
     VkPhysicalDeviceShaderAtomicFloatFeaturesEXT mShaderAtomicFloatFeatures;
     VkPhysicalDeviceMaintenance5FeaturesKHR mMaintenance5Features;
-    VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT mSwapchainMaintenance1Features;
+    VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR mSwapchainMaintenance1Features;
     VkPhysicalDeviceLegacyDitheringFeaturesEXT mDitheringFeatures;
     VkPhysicalDeviceDrmPropertiesEXT mDrmProperties;
     VkPhysicalDeviceTimelineSemaphoreFeaturesKHR mTimelineSemaphoreFeatures;
