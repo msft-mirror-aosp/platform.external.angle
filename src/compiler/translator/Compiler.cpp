@@ -236,12 +236,16 @@ struct UniformSortComparator
                                       ->getAsSymbolNode()
                                       ->variable()
                                       .getType();
+        // If both uniforms are structs, do not reorder them
+        if (firstType.getStruct() != nullptr && secondType.getStruct() != nullptr)
+        {
+            return false;
+        }
         // First, sort by precision: lowp and mediump are smaller than highp
         if (firstType.getPrecision() != secondType.getPrecision())
         {
             return firstType.getPrecision() != TPrecision::EbpHigh;
         }
-
         // We don't sort highp uniforms. If both uniforms are highp, consider them as equivalent
         if (firstType.getPrecision() == TPrecision::EbpHigh &&
             secondType.getPrecision() == TPrecision::EbpHigh)
@@ -255,11 +259,6 @@ struct UniformSortComparator
         if ((firstType.getStruct() == nullptr) != (secondType.getStruct() == nullptr))
         {
             return firstType.getStruct() == nullptr;
-        }
-        // If both are struct, place the one that has specifier in the front
-        if (firstType.getStruct() != nullptr && secondType.getStruct() != nullptr)
-        {
-            return firstType.isStructSpecifier();
         }
         // criteria 2: sort by arrayness. Non-array element is smaller.
         if (firstType.isArray() != secondType.isArray())
@@ -1124,6 +1123,17 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         }
     }
 
+    // https://crbug.com/437678149:
+    // On Mac, if ANGLE internal uniforms are not placed on the top of ANGLE_UserUniforms struct,
+    // the other user-defined uniforms are not intercepted correctly by the shader code.
+    // Sort user-defined uniforms first before adding ANGLE internal uniforms like
+    // angle_DrawID on top of them, so that the sort doesn't reorder the ANGLE internal uniforms
+    // and trigger the bug on Mac.
+    if (!sortUniforms(root))
+    {
+        return false;
+    }
+
     if (mShaderType == GL_VERTEX_SHADER &&
         IsExtensionEnabled(mExtensionBehavior, TExtension::ANGLE_multi_draw))
     {
@@ -1285,11 +1295,6 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         {
             return false;
         }
-    }
-
-    if (!sortUniforms(root))
-    {
-        return false;
     }
 
     collectVariables(root);

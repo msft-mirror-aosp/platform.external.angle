@@ -1508,6 +1508,18 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
+    FeatureInfo supportsShaderIntegerDotProduct = {
+        "supportsShaderIntegerDotProduct",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo convertLowpAndMediumpFloatUniformsTo16Bits = {
+        "convertLowpAndMediumpFloatUniformsTo16Bits",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
 };
 
 inline FeaturesVk::FeaturesVk()  = default;

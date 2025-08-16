@@ -86,8 +86,6 @@ def __rules(ctx):
     canonicalize_dir = not input_root_absolute_path
     canonicalize_dir_for_objc = not input_root_absolute_path_for_objc
 
-    use_thin_lto = gn_logs_data.get("use_thin_lto") == "true"
-
     rules = []
     if win_sdk.enabled(ctx):
         rules.extend([
@@ -400,7 +398,7 @@ def __rules(ctx):
             "remote": config.get(ctx, "remote-link"),
             "canonicalize_dir": True,
             "platform_ref": "large",
-            "timeout": "60m" if use_thin_lto else "10m",
+            "timeout": "10m",
         },
     ])
     return rules
