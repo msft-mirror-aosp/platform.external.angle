@@ -42,14 +42,17 @@ ModuleLayoutSection InstructionLayoutSection(
 
   switch (op) {
     case spv::Op::OpCapability:
+    case spv::Op::OpConditionalCapabilityINTEL:
       return kLayoutCapabilities;
     case spv::Op::OpExtension:
+    case spv::Op::OpConditionalExtensionINTEL:
       return kLayoutExtensions;
     case spv::Op::OpExtInstImport:
       return kLayoutExtInstImport;
     case spv::Op::OpMemoryModel:
       return kLayoutMemoryModel;
     case spv::Op::OpEntryPoint:
+    case spv::Op::OpConditionalEntryPointINTEL:
       return kLayoutEntryPoint;
     case spv::Op::OpExecutionMode:
     case spv::Op::OpExecutionModeId:
@@ -1505,8 +1508,7 @@ spv_result_t ValidationState_t::CooperativeMatrixShapesMatch(
 
   if (m1_is_const_int32 && m2_is_const_int32 && m1_value != m2_value) {
     return diag(SPV_ERROR_INVALID_DATA, inst)
-           << "Expected scopes of Matrix and Result Type to be "
-           << "identical";
+           << "Expected scopes of Matrix and Result Type to be " << "identical";
   }
 
   std::tie(m1_is_int32, m1_is_const_int32, m1_value) =
@@ -2280,7 +2282,7 @@ std::string ValidationState_t::VkErrorID(uint32_t id,
     case 4330:
       return VUID_WRAP(VUID-PrimitiveId-PrimitiveId-04330);
     case 4333:
-      return VUID_WRAP(VUID-PrimitiveId-PrimitiveId-04333);
+      return VUID_WRAP(VUID-PrimitiveId-Fragment-04333);
     case 4334:
       return VUID_WRAP(VUID-PrimitiveId-PrimitiveId-04334);
     case 4336:
