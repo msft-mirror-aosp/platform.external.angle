@@ -1018,7 +1018,7 @@ deps = {
   },
 
   'third_party/SwiftShader': {
-    'url': Var('swiftshader_git') + '/SwiftShader@fed7f25ca9577b7b619fa7f969bf123d98bc263a',
+    'url': Var('swiftshader_git') + '/SwiftShader@a1b94a283161e1c88e2dfa07f366394aea6ada9e',
     'condition': 'not build_with_chromium',
   },
 
@@ -1038,12 +1038,12 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@a82edf8077499d9920c327838988850584847640',
+    'url': Var('chromium_git') + '/vulkan-deps@24f6a1bae7369945b0d0fbdfc5aa74e02570a6b0',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/glslang/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@0f2400cd75c540a2fea883d780bf752c57b35b30',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@fcf4e9296fa400e2b03c34e23b261e0c8a0ac34d',
     'condition': 'not build_with_chromium',
   },
 
@@ -1058,12 +1058,12 @@ deps = {
   },
 
   'third_party/spirv-headers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@e6d5e88c07cc66a798b668945e7fb29ec1cfee27',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@a8637796c28386c3cf3b4e8107020fbb52c46f3f',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/spirv-tools/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@fda5a216e9d25fa2eeda73ec8436b96e395ce5d5',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@925b0bd1eeb3ea1ceb18e2bb5929575b0cfb3f67',
     'condition': 'not build_with_chromium',
   },
 
@@ -1088,7 +1088,7 @@ deps = {
   },
 
   'third_party/vulkan-validation-layers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@dd409bf3329eb4002f87f7ce7fcc315c9a922583',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@e14b595d2441ada4247a811c4266ac542dd78f08',
     'condition': 'not build_with_chromium',
   },
 
