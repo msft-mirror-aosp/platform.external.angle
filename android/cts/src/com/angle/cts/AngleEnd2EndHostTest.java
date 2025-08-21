@@ -60,18 +60,13 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test implements IDeviceT
         mDevice = device;
     }
 
-    private Path getTestStdoutPath() {
+    private Path getDeviceFilePath(String filename) {
         Path outputPath = Paths.get(OUTPUT_DIRECTORY);
-        return outputPath.resolve(STDOUT_FILE_NAME);
-    }
-
-    private Path getTestResultsPath() {
-        Path outputPath = Paths.get(OUTPUT_DIRECTORY);
-        return outputPath.resolve(RESULTS_FILE_NAME);
+        return outputPath.resolve(filename);
     }
 
     private Optional<JSONObject> getTestResults() throws DeviceNotAvailableException {
-        String testResultsPath = getTestResultsPath().toString();
+        String testResultsPath = getDeviceFilePath(RESULTS_FILE_NAME).toString();
 
         String resultString = mDevice.pullFileContents(testResultsPath);
         if (resultString == null || resultString.isEmpty()) {
@@ -89,46 +84,48 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test implements IDeviceT
     }
 
     private void collectDeviceLogs(ITestInvocationListener listener) {
-        String testStdoutPath = getTestStdoutPath().toString();
-        String testResultsPath = getTestResultsPath().toString();
-        File stdoutFile = null;
-        File resultsFile = null;
-
+        // Separate try-catch blocks so we collect as many logs as are available, without them
+        // affecting each other.
         try {
-            stdoutFile = mDevice.pullFile(testStdoutPath);
-            resultsFile = mDevice.pullFile(testResultsPath);
+            final String stdoutPath = getDeviceFilePath(STDOUT_FILE_NAME).toString();
+            final File stdoutFile = mDevice.pullFile(stdoutPath);
+            if (stdoutFile != null) {
+                try (FileInputStreamSource data = new FileInputStreamSource(stdoutFile)) {
+                    listener.testLog("out", LogDataType.TEXT, data);
+                }
+            }
         } catch (DeviceNotAvailableException e) {
             CLog.e(TAG, "Failed to read log file: ", e);
-            return;
         }
 
-        if (stdoutFile != null) {
-            try (FileInputStreamSource data = new FileInputStreamSource(stdoutFile)) {
-                listener.testLog("out", LogDataType.TEXT, data);
+        try {
+            final String resultsPath = getDeviceFilePath(RESULTS_FILE_NAME).toString();
+            final File resultsFile = mDevice.pullFile(resultsPath);
+            if (resultsFile != null) {
+                try (FileInputStreamSource data = new FileInputStreamSource(resultsFile)) {
+                    listener.testLog("output", LogDataType.JSON, data);
+                }
             }
+        } catch (DeviceNotAvailableException e) {
+            CLog.e(TAG, "Failed to read log file: ", e);
         }
 
-        if (resultsFile != null) {
-            try (FileInputStreamSource data = new FileInputStreamSource(resultsFile)) {
-                listener.testLog("output", LogDataType.JSON, data);
-            }
-        }
     }
 
     private void parseResults(ITestInvocationListener listener, JSONObject jsonOutput) {
         class TestResult {
-            public String testName;
-            public String actual;
-            public String expected;
+            private final String mTestName;
+            private final String mActual;
+            private final String mExpected;
 
             TestResult(String testNameIn, String actualIn, String expectedIn) {
-                testName = testNameIn;
-                actual = actualIn;
-                expected = expectedIn;
+                mTestName = testNameIn;
+                mActual = actualIn;
+                mExpected = expectedIn;
             }
 
             public String toString() {
-                return testName + " actual: " + actual + " expected: " + expected;
+                return mTestName + " actual: " + mActual + " expected: " + mExpected;
             }
         }
 
@@ -149,7 +146,7 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test implements IDeviceT
         } catch (JSONException e) {
             // Mark the whole invocation as failed, since we haven't started recording the test
             // results yet.
-            String errorMsg = String.format("Failed to parse test results JSON: " + e).toString();
+            String errorMsg = String.format("Failed to parse test results JSON: %s", e);
             FailureDescription failure =
                     FailureDescription.create(errorMsg)
                             .setErrorIdentifier(TestErrorIdentifier.OUTPUT_PARSER_ERROR);
@@ -166,16 +163,16 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test implements IDeviceT
         for (Map.Entry<String, TestResult> testResult : testResults.entrySet()) {
             TestResult result = testResult.getValue();
             final TestDescription testId =
-                    new TestDescription(getClass().getCanonicalName(), result.testName);
+                    new TestDescription(getClass().getCanonicalName(), result.mTestName);
 
             listener.testStarted(testId);
 
             // We don't want testSkipped() here, because "skipped" in tradefed implies it was
             // unexpected, which is not the case for the ANGLE end2end tests. We do actually
             // want to fully ignore any SKIP results.
-            if (result.actual.equals("SKIP")) {
+            if (result.mActual.equals("SKIP")) {
                 listener.testIgnored(testId);
-            } else if (!result.actual.equals("PASS") && result.expected.equals("PASS")) {
+            } else if (!result.mActual.equals("PASS") && result.mExpected.equals("PASS")) {
                 listener.testFailed(testId, result.toString());
             }
 
@@ -185,11 +182,11 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test implements IDeviceT
         // Mark the run as failed if it was interrupted.
         try {
             if (jsonOutput.getBoolean("interrupted")) {
-                String errorLog = String.format("ANGLE end2end tests were interrupted!").toString();
+                String errorLog = "ANGLE end2end tests were interrupted!";
                 listener.testRunFailed(errorLog);
             }
         } catch (JSONException e) {
-            String errorLog = String.format("Failed to parse test results JSON: " + e).toString();
+            String errorLog = String.format("Failed to parse test results JSON: %s", e);
             listener.testRunFailed(errorLog);
         }
 
@@ -216,35 +213,46 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test implements IDeviceT
 
         // Delete stale test results from old runs.
         // Note we are only deleting the results file. Leave stdout for `AngleEnd2EndTestsHelper`.
-        Path testResultsPath = getTestResultsPath();
+        Path testResultsPath = getDeviceFilePath(RESULTS_FILE_NAME);
         mDevice.deleteFile(testResultsPath.toString());
 
-        // We don't have feedback for individual test progress, so set all the timeouts to the same
-        // overall end2end test suite limit.
-        Duration timeout = Duration.ofMinutes(20);
-        runDeviceTests(
-                mDevice,
-                "com.android.angle.test",
-                "com.android.angle.test.AngleEnd2EndTest",
-                "testAngleEnd2End",
-                timeout.toMillis(),
-                timeout.toMillis(),
-                timeout.toMillis());
-
-        collectDeviceLogs(listener);
-
-        Optional<JSONObject> testResults = getTestResults();
-        if (testResults.isEmpty()) {
-            String errorMsg = String.format("Failed to get test results").toString();
-            // Mark the whole invocation as failed, since we haven't started recording the test
-            // results yet.
+        try {
+            // We don't have feedback for individual test progress, so set all the timeouts to the
+            // same overall end2end test suite limit.
+            Duration timeout = Duration.ofMinutes(20);
+            runDeviceTests(
+                    mDevice,
+                    "com.android.angle.test",
+                    "com.android.angle.test.AngleEnd2EndTest",
+                    "testAngleEnd2End",
+                    timeout.toMillis(),
+                    timeout.toMillis(),
+                    timeout.toMillis());
+        } catch (DeviceNotAvailableException e) {
+            // Only handle DeviceNotAvailableException and mark the whole invocation as failed,
+            // since it means we can't get any device logs or results to parse for pass/fail/crash.
+            String errorMsg = String.format("Device lost: %s", e);
             FailureDescription failure =
                     FailureDescription.create(errorMsg)
-                            .setErrorIdentifier(TestErrorIdentifier.OUTPUT_PARSER_ERROR);
+                            .setErrorIdentifier(TestErrorIdentifier.TEST_ABORTED);
             listener.invocationFailed(failure);
-            return;
-        }
+        } finally {
+            // Always collect and parse the logs, regardless of pass/fail/crash. This should make it
+            // easier to determine which test crashed, if one occurs.
+            collectDeviceLogs(listener);
 
-        parseResults(listener, testResults.get());
+            Optional<JSONObject> testResults = getTestResults();
+            if (testResults.isEmpty()) {
+                String errorMsg = "Failed to get test results";
+                // Mark the whole invocation as failed, since we haven't started recording the test
+                // results yet.
+                FailureDescription failure =
+                        FailureDescription.create(errorMsg)
+                                .setErrorIdentifier(TestErrorIdentifier.OUTPUT_PARSER_ERROR);
+                listener.invocationFailed(failure);
+            } else {
+                parseResults(listener, testResults.get());
+            }
+        }
     }
 }
