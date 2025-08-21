@@ -41,10 +41,6 @@ public final class AngleNativeTest extends NativeActivity {
         // Generate an output.json file. On the device, translates to: /data/media/[0|10]
         commandLineFlags += "--results-directory=" + OUTPUT_DIRECTORY;
 
-        // TODO(b/279980674): Remove filter and Enable all tests, filtered by the expectations file.
-        // We want to run at least one test to exercise things, and this one is small and passing.
-        commandLineFlags += " --gtest_filter=ClearTest.DefaultFramebuffer/* ";
-
         return commandLineFlags;
     }
 
