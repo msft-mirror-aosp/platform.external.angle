@@ -41,7 +41,7 @@ android_test_helper_app {
 }
 
 java_test_host {
-    name: "CtsAngleEnd2EndTests",
+    name: "CtsAngleEnd2EndTestCases",
     srcs: ["src/com/angle/cts/AngleEnd2EndHostTest.java"],
     test_suites: [
         "cts",

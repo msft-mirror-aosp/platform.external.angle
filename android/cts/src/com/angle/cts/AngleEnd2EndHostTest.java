@@ -157,7 +157,7 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test implements IDeviceT
         // We have valid results, so "start" the test run.
         // TODO(b/432021211): Get the number of tests from the device before running the tests, so
         // we can validate everything ran as expected.
-        listener.testRunStarted("CtsAngleEnd2EndTests", testResults.size());
+        listener.testRunStarted("CtsAngleEnd2EndTestCases", testResults.size());
 
         // Record the available test results.
         for (Map.Entry<String, TestResult> testResult : testResults.entrySet()) {
