@@ -29,6 +29,7 @@ import com.android.tradefed.result.error.TestErrorIdentifier;
 import com.android.tradefed.result.skipped.SkipReason;
 import com.android.tradefed.testtype.IDeviceTest;
 import com.android.tradefed.testtype.IRemoteTest;
+import com.android.tradefed.testtype.ITestCollector;
 import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
 
 import org.json.JSONException;
@@ -44,7 +45,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 
-public class AngleEnd2EndHostTest extends BaseHostJUnit4Test implements IDeviceTest, IRemoteTest {
+public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
+        implements IDeviceTest, IRemoteTest, ITestCollector {
     private static final String TAG = "AngleEnd2EndHostTest";
 
     private static final String OUTPUT_DIRECTORY = "/sdcard";
@@ -58,6 +60,12 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test implements IDeviceT
     @Override
     public void setDevice(ITestDevice device) {
         mDevice = device;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setCollectTestsOnly(boolean shouldCollectTest) {
+        // TODO(b/432021211): Get the list of tests.
     }
 
     private Path getDeviceFilePath(String filename) {
