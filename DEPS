@@ -43,7 +43,7 @@ vars = {
   'checkout_angle_mesa': False,
 
   # Version of Chromium our Chromium-based DEPS are mirrored from.
-  'chromium_revision': 'fc7a6f6aa1385cd414b61e991f3b8601d6da5da3',
+  'chromium_revision': 'f7c7637e7e84de45b1fe073c07713b89a06cf52f',
   # We never want to checkout chromium,
   # but need a dummy DEPS entry for the autoroller
   'dummy_checkout_chromium': False,
@@ -76,7 +76,7 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling catapult
   # and whatever else without interference from each other.
-  'catapult_revision': '8512c3479781fd8c0eae830922d8acb879cb3886',
+  'catapult_revision': 'cc1b6334b8740dfc2a7dd336cb6d9250e2cb5b38',
 
   # the commit queue can handle CLs rolling Fuchsia sdk
   # and whatever else without interference from each other.
@@ -121,7 +121,7 @@ vars = {
   'reclient_version': 're_client_version:0.179.0.28341fc7-gomaip',
 
   # siso CIPD package version.
-  'siso_version': 'git_revision:fac028f33f398558bd6e73380eb3327545751171',
+  'siso_version': 'git_revision:7e3433bde6dcf9d760b0423c5f47c51e65c7c0fa',
 
   # 'magic' text to tell depot_tools that git submodules should be accepted but
   # but parity with DEPS file is expected.
@@ -331,6 +331,7 @@ vars = {
   'checkout_angle_restricted_trace_off_the_road': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_one_piece_treasure_cruise': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_one_punch_man': 'checkout_angle_restricted_traces',
+  'checkout_angle_restricted_trace_onmyoji': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_oxenfree': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_passmark_complex': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_passmark_simple': 'checkout_angle_restricted_traces',
@@ -455,12 +456,12 @@ vars = {
 deps = {
 
   'build': {
-    'url': Var('chromium_git') + '/chromium/src/build.git@598d39bd27454801c8b98f8a7840098db0c07a60',
+    'url': Var('chromium_git') + '/chromium/src/build.git@28fc2a8926a053943647b94d5a314ace0d2fbea8',
     'condition': 'not build_with_chromium',
   },
 
   'buildtools': {
-    'url': Var('chromium_git') + '/chromium/src/buildtools.git@311f10f06a6261d6a453c30d56586c78d2f87f5d',
+    'url': Var('chromium_git') + '/chromium/src/buildtools.git@5c2d6c70afa623219e0310a0c3b0c3f9d7d4c6e3',
     'condition': 'not build_with_chromium',
   },
 
@@ -514,7 +515,7 @@ deps = {
   },
 
   'testing': {
-    'url': '{chromium_git}/chromium/src/testing@62256178de32558cc4943d544ea8f221549f49f1',
+    'url': '{chromium_git}/chromium/src/testing@f8580aca7e44ff90491d18ad20b1b9dca4f7795e',
     'condition': 'not build_with_chromium',
   },
 
@@ -587,7 +588,7 @@ deps = {
       'packages': [
           {
                'package': 'chromium/third_party/android_build_tools/lint',
-               'version': '8i-9CpSofgFA-RhKjreXIK0ZbDC8IhGVe2yvxRX0ku4C',
+               'version': 'wz3jGm7ZRm38JBU96mWdB_kyuGynEgbN_KAIvibvbAsC',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -729,7 +730,7 @@ deps = {
   },
 
   'third_party/depot_tools': {
-    'url': Var('chromium_git') + '/chromium/tools/depot_tools.git@778a576e20053a8d1edf8e7d7185bacc02bc1a7a',
+    'url': Var('chromium_git') + '/chromium/tools/depot_tools.git@380bbf9e373c35da4b18a0bd8f9c70f36197446f',
     'condition': 'not build_with_chromium',
   },
 
@@ -857,12 +858,12 @@ deps = {
   },
 
   'third_party/llvm-libc/src': {
-    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libc.git@46fede94c0b8fed5c1940b292fb9232c8af5a956',
+    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libc.git@2b79b2b486cfd9e1982a619026f4e4266b79c77f',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/libunwind/src': {
-    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libunwind.git@bdc00ca63e649c66140bf8bee9c2fb6679fd2e87',
+    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libunwind.git@c948b3c916ac5c2369a3f9891342970d4dc252b9',
     'condition': 'not build_with_chromium',
   },
 
@@ -936,7 +937,7 @@ deps = {
   },
 
   'third_party/protobuf': {
-    'url': Var('chromium_git') + '/chromium/src/third_party/protobuf@28e24a669faf2214f28c7120922d9b81fb7d36ee',
+    'url': Var('chromium_git') + '/chromium/src/third_party/protobuf@0b06c2f8250859d2c9c746f0d682c54c3402f75b',
     'condition': 'not build_with_chromium',
   },
 
@@ -985,14 +986,14 @@ deps = {
   },
 
   'third_party/rust': {
-    'url': Var('chromium_git') + '/chromium/src/third_party/rust@cc36abecbc901edd0478874b20199144e4012255',
+    'url': Var('chromium_git') + '/chromium/src/third_party/rust@5d5c1435d7200ebc7f70366b967475e69b82f5eb',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/siso/cipd': {
     'packages': [
       {
-        'package': 'build/siso/${{platform}}',
+        'package': 'infra/build/siso/${{platform}}',
         'version': Var('siso_version'),
       }
     ],
@@ -1026,17 +1027,17 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@24f6a1bae7369945b0d0fbdfc5aa74e02570a6b0',
+    'url': Var('chromium_git') + '/vulkan-deps@d74c51b56a14b4db6ba60d73cd7d632842946930',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/glslang/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@fcf4e9296fa400e2b03c34e23b261e0c8a0ac34d',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@7899f3c1bebd55594e405e0736abf43f700c2c8b',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/lunarg-vulkantools/src': {
-    'url': '{chromium_git}/external/github.com/LunarG/VulkanTools@68daa9bc0602e057a36c83fe4dcc441c9bd38447',
+    'url': '{chromium_git}/external/github.com/LunarG/VulkanTools@a906345b8a7bccc416b006b2048e13f40d9b2327',
     'condition': 'not build_with_chromium',
   },
 
@@ -1051,7 +1052,7 @@ deps = {
   },
 
   'third_party/spirv-tools/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@925b0bd1eeb3ea1ceb18e2bb5929575b0cfb3f67',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@8a8bb6c89174ed753eb18a438092ee59356efc3c',
     'condition': 'not build_with_chromium',
   },
 
@@ -1076,7 +1077,7 @@ deps = {
   },
 
   'third_party/vulkan-validation-layers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@e14b595d2441ada4247a811c4266ac542dd78f08',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@c60142fc3f6f0d3599614775ee425664003b9915',
     'condition': 'not build_with_chromium',
   },
 
@@ -1101,7 +1102,7 @@ deps = {
   },
 
   'tools/clang': {
-    'url': Var('chromium_git') + '/chromium/src/tools/clang.git@f10114ce198854d28ac7ccf3d62c3a255646ee1c',
+    'url': Var('chromium_git') + '/chromium/src/tools/clang.git@d9f910bd0fd1d843ddb53be78a7e98518674df1d',
     'condition': 'not build_with_chromium',
   },
 
@@ -1151,7 +1152,7 @@ deps = {
   },
 
   'tools/perf': {
-    'url': Var('chromium_git') + '/chromium/src/tools/perf@88de4dbaabcf980e3879642a336081f5ddc50a8d',
+    'url': Var('chromium_git') + '/chromium/src/tools/perf@228d7968ff69aabccc2cc8477d3a9910e56f6441',
     'condition': 'not build_with_chromium',
   },
 
@@ -1166,7 +1167,7 @@ deps = {
   },
 
   'tools/rust': {
-    'url': Var('chromium_git') + '/chromium/src/tools/rust.git@f2fba991585e8d84684aaf7a514c780ddd645fc8',
+    'url': Var('chromium_git') + '/chromium/src/tools/rust.git@7074a194d019d19ed6fa2a313921d9876b54e8b2',
     'condition': 'not build_with_chromium',
   },
 
@@ -3114,6 +3115,16 @@ deps = {
       ],
       'dep_type': 'cipd',
       'condition': 'checkout_angle_restricted_trace_one_punch_man',
+  },
+  'src/tests/restricted_traces/onmyoji': {
+      'packages': [
+        {
+            'package': 'angle/traces/onmyoji',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_trace_onmyoji',
   },
   'src/tests/restricted_traces/oxenfree': {
       'packages': [
