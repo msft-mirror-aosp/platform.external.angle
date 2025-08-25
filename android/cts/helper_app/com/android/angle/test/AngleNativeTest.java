@@ -44,6 +44,13 @@ public final class AngleNativeTest extends NativeActivity {
         // Generate an output.json file. On the device, translates to: /data/media/[0|10]
         commandLineFlags += "--results-directory=" + OUTPUT_DIRECTORY;
 
+        final String gtestFilter =
+                androidx.test.platform.app.InstrumentationRegistry.getArguments()
+                        .getString("gtest_filter");
+        if (gtestFilter != null && !gtestFilter.isEmpty()) {
+            commandLineFlags += " --gtest_filter=" + gtestFilter + " ";
+        }
+
         return commandLineFlags;
     }
 

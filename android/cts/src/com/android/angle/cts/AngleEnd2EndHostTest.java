@@ -30,7 +30,9 @@ import com.android.tradefed.result.skipped.SkipReason;
 import com.android.tradefed.testtype.IDeviceTest;
 import com.android.tradefed.testtype.IRemoteTest;
 import com.android.tradefed.testtype.ITestCollector;
+import com.android.tradefed.testtype.ITestFilterReceiver;
 import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
+import com.android.tradefed.testtype.junit4.DeviceTestRunOptions;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -41,13 +43,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
-        implements IDeviceTest, IRemoteTest, ITestCollector {
+        implements IDeviceTest, IRemoteTest, ITestCollector, ITestFilterReceiver {
     private static final String TAG = "AngleEnd2EndHostTest";
 
     private static final String OUTPUT_DIRECTORY = "/sdcard";
@@ -56,6 +60,9 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
 
     ITestDevice mDevice;
     private long mStartTime;
+
+    private HashSet<String> mIncludeFilters = new HashSet<>();
+    private HashSet<String> mExcludeFilters = new HashSet<>();
 
     /** {@inheritDoc} */
     @Override
@@ -237,14 +244,18 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
             // We don't have feedback for individual test progress, so set all the timeouts to the
             // same overall end2end test suite limit.
             Duration timeout = Duration.ofMinutes(20);
-            runDeviceTests(
-                    mDevice,
-                    "com.android.angle.test",
-                    "com.android.angle.test.AngleEnd2EndTest",
-                    "testAngleEnd2End",
-                    timeout.toMillis(),
-                    timeout.toMillis(),
-                    timeout.toMillis());
+            DeviceTestRunOptions opts = new DeviceTestRunOptions("com.android.angle.test");
+            opts.setTestClassName("com.android.angle.test.AngleEnd2EndTest");
+            opts.setTestMethodName("testAngleEnd2End");
+            opts.setTestTimeoutMs(timeout.toMillis());
+            opts.setMaxTimeToOutputMs(timeout.toMillis());
+            opts.setMaxInstrumentationTimeoutMs(timeout.toMillis());
+            if (!mIncludeFilters.isEmpty()) {
+                final String gtestFilter = String.join("*:", mIncludeFilters) + "*";
+                CLog.d(TAG, "gtest_filter: \"" + gtestFilter + "\"");
+                opts.addInstrumentationArg("gtest_filter", gtestFilter);
+            }
+            runDeviceTests(opts);
         } catch (DeviceNotAvailableException e) {
             // Only handle DeviceNotAvailableException and mark the whole invocation as failed,
             // since it means we can't get any device logs or results to parse for pass/fail/crash.
@@ -271,5 +282,59 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
                 parseResults(listener, testResults.get());
             }
         }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void addIncludeFilter(String filter) {
+        mIncludeFilters.add(filter);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void addAllIncludeFilters(Set<String> filters) {
+        mIncludeFilters.addAll(filters);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Set<String> getIncludeFilters() {
+        return mIncludeFilters;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void clearIncludeFilters() {
+        mIncludeFilters.clear();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void addExcludeFilter(String filter) {
+        CLog.w(TAG, "Unexpected use of addExcludeFilter()");
+        mExcludeFilters.add(filter);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void addAllExcludeFilters(Set<String> filters) {
+        if (!filters.isEmpty()) {
+            CLog.w(TAG, "Unexpected use of addAllExcludeFilters()");
+        }
+        mExcludeFilters.addAll(filters);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Set<String> getExcludeFilters() {
+        CLog.w(TAG, "Unexpected use of getExcludeFilters()");
+        return mExcludeFilters;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void clearExcludeFilters() {
+        CLog.w(TAG, "Unexpected use of clearExcludeFilters()");
+        mExcludeFilters.clear();
     }
 }
