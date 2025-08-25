@@ -134,6 +134,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_vulkan_headers_src_vulkan_headers",
@@ -210,6 +211,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "src_common_linux_angle_dma_buf",
@@ -288,6 +290,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -353,6 +356,7 @@ cc_library_static {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -406,6 +410,7 @@ cc_defaults {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "angle_includes",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -456,6 +461,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "util_angle_util_loader_headers",
@@ -520,6 +526,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -594,6 +601,7 @@ cc_library_shared {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "util_angle_test_utils",
@@ -673,6 +681,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -743,6 +752,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -791,6 +801,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -855,6 +866,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -1149,6 +1161,7 @@ cc_library_shared {
         "angle_gl_enum_utils",
         "angle_includes",
         "angle_json_serializer",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "src_common_vulkan_vulkan",
@@ -1245,6 +1258,7 @@ cc_defaults {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "angle_includes",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -1321,6 +1335,7 @@ cc_library_shared {
         "angle_includes",
         "angle_libEGL_egl_loader",
         "angle_vendor_cc_defaults",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -1417,6 +1432,7 @@ cc_library_shared {
         "angle_dma_buf_cc_defaults",
         "angle_includes",
         "angle_vendor_cc_defaults",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -1480,6 +1496,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_vulkan_headers_src_vulkan_headers",
@@ -1535,6 +1552,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "src_common_vulkan_angle_vulkan_headers",
@@ -1616,6 +1634,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "src_common_vulkan_angle_libvulkan",
@@ -1694,6 +1713,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "src_common_spirv_angle_spirv_base",
@@ -1819,6 +1839,7 @@ cc_defaults {
         "angle_compression",
         "angle_libANGLE_headers",
         "angle_version_info",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "src_common_spirv_angle_spirv_base",
@@ -2014,6 +2035,7 @@ cc_library_static {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_spirv_headers_src_spv_headers",
@@ -2119,6 +2141,7 @@ cc_library_static {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_spirv_tools_src_spvtools_headers",
@@ -2180,6 +2203,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "src_common_spirv_angle_spirv_base",
@@ -2234,6 +2258,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -2271,6 +2296,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -2315,6 +2341,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -2375,6 +2402,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "src_common_spirv_angle_spirv_headers",
@@ -2451,6 +2479,7 @@ cc_library_static {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "angle_translator_headers",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -2639,6 +2668,7 @@ cc_library_static {
         "angle_includes",
         "angle_translator_headers",
         "angle_version_info",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "src_common_spirv_angle_spirv_base",
@@ -3847,6 +3877,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -3901,6 +3932,7 @@ cc_defaults {
         "angle_common_library_cflags",
         "angle_translator_headers",
         "angle_version",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -3957,6 +3989,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -4025,6 +4058,7 @@ cc_library_static {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "angle_image_util_headers",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -4075,6 +4109,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -4117,6 +4152,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_vulkan_headers_src_vulkan_headers",
@@ -4158,6 +4194,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "src_third_party_volk_volk",
@@ -4219,6 +4256,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "src_common_vulkan_angle_vulkan_headers",
@@ -4287,6 +4325,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -4349,6 +4388,7 @@ cc_library_static {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "src_common_vulkan_angle_libvulkan_loader",
@@ -4435,6 +4475,7 @@ cc_library_static {
         "angle_common_library_cflags",
         "angle_includes",
         "angle_xxhash",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -4599,6 +4640,7 @@ cc_defaults {
         "angle_includes",
         "angle_libANGLE_headers",
         "angle_version_info",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -4661,6 +4703,7 @@ cc_defaults {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "angle_includes",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -4709,6 +4752,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -4755,6 +4799,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_algorithm_container",
@@ -4792,6 +4837,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -4823,6 +4869,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -4861,6 +4908,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base",
@@ -4903,6 +4951,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -4934,6 +4983,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -4968,6 +5018,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_container_common_policy_traits",
@@ -5004,6 +5055,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base",
@@ -5059,6 +5111,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_meta_type_traits",
@@ -5090,6 +5143,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5127,6 +5181,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5162,6 +5217,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5193,6 +5249,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5236,6 +5293,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5271,6 +5329,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5309,6 +5368,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base",
@@ -5352,6 +5412,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base",
@@ -5390,6 +5451,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base",
@@ -5429,6 +5491,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5460,6 +5523,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5495,6 +5559,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5532,6 +5597,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5568,6 +5634,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base",
@@ -5607,6 +5674,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base",
@@ -5650,6 +5718,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5696,6 +5765,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_atomic_hook",
@@ -5744,6 +5814,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5781,6 +5852,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5816,6 +5888,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5855,6 +5928,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5893,6 +5967,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base",
@@ -5932,6 +6007,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -5971,6 +6047,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base",
@@ -6023,6 +6100,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6066,6 +6144,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6101,6 +6180,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6135,6 +6215,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6183,6 +6264,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base",
@@ -6233,6 +6315,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6268,6 +6351,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6307,6 +6391,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6352,6 +6437,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6388,6 +6474,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6419,6 +6506,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6456,6 +6544,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6497,6 +6586,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base",
@@ -6536,6 +6626,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6575,6 +6666,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_algorithm_algorithm",
@@ -6612,6 +6704,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base_internal",
@@ -6649,6 +6742,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_algorithm_algorithm",
@@ -6691,6 +6785,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6743,6 +6838,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_meta_type_traits",
@@ -6775,6 +6871,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6812,6 +6909,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6844,6 +6942,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6876,6 +6975,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6911,6 +7011,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base",
@@ -6946,6 +7047,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -6982,6 +7084,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7016,6 +7119,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7052,6 +7156,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7085,6 +7190,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7120,6 +7226,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_core_headers",
@@ -7153,6 +7260,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_core_headers",
@@ -7185,6 +7293,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7216,6 +7325,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base_internal",
@@ -7249,6 +7359,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_utility_utility",
@@ -7283,6 +7394,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7315,6 +7427,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7347,6 +7460,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_algorithm_algorithm",
@@ -7386,6 +7500,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7421,6 +7536,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base_internal",
@@ -7454,6 +7570,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7488,6 +7605,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_atomic_hook",
@@ -7526,6 +7644,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7558,6 +7677,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7590,6 +7710,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base_internal",
@@ -7622,6 +7743,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7654,6 +7776,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7693,6 +7816,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_atomic_hook",
@@ -7734,6 +7858,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base",
@@ -7771,6 +7896,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7816,6 +7942,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7851,6 +7978,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7883,6 +8011,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7914,6 +8043,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -7946,6 +8076,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -7976,6 +8107,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
@@ -8007,6 +8139,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_algorithm_algorithm",
@@ -8041,6 +8174,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_algorithm_container",
@@ -8123,6 +8257,7 @@ cc_library_static {
         "angle_common_library_cflags",
         "angle_includes",
         "angle_xxhash",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -8181,6 +8316,7 @@ cc_defaults {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "angle_translator_headers",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -8244,6 +8380,7 @@ cc_defaults {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "angle_libANGLE_headers",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -8314,6 +8451,7 @@ cc_defaults {
         "angle_common_library_cflags",
         "angle_frame_capture_mock",
         "angle_libANGLE_no_vulkan",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "src_libANGLE_renderer_vulkan_angle_vulkan_backend",
@@ -8398,10 +8536,20 @@ cc_defaults {
 }
 
 cc_defaults {
+    name: "buildtools_third_party_libc++_all_modules",
+    defaults: [
+        "angle_common_library_cflags",
+    ],
+    sdk_version: "current",
+    stl: "libc++_static",
+}
+
+cc_defaults {
     name: "angle_includes",
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
@@ -8484,6 +8632,7 @@ cc_library_shared {
         "angle_includes",
         "angle_libANGLE",
         "angle_vendor_cc_defaults",
+        "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
     ],
