@@ -16,6 +16,7 @@
 
 package com.android.angle.cts;
 
+import com.android.tradefed.config.Option;
 import com.android.tradefed.device.DeviceNotAvailableException;
 import com.android.tradefed.device.ITestDevice;
 import com.android.tradefed.log.LogUtil.CLog;
@@ -60,6 +61,13 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
 
     ITestDevice mDevice;
     private long mStartTime;
+
+    @Option(
+            name = "gtest_filter",
+            description =
+                    "Gtest filter. ':' separator to include next. ':-' separator to exclude next."
+                            + " '*' match any string. '?' match any single character. ''")
+    private String mGtestFilter = "";
 
     private HashSet<String> mIncludeFilters = new HashSet<>();
     private HashSet<String> mExcludeFilters = new HashSet<>();
@@ -250,9 +258,16 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
             opts.setTestTimeoutMs(timeout.toMillis());
             opts.setMaxTimeToOutputMs(timeout.toMillis());
             opts.setMaxInstrumentationTimeoutMs(timeout.toMillis());
-            if (!mIncludeFilters.isEmpty()) {
-                final String gtestFilter = String.join("*:", mIncludeFilters) + "*";
-                CLog.d(TAG, "gtest_filter: \"" + gtestFilter + "\"");
+            String gtestFilter = String.join("*:", mIncludeFilters);
+            if (gtestFilter.isEmpty()) {
+                gtestFilter = mGtestFilter;
+            } else {
+                gtestFilter += "*:" + mGtestFilter;
+            }
+            CLog.d(TAG, "gtest_filter: \"" + gtestFilter + "\"");
+            if (!gtestFilter.isEmpty()) {
+                // Skip sending an arg if it's an empty string to avoid causing the invocation
+                // error.
                 opts.addInstrumentationArg("gtest_filter", gtestFilter);
             }
             runDeviceTests(opts);
