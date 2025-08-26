@@ -419,6 +419,7 @@ supported_egl_extensions = [
     "EGL_KHR_surfaceless_context",
     "EGL_KHR_swap_buffers_with_damage",
     "EGL_KHR_wait_sync",
+    "EGL_NV_context_priority_realtime",
     "EGL_NV_post_sub_buffer",
     "EGL_NV_stream_consumer_gltexture_yuv",
 ]
@@ -447,6 +448,7 @@ supported_cl_extensions = [
     "cl_khr_icd",
     "cl_khr_int64_base_atomics",
     "cl_khr_int64_extended_atomics",
+    "cl_khr_priority_hints",
 ]
 
 # Strip these suffixes from Context entry point names. NV is excluded (for now).
