@@ -43,6 +43,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
@@ -66,6 +67,10 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
     @Override
     public void setCollectTestsOnly(boolean shouldCollectTest) {
         // TODO(b/432021211): Get the list of tests.
+    }
+
+    private boolean isVirtualDevice() throws DeviceNotAvailableException {
+        return Objects.equals(mDevice.getProperty("ro.hardware.virtual_device"), "1");
     }
 
     private Path getDeviceFilePath(String filename) {
@@ -212,6 +217,11 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
     @Override
     public void run(ITestInvocationListener listener) throws DeviceNotAvailableException {
         mStartTime = System.currentTimeMillis();
+
+        if (isVirtualDevice()) {
+            listener.invocationSkipped(new SkipReason("Skip test on virtual devices", ""));
+            return;
+        }
 
         // TODO(b/431804941): Enable and test ANGLE on all new devices.
         if (!isAngleDefaultDriver()) {
