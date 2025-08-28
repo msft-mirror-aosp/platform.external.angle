@@ -10,6 +10,10 @@
 #ifndef LIBANGLE_RENDERER_RENDERER_UTILS_H_
 #define LIBANGLE_RENDERER_RENDERER_UTILS_H_
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
+
 #include <cstdint>
 
 #include <limits>

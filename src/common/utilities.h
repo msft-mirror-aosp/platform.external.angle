@@ -9,6 +9,10 @@
 #ifndef COMMON_UTILITIES_H_
 #define COMMON_UTILITIES_H_
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
+
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <GLSLANG/ShaderLang.h>
