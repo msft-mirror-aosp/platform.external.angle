@@ -210,6 +210,12 @@ class Renderer : angle::NonCopyable
                                               VkSurfaceKHR surface,
                                               bool *supportedOut);
 
+    const VkPhysicalDeviceExternalMemoryHostPropertiesEXT &
+    getPhysicalDeviceExternalMemoryHostProperties() const
+    {
+        return mExternalMemoryHostProperties;
+    }
+
     const gl::Caps &getNativeCaps() const;
     const gl::TextureCapsMap &getNativeTextureCaps() const;
     const gl::Extensions &getNativeExtensions() const;
@@ -409,9 +415,6 @@ class Renderer : angle::NonCopyable
     bool enableDebugUtils() const { return mEnableDebugUtils; }
     bool angleDebuggerMode() const { return mAngleDebuggerMode; }
 
-    SamplerCache &getSamplerCache() { return mSamplerCache; }
-    SamplerYcbcrConversionCache &getYuvConversionCache() { return mYuvConversionCache; }
-
     void onAllocateHandle(vk::HandleType handleType);
     void onDeallocateHandle(vk::HandleType handleType, uint32_t count);
 
@@ -587,6 +590,8 @@ class Renderer : angle::NonCopyable
     }
 
     void addBufferBlockToOrphanList(vk::BufferBlock *block) { mOrphanedBufferBlockList.add(block); }
+    void addSamplerToOrphanList(SharedSamplerPtr sampler);
+    void addSamplerYcbcrConversionToOrphanList(VkSamplerYcbcrConversion conversion);
 
     VkDeviceSize getSuballocationDestroyedSize() const
     {
@@ -794,6 +799,8 @@ class Renderer : angle::NonCopyable
     // should be flushed.
     void calculatePendingGarbageSizeLimit();
 
+    bool cleanupOrphanedSamplers();
+
     template <typename CommandBufferHelperT, typename RecyclerT>
     angle::Result getCommandBufferImpl(vk::ErrorContext *context,
                                        vk::SecondaryCommandPool *commandPool,
@@ -915,6 +922,7 @@ class Renderer : angle::NonCopyable
     VkPhysicalDeviceShaderIntegerDotProductFeatures mShaderIntegerDotProductFeatures;
     VkPhysicalDeviceShaderIntegerDotProductProperties mShaderIntegerDotProductProperties;
     VkPhysicalDeviceGlobalPriorityQueryFeaturesEXT mPhysicalDeviceGlobalPriorityQueryFeatures;
+    VkPhysicalDeviceExternalMemoryHostPropertiesEXT mExternalMemoryHostProperties;
 
     uint32_t mLegacyDitheringVersion = 0;
 
@@ -941,6 +949,11 @@ class Renderer : angle::NonCopyable
     vk::BufferBlockGarbageList mOrphanedBufferBlockList;
     // Holds RefCountedEvent that are free and ready to reuse
     vk::RefCountedEventRecycler mRefCountedEventRecycler;
+
+    // Holds orphaned VkSampler and VkSamplerYcbcrConversion objects when ShareGroup gets destroyed
+    angle::SimpleMutex mOrphanedSamplerMutex;
+    std::vector<SharedSamplerPtr> mOrphanedSamplers;
+    std::vector<VkSamplerYcbcrConversion> mOrphanedSamplerYcbcrConversions;
 
     VkDeviceSize mPendingGarbageSizeLimit;
 
@@ -1029,8 +1042,6 @@ class Renderer : angle::NonCopyable
         mOutsideRenderPassCommandBufferRecycler;
     vk::CommandBufferRecycler<vk::RenderPassCommandBufferHelper> mRenderPassCommandBufferRecycler;
 
-    SamplerCache mSamplerCache;
-    SamplerYcbcrConversionCache mYuvConversionCache;
     angle::HashMap<VkFormat, uint32_t> mVkFormatDescriptorCountMap;
     vk::ActiveHandleCounter mActiveHandleCounts;
     angle::SimpleMutex mActiveHandleCountsMutex;
