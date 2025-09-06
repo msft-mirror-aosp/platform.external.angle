@@ -3247,6 +3247,8 @@ cc_genrule {
         "src/compiler/translator/tree_ops/spirv/RewriteR32fImages.h",
         "src/compiler/translator/tree_ops/spirv/RewriteSamplerExternalTexelFetch.cpp",
         "src/compiler/translator/tree_ops/spirv/RewriteSamplerExternalTexelFetch.h",
+        "src/compiler/translator/tree_ops/wgsl/RewriteMultielementSwizzleAssignment.cpp",
+        "src/compiler/translator/tree_ops/wgsl/RewriteMultielementSwizzleAssignment.h",
         "src/compiler/translator/tree_util/BuiltIn.h",
         "src/compiler/translator/tree_util/BuiltIn_autogen.h",
         "src/compiler/translator/tree_util/DriverUniform.cpp",
