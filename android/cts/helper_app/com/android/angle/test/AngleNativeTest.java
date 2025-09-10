@@ -16,7 +16,10 @@
 
 package com.android.angle.test;
 
+import static android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+
 import android.app.NativeActivity;
+import android.os.Bundle;
 import android.util.Log;
 
 import java.io.IOException;
@@ -41,6 +44,13 @@ public final class AngleNativeTest extends NativeActivity {
         // Generate an output.json file. On the device, translates to: /data/media/[0|10]
         commandLineFlags += "--results-directory=" + OUTPUT_DIRECTORY;
 
+        final String gtestFilter =
+                androidx.test.platform.app.InstrumentationRegistry.getArguments()
+                        .getString("gtest_filter");
+        if (gtestFilter != null && !gtestFilter.isEmpty()) {
+            commandLineFlags += " --gtest_filter=" + gtestFilter + " ";
+        }
+
         return commandLineFlags;
     }
 
@@ -57,6 +67,15 @@ public final class AngleNativeTest extends NativeActivity {
         }
 
         nativeRunTests(getCommandLineFlags(), "", stdoutFilePath.toString());
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // Disable input events to prevent keyDispatchingTimedOut exception from
+        // ever happening when an ANR state is being detected by InputDispatcher
+        // thread through sending any input to the process in testing.
+        getWindow().addFlags(FLAG_NOT_FOCUSABLE);
     }
 
     private native void nativeRunTests(
