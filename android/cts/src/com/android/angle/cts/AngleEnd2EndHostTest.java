@@ -105,7 +105,7 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
         try {
             return Optional.of(new JSONObject(new JSONTokener(resultString)));
         } catch (JSONException e) {
-            CLog.e(TAG, "Failed to parse JSON: ", e);
+            CLog.e(TAG, "Failed to parse JSON: %s", e);
             CLog.e(TAG, "Results string: '" + resultString + "'");
             return Optional.empty();
         }
@@ -123,7 +123,7 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
                 }
             }
         } catch (DeviceNotAvailableException e) {
-            CLog.e(TAG, "Failed to read log file: ", e);
+            CLog.e(TAG, "Failed to read log file: %s", e);
         }
 
         try {
@@ -135,7 +135,7 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
                 }
             }
         } catch (DeviceNotAvailableException e) {
-            CLog.e(TAG, "Failed to read log file: ", e);
+            CLog.e(TAG, "Failed to read log file: %s", e);
         }
     }
 
@@ -233,12 +233,14 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
         mStartTime = System.currentTimeMillis();
 
         if (isVirtualDevice()) {
+            CLog.i("Skipping invocation: Running on a virtual device");
             listener.invocationSkipped(new SkipReason("Skip test on virtual devices", ""));
             return;
         }
 
         // TODO(b/431804941): Enable and test ANGLE on all new devices.
         if (!isAngleDefaultDriver()) {
+            CLog.i("Skipping invocation: ANGLE is not the system driver");
             listener.invocationSkipped(new SkipReason("ANGLE is not the system driver", ""));
             return;
         }
