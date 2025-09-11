@@ -2617,8 +2617,8 @@ angle::Result ContextVk::handleDirtyGraphicsVertexBuffers(DirtyBits::Iterator *d
             vertexArrayVk->getCurrentArrayBufferDivisors();
         const gl::AttribArray<GLuint> &bufferRelativeOffsets =
             vertexArrayVk->getCurrentArrayBufferRelativeOffsets();
-        const gl::AttributesMask &bufferCompressed =
-            vertexArrayVk->getCurrentArrayBufferCompressed();
+        const gl::ComponentTypeMask vertexAttributesTypeMask =
+            vertexArrayVk->getState().getVertexAttributesTypeMask();
 
         gl::AttribVector<VkVertexInputBindingDescription2EXT> bindingDescs;
         gl::AttribVector<VkVertexInputAttributeDescription2EXT> attributeDescs;
@@ -2632,11 +2632,8 @@ angle::Result ContextVk::handleDirtyGraphicsVertexBuffers(DirtyBits::Iterator *d
 
         for (size_t attribIndex : activeAttribLocations)
         {
-            const angle::Format &intendedFormat =
-                mRenderer->getFormat(bufferFormats[attribIndex]).getIntendedFormat();
-
-            const gl::ComponentType attribType = GetVertexAttributeComponentType(
-                intendedFormat.isPureInt(), intendedFormat.vertexAttribType);
+            const gl::ComponentType attribType =
+                gl::GetComponentTypeMask(vertexAttributesTypeMask, attribIndex);
             const gl::ComponentType programAttribType =
                 gl::GetComponentTypeMask(programAttribsTypeMask, attribIndex);
 
@@ -2674,8 +2671,8 @@ angle::Result ContextVk::handleDirtyGraphicsVertexBuffers(DirtyBits::Iterator *d
                 attribDesc.sType   = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
                 attribDesc.binding = static_cast<uint32_t>(attribIndex);
                 attribDesc.format  = vk::GraphicsPipelineDesc::getPipelineVertexInputStateFormat(
-                    this, bufferFormats[attribIndex], bufferCompressed[attribIndex],
-                    programAttribType, static_cast<uint32_t>(attribIndex));
+                    this, bufferFormats[attribIndex], programAttribType,
+                    static_cast<uint32_t>(attribIndex));
                 attribDesc.location = static_cast<uint32_t>(attribIndex);
                 attribDesc.offset   = bufferRelativeOffsets[attribIndex];
 
@@ -9292,18 +9289,15 @@ angle::Result ContextVk::ensureInterfacePipelineCache()
     return angle::Result::Continue;
 }
 
-angle::Result ContextVk::onVertexArrayChange(const gl::AttributesMask enabledAttribDirtyBits,
-                                             const gl::AttributesMask disabledAttribDirtyBits)
+angle::Result ContextVk::onVertexArrayChange(const gl::AttributesMask enabledAttribDirtyBits)
 {
     const VertexArrayVk &vertexArray = *getVertexArray();
 
     if (ANGLE_UNLIKELY(!getFeatures().supportsVertexInputDynamicState.enabled))
     {
-        const gl::AttributesMask attribDirtyBits = enabledAttribDirtyBits | disabledAttribDirtyBits;
-
         invalidateCurrentGraphicsPipeline();
 
-        for (size_t attribIndex : attribDirtyBits)
+        for (size_t attribIndex : enabledAttribDirtyBits)
         {
             const GLuint staticStride =
                 mRenderer->getFeatures().useVertexInputBindingStrideDynamicState.enabled
@@ -9320,7 +9314,6 @@ angle::Result ContextVk::onVertexArrayChange(const gl::AttributesMask enabledAtt
             mGraphicsPipelineDesc->updateVertexInput(
                 this, &mGraphicsPipelineTransition, static_cast<uint32_t>(attribIndex),
                 staticStride, divisor, vertexArray.getCurrentArrayBufferFormats()[attribIndex],
-                vertexArray.getCurrentArrayBufferCompressed()[attribIndex],
                 vertexArray.getCurrentArrayBufferRelativeOffsets()[attribIndex]);
         }
     }
