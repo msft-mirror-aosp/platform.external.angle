@@ -160,7 +160,8 @@ CLMemoryVk::~CLMemoryVk()
 
 VkBufferUsageFlags CLMemoryVk::getVkUsageFlags()
 {
-    return cl_vk::GetBufferUsageFlags(mMemory.getFlags());
+    return cl_vk::GetBufferUsageFlags(mMemory.getFlags(),
+                                      mContext->getFeatures().supportsBufferDeviceAddress.enabled);
 }
 
 VkMemoryPropertyFlags CLMemoryVk::getVkMemPropertyFlags()
@@ -1108,7 +1109,8 @@ angle::Result CLImageVk::getBufferView(const vk::BufferView **viewOut)
 
     return mBufferViews.getView(
         mContext, parent->getBuffer(), parent->getOffset(),
-        mContext->getRenderer()->getFormat(CLImageFormatToAngleFormat(getFormat())), viewOut);
+        mContext->getRenderer()->getFormat(CLImageFormatToAngleFormat(getFormat())), viewOut,
+        nullptr);
 }
 
 }  // namespace rx
