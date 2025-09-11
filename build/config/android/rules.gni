@@ -1121,6 +1121,8 @@ if (!is_robolectric && enable_java_templates) {
     _main_class = "org.chromium.testing.local.JunitTestMain"
     _build_config = "$target_gen_dir/$target_name.build_config.json"
     _res_build_config = "$target_gen_dir/$target_name.res.build_config.json"
+    _manifest_build_config =
+        "$target_gen_dir/$target_name.manifest.build_config.json"
     _build_config_target_name = "$target_name$build_config_target_suffix"
     _java_binary_target_name = "${target_name}__java_binary"
 
@@ -1160,7 +1162,7 @@ if (!is_robolectric && enable_java_templates) {
         manifest_package = _package_name
       }
       output_manifest = _android_manifest
-      build_config = _build_config
+      manifest_build_config = _manifest_build_config
       min_sdk_version = default_min_sdk_version
       target_sdk_version = default_target_sdk_version
       deps = _non_java_deps + _java_assetres_deps +
@@ -2175,6 +2177,8 @@ if (!is_robolectric && enable_java_templates) {
     _base_path = "$target_out_dir/$target_name/$target_name"
     _build_config = "$target_gen_dir/$target_name.build_config.json"
     _res_build_config = "$target_gen_dir/$target_name.res.build_config.json"
+    _manifest_build_config =
+        "$target_gen_dir/$target_name.manifest.build_config.json"
     _build_config_target = "$target_name$build_config_target_suffix"
     _java_target_name = "${_template_name}__java"
 
@@ -2368,7 +2372,7 @@ if (!is_robolectric && enable_java_templates) {
                              ])
       input_manifest = invoker.android_manifest
       output_manifest = _android_manifest
-      build_config = _build_config
+      manifest_build_config = _manifest_build_config
       min_sdk_version = _min_sdk_version
       target_sdk_version = _target_sdk_version
 
@@ -4651,9 +4655,6 @@ if (!is_robolectric && enable_java_templates) {
   #
   #    proguard_enable_obfuscation: Whether to enable obfuscation (default=true)
   #
-  #    proguard_android_sdk_dep: Optional. android_system_java_prebuilt() target
-  #      used as a library jar for synchronized proguarding.
-  #
   #    system_image_locale_allowlist: List of locales that should be included
   #      on system APKs generated from this bundle.
   #
@@ -4790,11 +4791,6 @@ if (!is_robolectric && enable_java_templates) {
 
     _build_config = "$target_gen_dir/${_target_name}.build_config.json"
     _rebased_build_config = rebase_path(_build_config, root_build_dir)
-    if (defined(invoker.proguard_android_sdk_dep)) {
-      _android_sdk_dep = invoker.proguard_android_sdk_dep
-    } else {
-      _android_sdk_dep = default_android_sdk_dep
-    }
 
     if (_proguard_enabled) {
       _proguard_mapping_path = "${_bundle_path}.mapping"
@@ -4812,7 +4808,7 @@ if (!is_robolectric && enable_java_templates) {
     _build_config_target = ":$_build_config_target_name"
     write_build_config(_build_config_target_name) {
       type = "android_app_bundle"
-      possible_config_deps = _module_targets + [ _android_sdk_dep ]
+      possible_config_deps = _module_targets
       build_config = _build_config
       proguard_enabled = _proguard_enabled
       enable_lint = _enable_lint
