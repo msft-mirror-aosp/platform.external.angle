@@ -5761,10 +5761,15 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         (isIntel && IsLinux() && driverVersion >= angle::VersionTriple(22, 0, 0)) ||
         mFeatures.exposeNonConformantExtensionsAndVersions.enabled;
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsShaderFramebufferFetch,
-                            supportsFramebufferFetchInSurface);
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsShaderFramebufferFetchNonCoherent,
-                            supportsFramebufferFetchInSurface);
+    // Emulating framebuffer fetch causes significant perf regressions on samsung
+    const bool framebufferFetchEmulationCausesPerfRegression = isSamsung;
+
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsShaderFramebufferFetch,
+        (supportsFramebufferFetchInSurface && !framebufferFetchEmulationCausesPerfRegression));
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsShaderFramebufferFetchNonCoherent,
+        (supportsFramebufferFetchInSurface && !framebufferFetchEmulationCausesPerfRegression));
 
     // On ARM hardware, framebuffer-fetch-like behavior on Vulkan is known to be coherent even
     // without the Vulkan extension.
@@ -6470,13 +6475,13 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // http://anglebug.com/440941211:
     // Disable the feature on Windows Intel because some shaders using 16-bit floats crash
-    // http://crbug.com/443182226:
-    // Temporarily disable the feature because webgl_conformance_vulkan_passthrough_tests are
-    // failing.
+    // http://anglebug.com/443302350
+    // http://anglebug.com/443302625
+    // Temporarily disable the feature on PowerVR while the above 2 bugs are under investigations
     ANGLE_FEATURE_CONDITION(&mFeatures, convertLowpAndMediumpFloatUniformsTo16Bits,
                             m16BitStorageFeatures.uniformAndStorageBuffer16BitAccess == VK_TRUE &&
                                 mShaderFloat16Int8Features.shaderFloat16 == VK_TRUE &&
-                                !(IsWindows() && isIntel) && false);
+                                !(IsWindows() && isIntel) && !isPowerVR);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsUnifiedImageLayouts,
                             mUnifiedImageLayoutsFeatures.unifiedImageLayouts == VK_TRUE);

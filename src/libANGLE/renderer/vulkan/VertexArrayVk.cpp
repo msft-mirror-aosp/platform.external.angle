@@ -307,6 +307,7 @@ VertexArrayVk::VertexArrayVk(ContextVk *contextVk,
     : VertexArrayImpl(state, vertexArrayBuffers),
       mCurrentArrayBufferHandles{},
       mCurrentArrayBufferOffsets{},
+      mCurrentArrayBufferSizes{},
       mCurrentArrayBuffers{},
       mDefaultAttribFormatIDs{},
       mVertexInputBindingDesc{},
@@ -319,14 +320,25 @@ VertexArrayVk::VertexArrayVk(ContextVk *contextVk,
 
     mCurrentArrayBufferHandles.fill(emptyBuffer.getBuffer().getHandle());
     mCurrentArrayBufferOffsets.fill(0);
+    mCurrentArrayBufferSizes.fill(0);
     mCurrentArrayBuffers.fill(&emptyBuffer);
+
+    // Divisor value is ignored by the implementation when using VK_VERTEX_INPUT_RATE_VERTEX, but it
+    // is set to 1 to avoid a validation error due to a validation layer issue.
+    mZeroDivisor =
+        contextVk->getRenderer()->isVertexAttributeInstanceRateZeroDivisorAllowed() ? 0 : 1;
 
     for (uint32_t attribIndex = 0; attribIndex < mVertexInputBindingDesc.size(); attribIndex++)
     {
         mVertexInputBindingDesc[attribIndex] = VkVertexInputBindingDescription2EXT{
-            VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT,    nullptr, attribIndex, 0,
-            static_cast<VkVertexInputRate>(VK_VERTEX_INPUT_RATE_VERTEX), 0};
+            VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT,
+            nullptr,
+            attribIndex,
+            0,
+            static_cast<VkVertexInputRate>(VK_VERTEX_INPUT_RATE_VERTEX),
+            mZeroDivisor};
     }
+
     for (uint32_t attribIndex = 0; attribIndex < mVertexInputAttribDesc.size(); attribIndex++)
     {
         mVertexInputAttribDesc[attribIndex] = VkVertexInputAttributeDescription2EXT{
@@ -967,24 +979,6 @@ ANGLE_INLINE void VertexArrayVk::setDefaultPackedInput(ContextVk *contextVk,
     *formatOut = GetCurrentValueFormatID(defaultValue.Type);
 }
 
-angle::Result VertexArrayVk::updateActiveAttribInfo(ContextVk *contextVk)
-{
-    const std::vector<gl::VertexAttribute> &attribs = mState.getVertexAttributes();
-
-    // Update pipeline cache with current active attribute info
-    for (size_t attribIndex : mState.getEnabledAttributesMask())
-    {
-        const gl::VertexAttribute &attrib = attribs[attribIndex];
-
-        ANGLE_TRY(contextVk->onVertexAttributeChange(
-            attribIndex, getCurrentArrayBufferStride(attribIndex),
-            getCurrentArrayBufferDivisor(attribIndex), attrib.format->id,
-            getCurrentArrayBufferRelativeOffset(attribIndex), mCurrentArrayBuffers[attribIndex]));
-    }
-
-    return angle::Result::Continue;
-}
-
 angle::Result VertexArrayVk::syncDirtyEnabledAttrib(ContextVk *contextVk,
                                                     const gl::VertexAttribute &attrib,
                                                     const gl::VertexBinding &binding,
@@ -1028,18 +1022,17 @@ angle::Result VertexArrayVk::syncDirtyEnabledAttrib(ContextVk *contextVk,
             vk::BufferHelper &bufferHelper         = bufferVk->getBuffer();
             mCurrentArrayBuffers[attribIndex]      = &bufferHelper;
             mCurrentArrayBufferSerial[attribIndex] = bufferHelper.getBufferSerial();
+            VkDeviceSize bufferSize                = bufferVk->getSize();
             VkDeviceSize bufferOffset;
             mCurrentArrayBufferHandles[attribIndex] =
-                bufferHelper.getBufferForVertexArray(contextVk, bufferVk->getSize(), &bufferOffset)
+                bufferHelper.getBufferForVertexArray(contextVk, bufferSize, &bufferOffset)
                     .getHandle();
 
             // Vulkan requires the offset is within the buffer. We use robust access
             // behaviour to reset the offset if it starts outside the buffer.
-            mCurrentArrayBufferOffsets[attribIndex] =
-                binding.getOffset() < static_cast<GLint64>(bufferVk->getSize())
-                    ? binding.getOffset() + bufferOffset
-                    : bufferOffset;
-
+            ASSERT(binding.getOffset() < static_cast<GLint64>(bufferSize));
+            mCurrentArrayBufferOffsets[attribIndex]     = bufferOffset + binding.getOffset();
+            mCurrentArrayBufferSizes[attribIndex]       = bufferSize - binding.getOffset();
             mVertexInputBindingDesc[attribIndex].stride = binding.getStride();
         }
         else
@@ -1050,6 +1043,7 @@ angle::Result VertexArrayVk::syncDirtyEnabledAttrib(ContextVk *contextVk,
             mCurrentArrayBufferSerial[attribIndex]  = emptyBuffer.getBufferSerial();
             mCurrentArrayBufferHandles[attribIndex] = emptyBuffer.getBuffer().getHandle();
             mCurrentArrayBufferOffsets[attribIndex] = emptyBuffer.getOffset();
+            mCurrentArrayBufferSizes[attribIndex]       = emptyBuffer.getSize();
             mVertexInputBindingDesc[attribIndex].stride = 0;
         }
     }
@@ -1060,6 +1054,7 @@ angle::Result VertexArrayVk::syncDirtyEnabledAttrib(ContextVk *contextVk,
         mCurrentArrayBufferSerial[attribIndex]  = emptyBuffer.getBufferSerial();
         mCurrentArrayBufferHandles[attribIndex] = emptyBuffer.getBuffer().getHandle();
         mCurrentArrayBufferOffsets[attribIndex] = emptyBuffer.getOffset();
+        mCurrentArrayBufferSizes[attribIndex]   = emptyBuffer.getSize();
 
         if (isStreamingVertexAttrib)
         {
@@ -1076,7 +1071,7 @@ angle::Result VertexArrayVk::syncDirtyEnabledAttrib(ContextVk *contextVk,
     if (!bufferOnly)
     {
         setVertexInputAttribDescFormat(renderer, attribIndex, attrib.format->id);
-        mVertexInputBindingDesc[attribIndex].divisor = binding.getDivisor();
+        setVertexInputBindingDescDivisor(renderer, attribIndex, binding.getDivisor());
     }
 
     mCurrentEnabledAttributesMask.set(attribIndex);
@@ -1097,9 +1092,10 @@ angle::Result VertexArrayVk::syncDirtyDisabledAttrib(ContextVk *contextVk,
     mCurrentArrayBufferSerial[attribIndex]          = emptyBuffer.getBufferSerial();
     mCurrentArrayBufferHandles[attribIndex]         = emptyBuffer.getBuffer().getHandle();
     mCurrentArrayBufferOffsets[attribIndex]         = emptyBuffer.getOffset();
+    mCurrentArrayBufferSizes[attribIndex]           = emptyBuffer.getSize();
     mVertexInputBindingDesc[attribIndex].stride     = 0;
-    mVertexInputBindingDesc[attribIndex].divisor    = 0;
-    mVertexInputAttribDesc[attribIndex].offset      = 0;
+    setVertexInputBindingDescDivisor(contextVk->getRenderer(), attribIndex, 0);
+    mVertexInputAttribDesc[attribIndex].offset = 0;
 
     mCurrentEnabledAttributesMask.reset(attribIndex);
     return angle::Result::Continue;
@@ -1192,16 +1188,17 @@ angle::Result VertexArrayVk::syncNeedsConversionAttrib(ContextVk *contextVk,
     vk::BufferHelper *bufferHelper         = conversion->getBuffer();
     mCurrentArrayBuffers[attribIndex]      = bufferHelper;
     mCurrentArrayBufferSerial[attribIndex] = bufferHelper->getBufferSerial();
+    VkDeviceSize bufferSize                = bufferHelper->getSize();
     VkDeviceSize bufferOffset;
     mCurrentArrayBufferHandles[attribIndex] =
-        bufferHelper->getBufferForVertexArray(contextVk, bufferHelper->getSize(), &bufferOffset)
-            .getHandle();
+        bufferHelper->getBufferForVertexArray(contextVk, bufferSize, &bufferOffset).getHandle();
     ASSERT(BindingIsAligned(dstFormat, bufferOffset + dstRelativeOffset, dstStride));
     mCurrentArrayBufferOffsets[attribIndex]         = bufferOffset + dstRelativeOffset;
+    mCurrentArrayBufferSizes[attribIndex]           = bufferSize - dstRelativeOffset;
     mVertexInputAttribDesc[attribIndex].offset      = 0;
     mVertexInputBindingDesc[attribIndex].stride     = dstStride;
     setVertexInputAttribDescFormat(renderer, attribIndex, attrib.format->id);
-    mVertexInputBindingDesc[attribIndex].divisor = binding.getDivisor();
+    setVertexInputBindingDescDivisor(renderer, attribIndex, binding.getDivisor());
 
     mCurrentEnabledAttributesMask.set(attribIndex);
     return angle::Result::Continue;
@@ -1413,8 +1410,9 @@ angle::Result VertexArrayVk::updateStreamedAttribs(const gl::Context *context,
             mCurrentArrayBuffers[attribIndex]        = &emptyBuffer;
             mCurrentArrayBufferHandles[attribIndex]  = emptyBuffer.getBuffer().getHandle();
             mCurrentArrayBufferOffsets[attribIndex]  = 0;
-            mVertexInputBindingDesc[attribIndex].stride  = 0;
-            mVertexInputBindingDesc[attribIndex].divisor = 0;
+            mCurrentArrayBufferSizes[attribIndex]       = 0;
+            mVertexInputBindingDesc[attribIndex].stride = 0;
+            setVertexInputBindingDescDivisor(renderer, attribIndex, 0);
             continue;
         }
         else
@@ -1441,14 +1439,15 @@ angle::Result VertexArrayVk::updateStreamedAttribs(const gl::Context *context,
         ASSERT(vertexDataBuffer != nullptr);
         mCurrentArrayBuffers[attribIndex]      = vertexDataBuffer;
         mCurrentArrayBufferSerial[attribIndex] = vertexDataBuffer->getBufferSerial();
+        VkDeviceSize bufferSize                = vertexDataBuffer->getSize();
         VkDeviceSize bufferOffset;
         mCurrentArrayBufferHandles[attribIndex] =
-            vertexDataBuffer
-                ->getBufferForVertexArray(contextVk, vertexDataBuffer->getSize(), &bufferOffset)
+            vertexDataBuffer->getBufferForVertexArray(contextVk, bufferSize, &bufferOffset)
                 .getHandle();
         mCurrentArrayBufferOffsets[attribIndex]  = bufferOffset + startOffset;
-        mVertexInputBindingDesc[attribIndex].stride  = stride;
-        mVertexInputBindingDesc[attribIndex].divisor = divisor;
+        mCurrentArrayBufferSizes[attribIndex]       = bufferSize - startOffset;
+        mVertexInputBindingDesc[attribIndex].stride = stride;
+        setVertexInputBindingDescDivisor(renderer, attribIndex, divisor);
         ASSERT(BindingIsAligned(dstFormat, mCurrentArrayBufferOffsets[attribIndex],
                                 mVertexInputBindingDesc[attribIndex].stride));
     }
@@ -1539,10 +1538,11 @@ angle::Result VertexArrayVk::updateDefaultAttrib(ContextVk *contextVk, size_t at
             bufferHelper->getBufferForVertexArray(contextVk, kDefaultValueSize, &bufferOffset)
                 .getHandle();
         mCurrentArrayBufferOffsets[attribIndex]  = bufferOffset;
+        mCurrentArrayBufferSizes[attribIndex]       = kDefaultValueSize;
         mCurrentArrayBuffers[attribIndex]        = bufferHelper;
         mCurrentArrayBufferSerial[attribIndex]   = bufferHelper->getBufferSerial();
-        mVertexInputBindingDesc[attribIndex].stride  = 0;
-        mVertexInputBindingDesc[attribIndex].divisor = 0;
+        mVertexInputBindingDesc[attribIndex].stride = 0;
+        setVertexInputBindingDescDivisor(renderer, attribIndex, 0);
 
         setDefaultPackedInput(contextVk, attribIndex, &mDefaultAttribFormatIDs[attribIndex]);
         setVertexInputAttribDescFormat(renderer, attribIndex, mDefaultAttribFormatIDs[attribIndex]);
@@ -1560,5 +1560,28 @@ ANGLE_INLINE void VertexArrayVk::setVertexInputAttribDescFormat(vk::Renderer *re
 {
     const vk::Format &format                   = renderer->getFormat(formatID);
     mVertexInputAttribDesc[attribIndex].format = format.getActualBufferVkFormat(renderer);
+
+    const angle::Format &intendedFormat = format.getIntendedFormat();
+    gl::ComponentType componentType     = GetVertexAttributeComponentType(
+        intendedFormat.isPureInt(), intendedFormat.vertexAttribType);
+    gl::SetComponentTypeMask(componentType, attribIndex, &mCurrentVertexAttributesTypeMask);
+}
+
+ANGLE_INLINE void VertexArrayVk::setVertexInputBindingDescDivisor(vk::Renderer *renderer,
+                                                                  size_t attribIndex,
+                                                                  GLuint divisor)
+{
+    if (divisor != 0)
+    {
+        mVertexInputBindingDesc[attribIndex].inputRate =
+            static_cast<VkVertexInputRate>(VK_VERTEX_INPUT_RATE_INSTANCE);
+        mVertexInputBindingDesc[attribIndex].divisor = divisor;
+    }
+    else
+    {
+        mVertexInputBindingDesc[attribIndex].inputRate =
+            static_cast<VkVertexInputRate>(VK_VERTEX_INPUT_RATE_VERTEX);
+        mVertexInputBindingDesc[attribIndex].divisor = mZeroDivisor;
+    }
 }
 }  // namespace rx
