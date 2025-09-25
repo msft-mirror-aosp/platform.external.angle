@@ -82,6 +82,9 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
                             + " '*' match any string. '?' match any single character. ''")
     private String mGtestFilter = "";
 
+    @Option(name = "skip-api-level-check", description = "Skip API level check. Default is false.")
+    private boolean mSkipApiLevelCheck = false;
+
     private HashSet<String> mIncludeFilters = new HashSet<>();
     private HashSet<String> mExcludeFilters = new HashSet<>();
     private String mAngleGlDriverSelectionPkgs = null;
@@ -313,7 +316,8 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
         }
 
         if (!isAngleDefaultDriver()) {
-            if (PropertyUtil.getVsrApiLevel(mDevice) >= MINIMUM_VENDOR_API_LEVEL) {
+            if (mSkipApiLevelCheck
+                    || PropertyUtil.getVsrApiLevel(mDevice) >= MINIMUM_VENDOR_API_LEVEL) {
                 if (!selectAngleAsGlDriver()) {
                     final String errorMsg = "Failed to select ANGLE as the GL driver for the test";
                     CLog.i("Skipping invocation: " + errorMsg);
