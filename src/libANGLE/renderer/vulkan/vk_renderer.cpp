@@ -1943,7 +1943,8 @@ Renderer::Renderer()
       mNativeVectorWidthDouble(0),
       mNativeVectorWidthHalf(0),
       mPreferredVectorWidthDouble(0),
-      mPreferredVectorWidthHalf(0)
+      mPreferredVectorWidthHalf(0),
+      mMinCommandCountToSubmit(0)
 {
     VkFormatProperties invalid = {0, 0, kInvalidFormatFeatureFlags};
     mFormatProperties.fill(invalid);
@@ -5679,6 +5680,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // score improves 7%.
     ANGLE_FEATURE_CONDITION(&mFeatures, preferSubmitAtFBOBoundary,
                             isTileBasedRenderer || isSwiftShader);
+    ANGLE_FEATURE_CONDITION(&mFeatures, forceSubmitExceptionsAtFBOBoundary, !isQualcommProprietary);
+    mMinCommandCountToSubmit = isQualcommProprietary ? 1024 : 32;
 
     // In order to support immutable samplers tied to external formats, we need to overallocate
     // descriptor counts for such immutable samplers
@@ -5918,9 +5921,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // VK_EXT_vertex_input_dynamic_state enables dynamic state for the full vertex input state. As
     // such, when available use supportsVertexInputDynamicState instead of
     // useVertexInputBindingStrideDynamicState.
-    ANGLE_FEATURE_CONDITION(&mFeatures, useVertexInputBindingStrideDynamicState,
-                            mFeatures.supportsExtendedDynamicState.enabled &&
-                                !isExtendedDynamicStateBuggy && !isVertexInputBindingStrideBuggy);
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, useVertexInputBindingStrideDynamicState,
+        mFeatures.supportsExtendedDynamicState.enabled && !isVertexInputBindingStrideBuggy);
     // On ARM drivers prior to r52, |vkCmdSetCullMode| incorrectly culls non-triangle topologies,
     // according to the errata: https://developer.arm.com/documentation/SDEN-3735689/0100/?lang=en
     ANGLE_FEATURE_CONDITION(&mFeatures, useCullModeDynamicState,
@@ -6490,10 +6493,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // Temporarily disable the feature on PowerVR while the above 2 bugs are under investigations
     // http://anglebug.com/446159597
     // Disable the feature on Samsung devices
+    // https://b.corp.google.com/issues/446844410
+    // Disable on non-ARM GPU until the performance impact on them is verified.
     ANGLE_FEATURE_CONDITION(&mFeatures, convertLowpAndMediumpFloatUniformsTo16Bits,
                             m16BitStorageFeatures.uniformAndStorageBuffer16BitAccess == VK_TRUE &&
-                                mShaderFloat16Int8Features.shaderFloat16 == VK_TRUE &&
-                                !(IsWindows() && isIntel) && !isPowerVR && !isSamsung);
+                                mShaderFloat16Int8Features.shaderFloat16 == VK_TRUE && isARM);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsUnifiedImageLayouts,
                             mUnifiedImageLayoutsFeatures.unifiedImageLayouts == VK_TRUE);
