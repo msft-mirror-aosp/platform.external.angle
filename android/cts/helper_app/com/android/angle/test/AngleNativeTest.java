@@ -51,6 +51,13 @@ public final class AngleNativeTest extends NativeActivity {
             commandLineFlags += " --gtest_filter=" + gtestFilter + " ";
         }
 
+        final String collectTestOnly =
+                androidx.test.platform.app.InstrumentationRegistry.getArguments()
+                        .getString("collect_test_only");
+        if (collectTestOnly != null) {
+            commandLineFlags += " --list-tests ";
+        }
+
         return commandLineFlags;
     }
 

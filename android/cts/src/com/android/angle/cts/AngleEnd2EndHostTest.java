@@ -40,13 +40,18 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -85,6 +90,7 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
     @Option(name = "skip-api-level-check", description = "Skip API level check. Default is false.")
     private boolean mSkipApiLevelCheck = false;
 
+    private boolean mCollectTestsOnly = false;
     private HashSet<String> mIncludeFilters = new HashSet<>();
     private HashSet<String> mExcludeFilters = new HashSet<>();
     private String mAngleGlDriverSelectionPkgs = null;
@@ -99,7 +105,7 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
     /** {@inheritDoc} */
     @Override
     public void setCollectTestsOnly(boolean shouldCollectTest) {
-        // TODO(b/432021211): Get the list of tests.
+        mCollectTestsOnly = shouldCollectTest;
     }
 
     static String getGlobalSetting(ITestDevice device, String globalSetting) throws Exception {
@@ -295,6 +301,73 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
                 System.currentTimeMillis() - mStartTime, new HashMap<String, Metric>());
     }
 
+    // TODO(b/452136647): Support outputting the list of tests into the output.json in ANGLE E2E
+    // GoogleTest harness w/ --list-tests flag specified.
+    /**
+     * Parses the test list from the stdout file (out.txt).
+     *
+     * <p>The out.txt file is expected to contain a section listing the tests, enclosed by "Tests
+     * list:" and "End tests list.". Each line between these markers is considered a test name.
+     *
+     * <pre>
+     * Example format:
+     * ... other logs ...
+     * Tests list:
+     * TestSuite1.Test1
+     * TestSuite1.Test2
+     * TestSuite2.TestA
+     * End tests list.
+     * ... other logs ...
+     * </pre>
+     *
+     * @param listener The test invocation listener.
+     * @return true if the test list was successfully parsed and reported, false otherwise.
+     */
+    private boolean parseListResults(ITestInvocationListener listener) {
+        File stdoutFile = null;
+        try {
+            final String stdoutPath = getDeviceFilePath(STDOUT_FILE_NAME).toString();
+            stdoutFile = mDevice.pullFile(stdoutPath);
+            if (stdoutFile == null) {
+                CLog.e(TAG, "Failed to read log file: %s", stdoutPath);
+                return false;
+            }
+        } catch (DeviceNotAvailableException e) {
+            CLog.e(TAG, "Failed to read log file: %s", e);
+            return false;
+        }
+        List<String> tests = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(stdoutFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (!line.startsWith("Tests list:")) {
+                    continue;
+                }
+                break;
+            }
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("End tests list.")) {
+                    break;
+                }
+                if (!line.trim().isEmpty()) {
+                    tests.add(line.trim());
+                }
+            }
+        } catch (IOException e) {
+            CLog.e(TAG, "Failed to parse log file: %s", e);
+            return false;
+        }
+        listener.testRunStarted("CtsAngleEnd2EndTestCases", tests.size());
+        for (String test : tests) {
+            final TestDescription testId = new TestDescription(getClass().getCanonicalName(), test);
+            listener.testStarted(testId);
+            listener.testEnded(testId, new HashMap<String, Metric>());
+        }
+        listener.testRunEnded(
+                System.currentTimeMillis() - mStartTime, new HashMap<String, Metric>());
+        return true;
+    }
+
     private boolean isAngleDefaultDriver() throws DeviceNotAvailableException {
         String eglDriver = mDevice.executeShellCommand("getprop ro.hardware.egl").trim();
         return eglDriver.equals("angle");
@@ -360,6 +433,11 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
                 // error.
                 opts.addInstrumentationArg("gtest_filter", gtestFilter);
             }
+            if (mCollectTestsOnly) {
+                // Pass along any value to avoid causing the invocation error, the recipitent side
+                // only checks if the argument is null or not.
+                opts.addInstrumentationArg("collect_test_only", "1");
+            }
             runDeviceTests(opts);
         } catch (DeviceNotAvailableException e) {
             // Only handle DeviceNotAvailableException and mark the whole invocation as failed,
@@ -370,21 +448,29 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
                             .setErrorIdentifier(TestErrorIdentifier.TEST_ABORTED);
             listener.invocationFailed(failure);
         } finally {
-            // Always collect and parse the logs, regardless of pass/fail/crash. This should make it
-            // easier to determine which test crashed, if one occurs.
             collectDeviceLogs(listener);
 
-            Optional<JSONObject> testResults = getTestResults();
-            if (testResults.isEmpty()) {
-                String errorMsg = "Failed to get test results";
-                // Mark the whole invocation as failed, since we haven't started recording the test
-                // results yet.
-                FailureDescription failure =
-                        FailureDescription.create(errorMsg)
-                                .setErrorIdentifier(TestErrorIdentifier.OUTPUT_PARSER_ERROR);
-                listener.invocationFailed(failure);
+            if (mCollectTestsOnly) {
+                if (!parseListResults(listener)) {
+                    final String errorMsg = "Failed to parse the list of tests";
+                    FailureDescription failure =
+                            FailureDescription.create(errorMsg)
+                                    .setErrorIdentifier(TestErrorIdentifier.OUTPUT_PARSER_ERROR);
+                    listener.invocationFailed(failure);
+                }
             } else {
-                parseResults(listener, testResults.get());
+                Optional<JSONObject> testResults = getTestResults();
+                if (testResults.isEmpty()) {
+                    final String errorMsg = "Failed to get test results";
+                    // Mark the whole invocation as failed, since we haven't started recording the
+                    // test results yet.
+                    FailureDescription failure =
+                            FailureDescription.create(errorMsg)
+                                    .setErrorIdentifier(TestErrorIdentifier.OUTPUT_PARSER_ERROR);
+                    listener.invocationFailed(failure);
+                } else {
+                    parseResults(listener, testResults.get());
+                }
             }
 
             cleanUpAngleGLSettings();
