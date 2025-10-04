@@ -9,8 +9,9 @@
 #define VULKAN_STRUCTS_HPP
 
 // include-what-you-use: make sure, vulkan.hpp is used by code-completers
-// IWYU pragma: private; include "vulkan.hpp"
+// IWYU pragma: private, include "vulkan/vulkan.hpp"
 
+#include <cstdlib>  // free
 #include <cstring>  // strcmp
 
 namespace VULKAN_HPP_NAMESPACE
@@ -142,6 +143,13 @@ namespace VULKAN_HPP_NAMESPACE
     float maxZ = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAabbPositionsKHR>
+  {
+    using Type = AabbPositionsKHR;
+  };
+#endif
   using AabbPositionsNV = AabbPositionsKHR;
 
   union DeviceOrHostAddressConstKHR
@@ -186,6 +194,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *    hostAddress;
 #endif /*VULKAN_HPP_HAS_UNRESTRICTED_UNIONS*/
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceOrHostAddressConstKHR>
+  {
+    using Type = DeviceOrHostAddressConstKHR;
+  };
+#endif
 
   // wrapper struct for struct VkAccelerationStructureGeometryTrianglesDataKHR, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkAccelerationStructureGeometryTrianglesDataKHR.html
@@ -332,6 +348,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceOrHostAddressConstKHR transformData = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureGeometryTrianglesDataKHR>
+  {
+    using Type = AccelerationStructureGeometryTrianglesDataKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureGeometryTrianglesDataKHR>
   {
@@ -426,6 +450,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceOrHostAddressConstKHR data   = {};
     DeviceSize                  stride = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureGeometryAabbsDataKHR>
+  {
+    using Type = AccelerationStructureGeometryAabbsDataKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureGeometryAabbsDataKHR>
@@ -523,6 +555,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceOrHostAddressConstKHR data            = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureGeometryInstancesDataKHR>
+  {
+    using Type = AccelerationStructureGeometryInstancesDataKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureGeometryInstancesDataKHR>
   {
@@ -583,6 +623,14 @@ namespace VULKAN_HPP_NAMESPACE
     VkAccelerationStructureGeometryInstancesDataKHR instances;
 #endif /*VULKAN_HPP_HAS_UNRESTRICTED_UNIONS*/
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureGeometryDataKHR>
+  {
+    using Type = AccelerationStructureGeometryDataKHR;
+  };
+#endif
 
   // wrapper struct for struct VkAccelerationStructureGeometryKHR, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkAccelerationStructureGeometryKHR.html
@@ -683,6 +731,14 @@ namespace VULKAN_HPP_NAMESPACE
     GeometryFlagsKHR                     flags        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureGeometryKHR>
+  {
+    using Type = AccelerationStructureGeometryKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureGeometryKHR>
   {
@@ -731,6 +787,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *          hostAddress;
 #endif /*VULKAN_HPP_HAS_UNRESTRICTED_UNIONS*/
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceOrHostAddressKHR>
+  {
+    using Type = DeviceOrHostAddressKHR;
+  };
+#endif
 
   // wrapper struct for struct VkAccelerationStructureBuildGeometryInfoKHR, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkAccelerationStructureBuildGeometryInfoKHR.html
@@ -954,6 +1018,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceOrHostAddressKHR                           scratchData              = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureBuildGeometryInfoKHR>
+  {
+    using Type = AccelerationStructureBuildGeometryInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureBuildGeometryInfoKHR>
   {
@@ -1073,6 +1145,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t transformOffset = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureBuildRangeInfoKHR>
+  {
+    using Type = AccelerationStructureBuildRangeInfoKHR;
+  };
+#endif
+
   // wrapper struct for struct VkAccelerationStructureBuildSizesInfoKHR, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkAccelerationStructureBuildSizesInfoKHR.html
   struct AccelerationStructureBuildSizesInfoKHR
@@ -1163,6 +1243,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    updateScratchSize         = {};
     DeviceSize    buildScratchSize          = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureBuildSizesInfoKHR>
+  {
+    using Type = AccelerationStructureBuildSizesInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureBuildSizesInfoKHR>
@@ -1282,6 +1370,14 @@ namespace VULKAN_HPP_NAMESPACE
     AccelerationStructureKHR accelerationStructure   = {};
     AccelerationStructureNV  accelerationStructureNV = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureCaptureDescriptorDataInfoEXT>
+  {
+    using Type = AccelerationStructureCaptureDescriptorDataInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureCaptureDescriptorDataInfoEXT>
@@ -1440,6 +1536,14 @@ namespace VULKAN_HPP_NAMESPACE
     AccelerationStructureTypeKHR        type          = AccelerationStructureTypeKHR::eTopLevel;
     DeviceAddress                       deviceAddress = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureCreateInfoKHR>
+  {
+    using Type = AccelerationStructureCreateInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureCreateInfoKHR>
@@ -1661,6 +1765,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    transformOffset = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGeometryTrianglesNV>
+  {
+    using Type = GeometryTrianglesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eGeometryTrianglesNV>
   {
@@ -1787,6 +1899,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    offset   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGeometryAABBNV>
+  {
+    using Type = GeometryAABBNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eGeometryAabbNV>
   {
@@ -1881,6 +2001,14 @@ namespace VULKAN_HPP_NAMESPACE
     GeometryTrianglesNV triangles = {};
     GeometryAABBNV      aabbs     = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGeometryDataNV>
+  {
+    using Type = GeometryDataNV;
+  };
+#endif
 
   // wrapper struct for struct VkGeometryNV, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkGeometryNV.html
   struct GeometryNV
@@ -1994,6 +2122,14 @@ namespace VULKAN_HPP_NAMESPACE
     GeometryDataNV   geometry     = {};
     GeometryFlagsKHR flags        = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGeometryNV>
+  {
+    using Type = GeometryNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eGeometryNV>
@@ -2167,6 +2303,14 @@ namespace VULKAN_HPP_NAMESPACE
     const GeometryNV *                pGeometries   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureInfoNV>
+  {
+    using Type = AccelerationStructureInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureInfoNV>
   {
@@ -2279,6 +2423,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize                  compactedSize = {};
     AccelerationStructureInfoNV info          = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureCreateInfoNV>
+  {
+    using Type = AccelerationStructureCreateInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureCreateInfoNV>
@@ -2436,6 +2588,14 @@ namespace VULKAN_HPP_NAMESPACE
     CompressedTriangleFormatAMDX format            = CompressedTriangleFormatAMDX::eDgf1;
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureDenseGeometryFormatTrianglesDataAMDX>
+  {
+    using Type = AccelerationStructureDenseGeometryFormatTrianglesDataAMDX;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureDenseGeometryFormatTrianglesDataAMDX>
   {
@@ -2541,6 +2701,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *             pNext                 = {};
     AccelerationStructureKHR accelerationStructure = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureDeviceAddressInfoKHR>
+  {
+    using Type = AccelerationStructureDeviceAddressInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureDeviceAddressInfoKHR>
@@ -2751,6 +2919,14 @@ namespace VULKAN_HPP_NAMESPACE
     RayTracingLssPrimitiveEndCapsModeNV endCapsMode  = RayTracingLssPrimitiveEndCapsModeNV::eNone;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureGeometryLinearSweptSpheresDataNV>
+  {
+    using Type = AccelerationStructureGeometryLinearSweptSpheresDataNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureGeometryLinearSweptSpheresDataNV>
   {
@@ -2839,6 +3015,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                pNext      = {};
     DeviceOrHostAddressConstKHR vertexData = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureGeometryMotionTrianglesDataNV>
+  {
+    using Type = AccelerationStructureGeometryMotionTrianglesDataNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureGeometryMotionTrianglesDataNV>
@@ -3009,6 +3193,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize                  indexStride  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureGeometrySpheresDataNV>
+  {
+    using Type = AccelerationStructureGeometrySpheresDataNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureGeometrySpheresDataNV>
   {
@@ -3093,6 +3285,13 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper2D<float, 3, 4> matrix = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTransformMatrixKHR>
+  {
+    using Type = TransformMatrixKHR;
+  };
+#endif
   using TransformMatrixNV = TransformMatrixKHR;
 
   // wrapper struct for struct VkAccelerationStructureInstanceKHR, see
@@ -3229,6 +3428,13 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t                   accelerationStructureReference = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureInstanceKHR>
+  {
+    using Type = AccelerationStructureInstanceKHR;
+  };
+#endif
   using AccelerationStructureInstanceNV = AccelerationStructureInstanceKHR;
 
   // wrapper struct for struct VkAccelerationStructureMatrixMotionInstanceNV, see
@@ -3382,6 +3588,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t                   accelerationStructureReference = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureMatrixMotionInstanceNV>
+  {
+    using Type = AccelerationStructureMatrixMotionInstanceNV;
+  };
+#endif
+
   // wrapper struct for struct VkAccelerationStructureMemoryRequirementsInfoNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkAccelerationStructureMemoryRequirementsInfoNV.html
   struct AccelerationStructureMemoryRequirementsInfoNV
@@ -3492,6 +3706,14 @@ namespace VULKAN_HPP_NAMESPACE
     AccelerationStructureMemoryRequirementsTypeNV type                  = AccelerationStructureMemoryRequirementsTypeNV::eObject;
     AccelerationStructureNV                       accelerationStructure = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureMemoryRequirementsInfoNV>
+  {
+    using Type = AccelerationStructureMemoryRequirementsInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureMemoryRequirementsInfoNV>
@@ -3606,6 +3828,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                               maxInstances = {};
     AccelerationStructureMotionInfoFlagsNV flags        = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureMotionInfoNV>
+  {
+    using Type = AccelerationStructureMotionInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureMotionInfoNV>
@@ -3847,6 +4077,14 @@ namespace VULKAN_HPP_NAMESPACE
     float tz  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSRTDataNV>
+  {
+    using Type = SRTDataNV;
+  };
+#endif
+
   // wrapper struct for struct VkAccelerationStructureSRTMotionInstanceNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkAccelerationStructureSRTMotionInstanceNV.html
   struct AccelerationStructureSRTMotionInstanceNV
@@ -3991,6 +4229,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t                   accelerationStructureReference = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureSRTMotionInstanceNV>
+  {
+    using Type = AccelerationStructureSRTMotionInstanceNV;
+  };
+#endif
+
   union AccelerationStructureMotionInstanceDataNV
   {
     using NativeType = VkAccelerationStructureMotionInstanceDataNV;
@@ -4055,6 +4301,14 @@ namespace VULKAN_HPP_NAMESPACE
     VkAccelerationStructureSRTMotionInstanceNV    srtMotionInstance;
 #endif /*VULKAN_HPP_HAS_UNRESTRICTED_UNIONS*/
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureMotionInstanceDataNV>
+  {
+    using Type = AccelerationStructureMotionInstanceDataNV;
+  };
+#endif
 
   // wrapper struct for struct VkAccelerationStructureMotionInstanceNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkAccelerationStructureMotionInstanceNV.html
@@ -4144,6 +4398,14 @@ namespace VULKAN_HPP_NAMESPACE
     AccelerationStructureMotionInstanceFlagsNV flags = {};
     AccelerationStructureMotionInstanceDataNV  data  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureMotionInstanceNV>
+  {
+    using Type = AccelerationStructureMotionInstanceNV;
+  };
+#endif
 
   // wrapper struct for struct VkMicromapUsageEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkMicromapUsageEXT.html
   struct MicromapUsageEXT
@@ -4241,6 +4503,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t subdivisionLevel = {};
     uint32_t format           = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMicromapUsageEXT>
+  {
+    using Type = MicromapUsageEXT;
+  };
+#endif
 
 #if defined( VK_ENABLE_BETA_EXTENSIONS )
   // wrapper struct for struct VkAccelerationStructureTrianglesDisplacementMicromapNV, see
@@ -4573,6 +4843,14 @@ namespace VULKAN_HPP_NAMESPACE
     MicromapEXT                      micromap                              = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureTrianglesDisplacementMicromapNV>
+  {
+    using Type = AccelerationStructureTrianglesDisplacementMicromapNV;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureTrianglesDisplacementMicromapNV>
   {
@@ -4788,6 +5066,14 @@ namespace VULKAN_HPP_NAMESPACE
     MicromapEXT                      micromap         = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureTrianglesOpacityMicromapEXT>
+  {
+    using Type = AccelerationStructureTrianglesOpacityMicromapEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureTrianglesOpacityMicromapEXT>
   {
@@ -4890,6 +5176,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *    pNext        = {};
     const uint8_t * pVersionData = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAccelerationStructureVersionInfoKHR>
+  {
+    using Type = AccelerationStructureVersionInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAccelerationStructureVersionInfoKHR>
@@ -5032,6 +5326,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      deviceMask = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAcquireNextImageInfoKHR>
+  {
+    using Type = AcquireNextImageInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eAcquireNextImageInfoKHR>
   {
@@ -5142,6 +5444,14 @@ namespace VULKAN_HPP_NAMESPACE
     AcquireProfilingLockFlagsKHR flags   = {};
     uint64_t                     timeout = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAcquireProfilingLockInfoKHR>
+  {
+    using Type = AcquireProfilingLockInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAcquireProfilingLockInfoKHR>
@@ -5362,6 +5672,14 @@ namespace VULKAN_HPP_NAMESPACE
     PFN_InternalFreeNotification       pfnInternalFree       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAllocationCallbacks>
+  {
+    using Type = AllocationCallbacks;
+  };
+#endif
+
   // wrapper struct for struct VkAmigoProfilingSubmitInfoSEC, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkAmigoProfilingSubmitInfoSEC.html
   struct AmigoProfilingSubmitInfoSEC
   {
@@ -5467,6 +5785,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t      firstDrawTimestamp  = {};
     uint64_t      swapBufferTimestamp = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAmigoProfilingSubmitInfoSEC>
+  {
+    using Type = AmigoProfilingSubmitInfoSEC;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAmigoProfilingSubmitInfoSEC>
@@ -5581,6 +5907,14 @@ namespace VULKAN_HPP_NAMESPACE
     ComponentSwizzle b = ComponentSwizzle::eIdentity;
     ComponentSwizzle a = ComponentSwizzle::eIdentity;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkComponentMapping>
+  {
+    using Type = ComponentMapping;
+  };
+#endif
 
 #if defined( VK_USE_PLATFORM_ANDROID_KHR )
   // wrapper struct for struct VkAndroidHardwareBufferFormatProperties2ANDROID, see
@@ -5711,6 +6045,14 @@ namespace VULKAN_HPP_NAMESPACE
     ChromaLocation              suggestedXChromaOffset           = ChromaLocation::eCositedEven;
     ChromaLocation              suggestedYChromaOffset           = ChromaLocation::eCositedEven;
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAndroidHardwareBufferFormatProperties2ANDROID>
+  {
+    using Type = AndroidHardwareBufferFormatProperties2ANDROID;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eAndroidHardwareBufferFormatProperties2ANDROID>
@@ -5848,6 +6190,14 @@ namespace VULKAN_HPP_NAMESPACE
     ChromaLocation              suggestedYChromaOffset           = ChromaLocation::eCositedEven;
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAndroidHardwareBufferFormatPropertiesANDROID>
+  {
+    using Type = AndroidHardwareBufferFormatPropertiesANDROID;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eAndroidHardwareBufferFormatPropertiesANDROID>
   {
@@ -5941,6 +6291,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                 = {};
     Format        colorAttachmentFormat = Format::eUndefined;
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAndroidHardwareBufferFormatResolvePropertiesANDROID>
+  {
+    using Type = AndroidHardwareBufferFormatResolvePropertiesANDROID;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eAndroidHardwareBufferFormatResolvePropertiesANDROID>
@@ -6036,6 +6394,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      memoryTypeBits = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAndroidHardwareBufferPropertiesANDROID>
+  {
+    using Type = AndroidHardwareBufferPropertiesANDROID;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eAndroidHardwareBufferPropertiesANDROID>
   {
@@ -6126,6 +6492,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                      = {};
     uint64_t      androidHardwareBufferUsage = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAndroidHardwareBufferUsageANDROID>
+  {
+    using Type = AndroidHardwareBufferUsageANDROID;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eAndroidHardwareBufferUsageANDROID>
@@ -6242,6 +6616,14 @@ namespace VULKAN_HPP_NAMESPACE
     struct ANativeWindow *       window = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAndroidSurfaceCreateInfoKHR>
+  {
+    using Type = AndroidSurfaceCreateInfoKHR;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eAndroidSurfaceCreateInfoKHR>
   {
@@ -6353,6 +6735,14 @@ namespace VULKAN_HPP_NAMESPACE
     AntiLagStageAMD stage      = AntiLagStageAMD::eInput;
     uint64_t        frameIndex = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAntiLagPresentationInfoAMD>
+  {
+    using Type = AntiLagPresentationInfoAMD;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAntiLagPresentationInfoAMD>
@@ -6473,6 +6863,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                           maxFPS            = {};
     const AntiLagPresentationInfoAMD * pPresentationInfo = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAntiLagDataAMD>
+  {
+    using Type = AntiLagDataAMD;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAntiLagDataAMD>
@@ -6629,6 +7027,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      engineVersion      = {};
     uint32_t      apiVersion         = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkApplicationInfo>
+  {
+    using Type = ApplicationInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eApplicationInfo>
@@ -6802,6 +7208,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageLayout                initialLayout  = ImageLayout::eUndefined;
     ImageLayout                finalLayout    = ImageLayout::eUndefined;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAttachmentDescription>
+  {
+    using Type = AttachmentDescription;
+  };
+#endif
 
   // wrapper struct for struct VkAttachmentDescription2, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkAttachmentDescription2.html
   struct AttachmentDescription2
@@ -6985,6 +7399,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageLayout                finalLayout    = ImageLayout::eUndefined;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAttachmentDescription2>
+  {
+    using Type = AttachmentDescription2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eAttachmentDescription2>
   {
@@ -7101,6 +7523,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageLayout   stencilFinalLayout   = ImageLayout::eUndefined;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAttachmentDescriptionStencilLayout>
+  {
+    using Type = AttachmentDescriptionStencilLayout;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eAttachmentDescriptionStencilLayout>
   {
@@ -7206,6 +7636,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        feedbackLoopEnable = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAttachmentFeedbackLoopInfoEXT>
+  {
+    using Type = AttachmentFeedbackLoopInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eAttachmentFeedbackLoopInfoEXT>
   {
@@ -7302,6 +7740,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t    attachment = {};
     ImageLayout layout     = ImageLayout::eUndefined;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAttachmentReference>
+  {
+    using Type = AttachmentReference;
+  };
+#endif
 
   // wrapper struct for struct VkAttachmentReference2, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkAttachmentReference2.html
   struct AttachmentReference2
@@ -7419,6 +7865,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageAspectFlags aspectMask = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAttachmentReference2>
+  {
+    using Type = AttachmentReference2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eAttachmentReference2>
   {
@@ -7523,6 +7977,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext         = {};
     ImageLayout   stencilLayout = ImageLayout::eUndefined;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAttachmentReferenceStencilLayout>
+  {
+    using Type = AttachmentReferenceStencilLayout;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eAttachmentReferenceStencilLayout>
@@ -7673,6 +8135,14 @@ namespace VULKAN_HPP_NAMESPACE
     SampleCountFlagBits         depthStencilAttachmentSamples = SampleCountFlagBits::e1;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAttachmentSampleCountInfoAMD>
+  {
+    using Type = AttachmentSampleCountInfoAMD;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eAttachmentSampleCountInfoAMD>
   {
@@ -7770,6 +8240,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t height = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExtent2D>
+  {
+    using Type = Extent2D;
+  };
+#endif
+
   // wrapper struct for struct VkSampleLocationEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkSampleLocationEXT.html
   struct SampleLocationEXT
   {
@@ -7858,6 +8336,14 @@ namespace VULKAN_HPP_NAMESPACE
     float x = {};
     float y = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSampleLocationEXT>
+  {
+    using Type = SampleLocationEXT;
+  };
+#endif
 
   // wrapper struct for struct VkSampleLocationsInfoEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkSampleLocationsInfoEXT.html
   struct SampleLocationsInfoEXT
@@ -8009,6 +8495,14 @@ namespace VULKAN_HPP_NAMESPACE
     const SampleLocationEXT * pSampleLocations        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSampleLocationsInfoEXT>
+  {
+    using Type = SampleLocationsInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSampleLocationsInfoEXT>
   {
@@ -8107,6 +8601,14 @@ namespace VULKAN_HPP_NAMESPACE
     SampleLocationsInfoEXT sampleLocationsInfo = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkAttachmentSampleLocationsEXT>
+  {
+    using Type = AttachmentSampleLocationsEXT;
+  };
+#endif
+
   // wrapper struct for struct VkBaseInStructure, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkBaseInStructure.html
   struct BaseInStructure
   {
@@ -8190,6 +8692,14 @@ namespace VULKAN_HPP_NAMESPACE
     const struct BaseInStructure * pNext = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBaseInStructure>
+  {
+    using Type = BaseInStructure;
+  };
+#endif
+
   // wrapper struct for struct VkBaseOutStructure, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkBaseOutStructure.html
   struct BaseOutStructure
   {
@@ -8272,6 +8782,14 @@ namespace VULKAN_HPP_NAMESPACE
     StructureType             sType = StructureType::eApplicationInfo;
     struct BaseOutStructure * pNext = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBaseOutStructure>
+  {
+    using Type = BaseOutStructure;
+  };
+#endif
 
   // wrapper struct for struct VkBindAccelerationStructureMemoryInfoNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkBindAccelerationStructureMemoryInfoNV.html
@@ -8441,6 +8959,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t *        pDeviceIndices        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindAccelerationStructureMemoryInfoNV>
+  {
+    using Type = BindAccelerationStructureMemoryInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBindAccelerationStructureMemoryInfoNV>
   {
@@ -8570,6 +9096,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t * pDeviceIndices   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindBufferMemoryDeviceGroupInfo>
+  {
+    using Type = BindBufferMemoryDeviceGroupInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBindBufferMemoryDeviceGroupInfo>
   {
@@ -8690,6 +9224,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceMemory  memory       = {};
     DeviceSize    memoryOffset = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindBufferMemoryInfo>
+  {
+    using Type = BindBufferMemoryInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eBindBufferMemoryInfo>
@@ -8842,6 +9384,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize                           memoryOffset = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindDataGraphPipelineSessionMemoryInfoARM>
+  {
+    using Type = BindDataGraphPipelineSessionMemoryInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBindDataGraphPipelineSessionMemoryInfoARM>
   {
@@ -8964,6 +9514,14 @@ namespace VULKAN_HPP_NAMESPACE
     PipelineLayout   layout     = {};
     uint32_t         set        = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindDescriptorBufferEmbeddedSamplersInfoEXT>
+  {
+    using Type = BindDescriptorBufferEmbeddedSamplersInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eBindDescriptorBufferEmbeddedSamplersInfoEXT>
@@ -9170,6 +9728,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t *      pDynamicOffsets    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindDescriptorSetsInfo>
+  {
+    using Type = BindDescriptorSetsInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBindDescriptorSetsInfo>
   {
@@ -9267,6 +9833,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t y = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkOffset2D>
+  {
+    using Type = Offset2D;
+  };
+#endif
+
   // wrapper struct for struct VkRect2D, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkRect2D.html
   struct Rect2D
   {
@@ -9355,6 +9929,14 @@ namespace VULKAN_HPP_NAMESPACE
     Offset2D offset = {};
     Extent2D extent = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRect2D>
+  {
+    using Type = Rect2D;
+  };
+#endif
 
   // wrapper struct for struct VkBindImageMemoryDeviceGroupInfo, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkBindImageMemoryDeviceGroupInfo.html
@@ -9514,6 +10096,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Rect2D *   pSplitInstanceBindRegions    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindImageMemoryDeviceGroupInfo>
+  {
+    using Type = BindImageMemoryDeviceGroupInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBindImageMemoryDeviceGroupInfo>
   {
@@ -9634,6 +10224,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    memoryOffset = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindImageMemoryInfo>
+  {
+    using Type = BindImageMemoryInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBindImageMemoryInfo>
   {
@@ -9748,6 +10346,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      imageIndex = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindImageMemorySwapchainInfoKHR>
+  {
+    using Type = BindImageMemorySwapchainInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBindImageMemorySwapchainInfoKHR>
   {
@@ -9850,6 +10456,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *        pNext       = {};
     ImageAspectFlagBits planeAspect = ImageAspectFlagBits::eColor;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindImagePlaneMemoryInfo>
+  {
+    using Type = BindImagePlaneMemoryInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eBindImagePlaneMemoryInfo>
@@ -9961,6 +10575,14 @@ namespace VULKAN_HPP_NAMESPACE
     IndexType     indexType     = IndexType::eUint16;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindIndexBufferIndirectCommandEXT>
+  {
+    using Type = BindIndexBufferIndirectCommandEXT;
+  };
+#endif
+
   // wrapper struct for struct VkBindIndexBufferIndirectCommandNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkBindIndexBufferIndirectCommandNV.html
   struct BindIndexBufferIndirectCommandNV
@@ -10063,6 +10685,14 @@ namespace VULKAN_HPP_NAMESPACE
     IndexType     indexType     = IndexType::eUint16;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindIndexBufferIndirectCommandNV>
+  {
+    using Type = BindIndexBufferIndirectCommandNV;
+  };
+#endif
+
   // wrapper struct for struct VkBindMemoryStatus, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkBindMemoryStatus.html
   struct BindMemoryStatus
   {
@@ -10156,6 +10786,14 @@ namespace VULKAN_HPP_NAMESPACE
     Result *      pResult = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindMemoryStatus>
+  {
+    using Type = BindMemoryStatus;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBindMemoryStatus>
   {
@@ -10246,6 +10884,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceAddress pipelineAddress = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindPipelineIndirectCommandNV>
+  {
+    using Type = BindPipelineIndirectCommandNV;
+  };
+#endif
+
   // wrapper struct for struct VkBindShaderGroupIndirectCommandNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkBindShaderGroupIndirectCommandNV.html
   struct BindShaderGroupIndirectCommandNV
@@ -10327,6 +10973,14 @@ namespace VULKAN_HPP_NAMESPACE
   public:
     uint32_t groupIndex = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindShaderGroupIndirectCommandNV>
+  {
+    using Type = BindShaderGroupIndirectCommandNV;
+  };
+#endif
 
   // wrapper struct for struct VkSparseMemoryBind, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkSparseMemoryBind.html
   struct SparseMemoryBind
@@ -10447,6 +11101,14 @@ namespace VULKAN_HPP_NAMESPACE
     SparseMemoryBindFlags flags          = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSparseMemoryBind>
+  {
+    using Type = SparseMemoryBind;
+  };
+#endif
+
   // wrapper struct for struct VkSparseBufferMemoryBindInfo, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkSparseBufferMemoryBindInfo.html
   struct SparseBufferMemoryBindInfo
   {
@@ -10562,6 +11224,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                 bindCount = {};
     const SparseMemoryBind * pBinds    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSparseBufferMemoryBindInfo>
+  {
+    using Type = SparseBufferMemoryBindInfo;
+  };
+#endif
 
   // wrapper struct for struct VkSparseImageOpaqueMemoryBindInfo, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkSparseImageOpaqueMemoryBindInfo.html
@@ -10681,6 +11351,14 @@ namespace VULKAN_HPP_NAMESPACE
     const SparseMemoryBind * pBinds    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSparseImageOpaqueMemoryBindInfo>
+  {
+    using Type = SparseImageOpaqueMemoryBindInfo;
+  };
+#endif
+
   // wrapper struct for struct VkImageSubresource, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkImageSubresource.html
   struct ImageSubresource
   {
@@ -10777,6 +11455,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t         mipLevel   = {};
     uint32_t         arrayLayer = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageSubresource>
+  {
+    using Type = ImageSubresource;
+  };
+#endif
 
   // wrapper struct for struct VkOffset3D, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkOffset3D.html
   struct Offset3D
@@ -10877,6 +11563,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t z = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkOffset3D>
+  {
+    using Type = Offset3D;
+  };
+#endif
+
   // wrapper struct for struct VkExtent3D, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkExtent3D.html
   struct Extent3D
   {
@@ -10975,6 +11669,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t height = {};
     uint32_t depth  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExtent3D>
+  {
+    using Type = Extent3D;
+  };
+#endif
 
   // wrapper struct for struct VkSparseImageMemoryBind, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkSparseImageMemoryBind.html
   struct SparseImageMemoryBind
@@ -11107,6 +11809,14 @@ namespace VULKAN_HPP_NAMESPACE
     SparseMemoryBindFlags flags        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSparseImageMemoryBind>
+  {
+    using Type = SparseImageMemoryBind;
+  };
+#endif
+
   // wrapper struct for struct VkSparseImageMemoryBindInfo, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkSparseImageMemoryBindInfo.html
   struct SparseImageMemoryBindInfo
   {
@@ -11223,6 +11933,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                      bindCount = {};
     const SparseImageMemoryBind * pBinds    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSparseImageMemoryBindInfo>
+  {
+    using Type = SparseImageMemoryBindInfo;
+  };
+#endif
 
   // wrapper struct for struct VkBindSparseInfo, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkBindSparseInfo.html
   struct BindSparseInfo
@@ -11493,6 +12211,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Semaphore *                       pSignalSemaphores    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindSparseInfo>
+  {
+    using Type = BindSparseInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBindSparseInfo>
   {
@@ -11614,6 +12340,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    memoryOffset = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindTensorMemoryInfoARM>
+  {
+    using Type = BindTensorMemoryInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBindTensorMemoryInfoARM>
   {
@@ -11721,6 +12455,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      stride        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindVertexBufferIndirectCommandEXT>
+  {
+    using Type = BindVertexBufferIndirectCommandEXT;
+  };
+#endif
+
   // wrapper struct for struct VkBindVertexBufferIndirectCommandNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkBindVertexBufferIndirectCommandNV.html
   struct BindVertexBufferIndirectCommandNV
@@ -11821,6 +12563,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      size          = {};
     uint32_t      stride        = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindVertexBufferIndirectCommandNV>
+  {
+    using Type = BindVertexBufferIndirectCommandNV;
+  };
+#endif
 
   // wrapper struct for struct VkBindVideoSessionMemoryInfoKHR, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkBindVideoSessionMemoryInfoKHR.html
@@ -11949,6 +12699,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    memorySize      = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBindVideoSessionMemoryInfoKHR>
+  {
+    using Type = BindVideoSessionMemoryInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBindVideoSessionMemoryInfoKHR>
   {
@@ -12052,6 +12810,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *           pNext        = {};
     CubicFilterWeightsQCOM cubicWeights = CubicFilterWeightsQCOM::eCatmullRom;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBlitImageCubicWeightsInfoQCOM>
+  {
+    using Type = BlitImageCubicWeightsInfoQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eBlitImageCubicWeightsInfoQCOM>
@@ -12169,6 +12935,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t         baseArrayLayer = {};
     uint32_t         layerCount     = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageSubresourceLayers>
+  {
+    using Type = ImageSubresourceLayers;
+  };
+#endif
 
   // wrapper struct for struct VkImageBlit2, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkImageBlit2.html
   struct ImageBlit2
@@ -12297,6 +13071,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageSubresourceLayers      dstSubresource = {};
     ArrayWrapper1D<Offset3D, 2> dstOffsets     = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageBlit2>
+  {
+    using Type = ImageBlit2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageBlit2>
@@ -12494,6 +13276,14 @@ namespace VULKAN_HPP_NAMESPACE
     Filter             filter         = Filter::eNearest;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBlitImageInfo2>
+  {
+    using Type = BlitImageInfo2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBlitImageInfo2>
   {
@@ -12598,6 +13388,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext  = {};
     Buffer        buffer = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferCaptureDescriptorDataInfoEXT>
+  {
+    using Type = BufferCaptureDescriptorDataInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eBufferCaptureDescriptorDataInfoEXT>
@@ -12712,6 +13510,14 @@ namespace VULKAN_HPP_NAMESPACE
     BufferCollectionFUCHSIA collection = {};
     uint32_t                index      = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferCollectionBufferCreateInfoFUCHSIA>
+  {
+    using Type = BufferCollectionBufferCreateInfoFUCHSIA;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eBufferCollectionBufferCreateInfoFUCHSIA>
@@ -12860,6 +13666,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      minBufferCountForSharedSlack    = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferCollectionConstraintsInfoFUCHSIA>
+  {
+    using Type = BufferCollectionConstraintsInfoFUCHSIA;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eBufferCollectionConstraintsInfoFUCHSIA>
   {
@@ -12970,6 +13784,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext           = {};
     zx_handle_t   collectionToken = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferCollectionCreateInfoFUCHSIA>
+  {
+    using Type = BufferCollectionCreateInfoFUCHSIA;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eBufferCollectionCreateInfoFUCHSIA>
@@ -13086,6 +13908,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                index      = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferCollectionImageCreateInfoFUCHSIA>
+  {
+    using Type = BufferCollectionImageCreateInfoFUCHSIA;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eBufferCollectionImageCreateInfoFUCHSIA>
   {
@@ -13189,6 +14019,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext      = {};
     uint32_t      colorSpace = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSysmemColorSpaceFUCHSIA>
+  {
+    using Type = SysmemColorSpaceFUCHSIA;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eSysmemColorSpaceFUCHSIA>
@@ -13340,6 +14178,14 @@ namespace VULKAN_HPP_NAMESPACE
     ChromaLocation              suggestedXChromaOffset           = ChromaLocation::eCositedEven;
     ChromaLocation              suggestedYChromaOffset           = ChromaLocation::eCositedEven;
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferCollectionPropertiesFUCHSIA>
+  {
+    using Type = BufferCollectionPropertiesFUCHSIA;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eBufferCollectionPropertiesFUCHSIA>
@@ -13523,6 +14369,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t *  pQueueFamilyIndices   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferCreateInfo>
+  {
+    using Type = BufferCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBufferCreateInfo>
   {
@@ -13649,6 +14503,14 @@ namespace VULKAN_HPP_NAMESPACE
     BufferCollectionConstraintsInfoFUCHSIA bufferCollectionConstraints = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferConstraintsInfoFUCHSIA>
+  {
+    using Type = BufferConstraintsInfoFUCHSIA;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eBufferConstraintsInfoFUCHSIA>
   {
@@ -13752,6 +14614,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize dstOffset = {};
     DeviceSize size      = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferCopy>
+  {
+    using Type = BufferCopy;
+  };
+#endif
 
   // wrapper struct for struct VkBufferCopy2, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkBufferCopy2.html
   struct BufferCopy2
@@ -13863,6 +14733,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    size      = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferCopy2>
+  {
+    using Type = BufferCopy2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBufferCopy2>
   {
@@ -13968,6 +14846,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceAddress deviceAddress = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferDeviceAddressCreateInfoEXT>
+  {
+    using Type = BufferDeviceAddressCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBufferDeviceAddressCreateInfoEXT>
   {
@@ -14069,6 +14955,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext  = {};
     Buffer        buffer = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferDeviceAddressInfo>
+  {
+    using Type = BufferDeviceAddressInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eBufferDeviceAddressInfo>
@@ -14206,6 +15100,14 @@ namespace VULKAN_HPP_NAMESPACE
     Offset3D               imageOffset       = {};
     Extent3D               imageExtent       = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferImageCopy>
+  {
+    using Type = BufferImageCopy;
+  };
+#endif
 
   // wrapper struct for struct VkBufferImageCopy2, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkBufferImageCopy2.html
   struct BufferImageCopy2
@@ -14355,6 +15257,14 @@ namespace VULKAN_HPP_NAMESPACE
     Offset3D               imageOffset       = {};
     Extent3D               imageExtent       = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferImageCopy2>
+  {
+    using Type = BufferImageCopy2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eBufferImageCopy2>
@@ -14524,6 +15434,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    offset              = {};
     DeviceSize    size                = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferMemoryBarrier>
+  {
+    using Type = BufferMemoryBarrier;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eBufferMemoryBarrier>
@@ -14713,6 +15631,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize          size                = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferMemoryBarrier2>
+  {
+    using Type = BufferMemoryBarrier2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBufferMemoryBarrier2>
   {
@@ -14817,6 +15743,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext  = {};
     Buffer        buffer = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferMemoryRequirementsInfo2>
+  {
+    using Type = BufferMemoryRequirementsInfo2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eBufferMemoryRequirementsInfo2>
@@ -14923,6 +15857,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t      opaqueCaptureAddress = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferOpaqueCaptureAddressCreateInfo>
+  {
+    using Type = BufferOpaqueCaptureAddressCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBufferOpaqueCaptureAddressCreateInfo>
   {
@@ -15026,6 +15968,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *      pNext = {};
     BufferUsageFlags2 usage = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferUsageFlags2CreateInfo>
+  {
+    using Type = BufferUsageFlags2CreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eBufferUsageFlags2CreateInfo>
@@ -15171,6 +16121,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize            range  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBufferViewCreateInfo>
+  {
+    using Type = BufferViewCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBufferViewCreateInfo>
   {
@@ -15268,6 +16226,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceAddress startAddress  = {};
     DeviceSize    strideInBytes = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkStridedDeviceAddressNV>
+  {
+    using Type = StridedDeviceAddressNV;
+  };
+#endif
 
   // wrapper struct for struct VkBuildPartitionedAccelerationStructureIndirectCommandNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkBuildPartitionedAccelerationStructureIndirectCommandNV.html
@@ -15376,6 +16342,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                                 argCount = {};
     StridedDeviceAddressNV                   argData  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBuildPartitionedAccelerationStructureIndirectCommandNV>
+  {
+    using Type = BuildPartitionedAccelerationStructureIndirectCommandNV;
+  };
+#endif
 
   // wrapper struct for struct VkPartitionedAccelerationStructureInstancesInputNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPartitionedAccelerationStructureInstancesInputNV.html
@@ -15522,6 +16496,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                           partitionCount                    = {};
     uint32_t                           maxInstanceInGlobalPartitionCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPartitionedAccelerationStructureInstancesInputNV>
+  {
+    using Type = PartitionedAccelerationStructureInstancesInputNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePartitionedAccelerationStructureInstancesInputNV>
@@ -15685,6 +16667,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceAddress                                    srcInfosCount                = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkBuildPartitionedAccelerationStructureInfoNV>
+  {
+    using Type = BuildPartitionedAccelerationStructureInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eBuildPartitionedAccelerationStructureInfoNV>
   {
@@ -15787,6 +16777,14 @@ namespace VULKAN_HPP_NAMESPACE
     TimeDomainKHR timeDomain = TimeDomainKHR::eDevice;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCalibratedTimestampInfoKHR>
+  {
+    using Type = CalibratedTimestampInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCalibratedTimestampInfoKHR>
   {
@@ -15875,6 +16873,14 @@ namespace VULKAN_HPP_NAMESPACE
     PipelineStageFlags2 stage             = {};
     void *              pCheckpointMarker = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCheckpointData2NV>
+  {
+    using Type = CheckpointData2NV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eCheckpointData2NV>
@@ -15965,6 +16971,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                pCheckpointMarker = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCheckpointDataNV>
+  {
+    using Type = CheckpointDataNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCheckpointDataNV>
   {
@@ -16032,6 +17046,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<int32_t, 4>  int32;
     ArrayWrapper1D<uint32_t, 4> uint32;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClearColorValue>
+  {
+    using Type = ClearColorValue;
+  };
+#endif
 
   // wrapper struct for struct VkClearDepthStencilValue, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkClearDepthStencilValue.html
   struct ClearDepthStencilValue
@@ -16125,6 +17147,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t stencil = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClearDepthStencilValue>
+  {
+    using Type = ClearDepthStencilValue;
+  };
+#endif
+
   union ClearValue
   {
     using NativeType = VkClearValue;
@@ -16167,6 +17197,14 @@ namespace VULKAN_HPP_NAMESPACE
     VkClearDepthStencilValue depthStencil;
 #endif /*VULKAN_HPP_HAS_UNRESTRICTED_UNIONS*/
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClearValue>
+  {
+    using Type = ClearValue;
+  };
+#endif
 
   // wrapper struct for struct VkClearAttachment, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkClearAttachment.html
   struct ClearAttachment
@@ -16247,6 +17285,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t         colorAttachment = {};
     ClearValue       clearValue      = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClearAttachment>
+  {
+    using Type = ClearAttachment;
+  };
+#endif
 
   // wrapper struct for struct VkClearRect, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkClearRect.html
   struct ClearRect
@@ -16344,6 +17390,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t baseArrayLayer = {};
     uint32_t layerCount     = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClearRect>
+  {
+    using Type = ClearRect;
+  };
+#endif
 
   // wrapper struct for struct VkClusterAccelerationStructureBuildClustersBottomLevelInfoNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkClusterAccelerationStructureBuildClustersBottomLevelInfoNV.html
@@ -16456,6 +17510,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceAddress clusterReferences       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClusterAccelerationStructureBuildClustersBottomLevelInfoNV>
+  {
+    using Type = ClusterAccelerationStructureBuildClustersBottomLevelInfoNV;
+  };
+#endif
+
   // wrapper struct for struct VkClusterAccelerationStructureGeometryIndexAndGeometryFlagsNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkClusterAccelerationStructureGeometryIndexAndGeometryFlagsNV.html
   struct ClusterAccelerationStructureGeometryIndexAndGeometryFlagsNV
@@ -16562,6 +17624,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t reserved      : 5;
     uint32_t geometryFlags : 3;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClusterAccelerationStructureGeometryIndexAndGeometryFlagsNV>
+  {
+    using Type = ClusterAccelerationStructureGeometryIndexAndGeometryFlagsNV;
+  };
+#endif
 
   // wrapper struct for struct VkClusterAccelerationStructureBuildTriangleClusterInfoNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkClusterAccelerationStructureBuildTriangleClusterInfoNV.html
@@ -16844,6 +17914,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceAddress                                               opacityMicromapArray              = {};
     DeviceAddress                                               opacityMicromapIndexBuffer        = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClusterAccelerationStructureBuildTriangleClusterInfoNV>
+  {
+    using Type = ClusterAccelerationStructureBuildTriangleClusterInfoNV;
+  };
+#endif
 
   // wrapper struct for struct VkClusterAccelerationStructureBuildTriangleClusterTemplateInfoNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkClusterAccelerationStructureBuildTriangleClusterTemplateInfoNV.html
@@ -17168,6 +18246,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceAddress                                               instantiationBoundingBoxLimit     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClusterAccelerationStructureBuildTriangleClusterTemplateInfoNV>
+  {
+    using Type = ClusterAccelerationStructureBuildTriangleClusterTemplateInfoNV;
+  };
+#endif
+
   // wrapper struct for struct VkClusterAccelerationStructureClustersBottomLevelInputNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkClusterAccelerationStructureClustersBottomLevelInputNV.html
   struct ClusterAccelerationStructureClustersBottomLevelInputNV
@@ -17280,6 +18366,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      maxTotalClusterCount                    = {};
     uint32_t      maxClusterCountPerAccelerationStructure = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClusterAccelerationStructureClustersBottomLevelInputNV>
+  {
+    using Type = ClusterAccelerationStructureClustersBottomLevelInputNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eClusterAccelerationStructureClustersBottomLevelInputNV>
@@ -17476,6 +18570,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      minPositionTruncateBitCount   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClusterAccelerationStructureTriangleClusterInputNV>
+  {
+    using Type = ClusterAccelerationStructureTriangleClusterInputNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eClusterAccelerationStructureTriangleClusterInputNV>
   {
@@ -17602,6 +18704,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize                         maxMovedBytes = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClusterAccelerationStructureMoveObjectsInputNV>
+  {
+    using Type = ClusterAccelerationStructureMoveObjectsInputNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eClusterAccelerationStructureMoveObjectsInputNV>
   {
@@ -17672,6 +18782,14 @@ namespace VULKAN_HPP_NAMESPACE
     VkClusterAccelerationStructureMoveObjectsInputNV *         pMoveObjects;
 #endif /*VULKAN_HPP_HAS_UNRESTRICTED_UNIONS*/
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClusterAccelerationStructureOpInputNV>
+  {
+    using Type = ClusterAccelerationStructureOpInputNV;
+  };
+#endif
 
   // wrapper struct for struct VkClusterAccelerationStructureInputInfoNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkClusterAccelerationStructureInputInfoNV.html
@@ -17798,6 +18916,14 @@ namespace VULKAN_HPP_NAMESPACE
     ClusterAccelerationStructureOpInputNV opInput                       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClusterAccelerationStructureInputInfoNV>
+  {
+    using Type = ClusterAccelerationStructureInputInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eClusterAccelerationStructureInputInfoNV>
   {
@@ -17904,6 +19030,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    stride        = {};
     DeviceSize    size          = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkStridedDeviceAddressRegionKHR>
+  {
+    using Type = StridedDeviceAddressRegionKHR;
+  };
+#endif
 
   // wrapper struct for struct VkClusterAccelerationStructureCommandsInfoNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkClusterAccelerationStructureCommandsInfoNV.html
@@ -18063,6 +19197,14 @@ namespace VULKAN_HPP_NAMESPACE
     ClusterAccelerationStructureAddressResolutionFlagsNV addressResolutionFlags = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClusterAccelerationStructureCommandsInfoNV>
+  {
+    using Type = ClusterAccelerationStructureCommandsInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eClusterAccelerationStructureCommandsInfoNV>
   {
@@ -18156,6 +19298,14 @@ namespace VULKAN_HPP_NAMESPACE
   public:
     DeviceAddress clusterTemplateAddress = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClusterAccelerationStructureGetTemplateIndicesInfoNV>
+  {
+    using Type = ClusterAccelerationStructureGetTemplateIndicesInfoNV;
+  };
+#endif
 
   // wrapper struct for struct VkClusterAccelerationStructureInstantiateClusterInfoNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkClusterAccelerationStructureInstantiateClusterInfoNV.html
@@ -18283,6 +19433,14 @@ namespace VULKAN_HPP_NAMESPACE
     StridedDeviceAddressNV vertexBuffer           = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClusterAccelerationStructureInstantiateClusterInfoNV>
+  {
+    using Type = ClusterAccelerationStructureInstantiateClusterInfoNV;
+  };
+#endif
+
   // wrapper struct for struct VkClusterAccelerationStructureMoveObjectsInfoNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkClusterAccelerationStructureMoveObjectsInfoNV.html
   struct ClusterAccelerationStructureMoveObjectsInfoNV
@@ -18369,6 +19527,14 @@ namespace VULKAN_HPP_NAMESPACE
   public:
     DeviceAddress srcAccelerationStructure = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkClusterAccelerationStructureMoveObjectsInfoNV>
+  {
+    using Type = ClusterAccelerationStructureMoveObjectsInfoNV;
+  };
+#endif
 
   // wrapper struct for struct VkCoarseSampleLocationNV, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkCoarseSampleLocationNV.html
   struct CoarseSampleLocationNV
@@ -18469,6 +19635,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t pixelY = {};
     uint32_t sample = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCoarseSampleLocationNV>
+  {
+    using Type = CoarseSampleLocationNV;
+  };
+#endif
 
   // wrapper struct for struct VkCoarseSampleOrderCustomNV, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkCoarseSampleOrderCustomNV.html
   struct CoarseSampleOrderCustomNV
@@ -18604,6 +19778,14 @@ namespace VULKAN_HPP_NAMESPACE
     const CoarseSampleLocationNV * pSampleLocations    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCoarseSampleOrderCustomNV>
+  {
+    using Type = CoarseSampleOrderCustomNV;
+  };
+#endif
+
   // wrapper struct for struct VkColorBlendAdvancedEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkColorBlendAdvancedEXT.html
   struct ColorBlendAdvancedEXT
   {
@@ -18724,6 +19906,14 @@ namespace VULKAN_HPP_NAMESPACE
     BlendOverlapEXT blendOverlap     = BlendOverlapEXT::eUncorrelated;
     Bool32          clampResults     = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkColorBlendAdvancedEXT>
+  {
+    using Type = ColorBlendAdvancedEXT;
+  };
+#endif
 
   // wrapper struct for struct VkColorBlendEquationEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkColorBlendEquationEXT.html
   struct ColorBlendEquationEXT
@@ -18856,6 +20046,14 @@ namespace VULKAN_HPP_NAMESPACE
     BlendOp     alphaBlendOp        = BlendOp::eAdd;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkColorBlendEquationEXT>
+  {
+    using Type = ColorBlendEquationEXT;
+  };
+#endif
+
   // wrapper struct for struct VkCommandBufferAllocateInfo, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkCommandBufferAllocateInfo.html
   struct CommandBufferAllocateInfo
   {
@@ -18972,6 +20170,14 @@ namespace VULKAN_HPP_NAMESPACE
     CommandBufferLevel level              = CommandBufferLevel::ePrimary;
     uint32_t           commandBufferCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCommandBufferAllocateInfo>
+  {
+    using Type = CommandBufferAllocateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eCommandBufferAllocateInfo>
@@ -19131,6 +20337,14 @@ namespace VULKAN_HPP_NAMESPACE
     QueryPipelineStatisticFlags pipelineStatistics   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCommandBufferInheritanceInfo>
+  {
+    using Type = CommandBufferInheritanceInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCommandBufferInheritanceInfo>
   {
@@ -19244,6 +20458,14 @@ namespace VULKAN_HPP_NAMESPACE
     const CommandBufferInheritanceInfo * pInheritanceInfo = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCommandBufferBeginInfo>
+  {
+    using Type = CommandBufferBeginInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCommandBufferBeginInfo>
   {
@@ -19350,6 +20572,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext                      = {};
     Bool32        conditionalRenderingEnable = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCommandBufferInheritanceConditionalRenderingInfoEXT>
+  {
+    using Type = CommandBufferInheritanceConditionalRenderingInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eCommandBufferInheritanceConditionalRenderingInfoEXT>
@@ -19465,6 +20695,14 @@ namespace VULKAN_HPP_NAMESPACE
     SurfaceTransformFlagBitsKHR transform  = SurfaceTransformFlagBitsKHR::eIdentity;
     Rect2D                      renderArea = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCommandBufferInheritanceRenderPassTransformInfoQCOM>
+  {
+    using Type = CommandBufferInheritanceRenderPassTransformInfoQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eCommandBufferInheritanceRenderPassTransformInfoQCOM>
@@ -19667,6 +20905,14 @@ namespace VULKAN_HPP_NAMESPACE
     SampleCountFlagBits rasterizationSamples    = SampleCountFlagBits::e1;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCommandBufferInheritanceRenderingInfo>
+  {
+    using Type = CommandBufferInheritanceRenderingInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCommandBufferInheritanceRenderingInfo>
   {
@@ -19798,6 +21044,14 @@ namespace VULKAN_HPP_NAMESPACE
     float maxDepth = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkViewport>
+  {
+    using Type = Viewport;
+  };
+#endif
+
   // wrapper struct for struct VkCommandBufferInheritanceViewportScissorInfoNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkCommandBufferInheritanceViewportScissorInfoNV.html
   struct CommandBufferInheritanceViewportScissorInfoNV
@@ -19916,6 +21170,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Viewport * pViewportDepths    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCommandBufferInheritanceViewportScissorInfoNV>
+  {
+    using Type = CommandBufferInheritanceViewportScissorInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCommandBufferInheritanceViewportScissorInfoNV>
   {
@@ -20026,6 +21288,14 @@ namespace VULKAN_HPP_NAMESPACE
     CommandBuffer commandBuffer = {};
     uint32_t      deviceMask    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCommandBufferSubmitInfo>
+  {
+    using Type = CommandBufferSubmitInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eCommandBufferSubmitInfo>
@@ -20140,6 +21410,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t               queueFamilyIndex = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCommandPoolCreateInfo>
+  {
+    using Type = CommandPoolCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCommandPoolCreateInfo>
   {
@@ -20245,6 +21523,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t offset     = {};
     size_t   size       = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSpecializationMapEntry>
+  {
+    using Type = SpecializationMapEntry;
+  };
+#endif
 
   // wrapper struct for struct VkSpecializationInfo, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkSpecializationInfo.html
   struct SpecializationInfo
@@ -20383,6 +21669,14 @@ namespace VULKAN_HPP_NAMESPACE
     size_t                         dataSize      = {};
     const void *                   pData         = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSpecializationInfo>
+  {
+    using Type = SpecializationInfo;
+  };
+#endif
 
   // wrapper struct for struct VkPipelineShaderStageCreateInfo, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPipelineShaderStageCreateInfo.html
@@ -20541,6 +21835,14 @@ namespace VULKAN_HPP_NAMESPACE
     const SpecializationInfo *     pSpecializationInfo = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineShaderStageCreateInfo>
+  {
+    using Type = PipelineShaderStageCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineShaderStageCreateInfo>
   {
@@ -20688,6 +21990,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t                       basePipelineIndex  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkComputePipelineCreateInfo>
+  {
+    using Type = ComputePipelineCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eComputePipelineCreateInfo>
   {
@@ -20813,6 +22123,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceAddress pipelineDeviceAddressCaptureReplay = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkComputePipelineIndirectBufferInfoNV>
+  {
+    using Type = ComputePipelineIndirectBufferInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eComputePipelineIndirectBufferInfoNV>
   {
@@ -20936,6 +22254,14 @@ namespace VULKAN_HPP_NAMESPACE
     ConditionalRenderingFlagsEXT flags  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkConditionalRenderingBeginInfoEXT>
+  {
+    using Type = ConditionalRenderingBeginInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eConditionalRenderingBeginInfoEXT>
   {
@@ -21047,6 +22373,13 @@ namespace VULKAN_HPP_NAMESPACE
     uint8_t patch    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkConformanceVersion>
+  {
+    using Type = ConformanceVersion;
+  };
+#endif
   using ConformanceVersionKHR = ConformanceVersion;
 
   // wrapper struct for struct VkConvertCooperativeVectorMatrixInfoNV, see
@@ -21255,6 +22588,14 @@ namespace VULKAN_HPP_NAMESPACE
     size_t                          dstStride        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkConvertCooperativeVectorMatrixInfoNV>
+  {
+    using Type = ConvertCooperativeVectorMatrixInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eConvertCooperativeVectorMatrixInfoNV>
   {
@@ -21389,6 +22730,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t         workgroupInvocations   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCooperativeMatrixFlexibleDimensionsPropertiesNV>
+  {
+    using Type = CooperativeMatrixFlexibleDimensionsPropertiesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCooperativeMatrixFlexibleDimensionsPropertiesNV>
   {
@@ -21516,6 +22865,14 @@ namespace VULKAN_HPP_NAMESPACE
     ScopeKHR         scope                  = ScopeKHR::eDevice;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCooperativeMatrixPropertiesKHR>
+  {
+    using Type = CooperativeMatrixPropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCooperativeMatrixPropertiesKHR>
   {
@@ -21637,6 +22994,14 @@ namespace VULKAN_HPP_NAMESPACE
     ComponentTypeNV DType = {};
     ScopeNV         scope = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCooperativeMatrixPropertiesNV>
+  {
+    using Type = CooperativeMatrixPropertiesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eCooperativeMatrixPropertiesNV>
@@ -21797,6 +23162,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32           transpose            = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCooperativeVectorPropertiesNV>
+  {
+    using Type = CooperativeVectorPropertiesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCooperativeVectorPropertiesNV>
   {
@@ -21924,6 +23297,14 @@ namespace VULKAN_HPP_NAMESPACE
     CopyAccelerationStructureModeKHR mode  = CopyAccelerationStructureModeKHR::eClone;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyAccelerationStructureInfoKHR>
+  {
+    using Type = CopyAccelerationStructureInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCopyAccelerationStructureInfoKHR>
   {
@@ -22032,6 +23413,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceOrHostAddressKHR           dst   = {};
     CopyAccelerationStructureModeKHR mode  = CopyAccelerationStructureModeKHR::eClone;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyAccelerationStructureToMemoryInfoKHR>
+  {
+    using Type = CopyAccelerationStructureToMemoryInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eCopyAccelerationStructureToMemoryInfoKHR>
@@ -22177,6 +23566,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t            regionCount = {};
     const BufferCopy2 * pRegions    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyBufferInfo2>
+  {
+    using Type = CopyBufferInfo2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eCopyBufferInfo2>
@@ -22347,6 +23744,14 @@ namespace VULKAN_HPP_NAMESPACE
     const BufferImageCopy2 * pRegions       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyBufferToImageInfo2>
+  {
+    using Type = CopyBufferToImageInfo2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCopyBufferToImageInfo2>
   {
@@ -22451,6 +23856,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                pNext     = {};
     SurfaceTransformFlagBitsKHR transform = SurfaceTransformFlagBitsKHR::eIdentity;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyCommandTransformInfoQCOM>
+  {
+    using Type = CopyCommandTransformInfoQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eCopyCommandTransformInfoQCOM>
@@ -22617,6 +24030,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      descriptorCount = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyDescriptorSet>
+  {
+    using Type = CopyDescriptorSet;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCopyDescriptorSet>
   {
@@ -22760,6 +24181,14 @@ namespace VULKAN_HPP_NAMESPACE
     Offset3D               dstOffset      = {};
     Extent3D               extent         = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageCopy2>
+  {
+    using Type = ImageCopy2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageCopy2>
@@ -22944,6 +24373,14 @@ namespace VULKAN_HPP_NAMESPACE
     const ImageCopy2 * pRegions       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyImageInfo2>
+  {
+    using Type = CopyImageInfo2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCopyImageInfo2>
   {
@@ -23112,6 +24549,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                 regionCount    = {};
     const BufferImageCopy2 * pRegions       = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyImageToBufferInfo2>
+  {
+    using Type = CopyImageToBufferInfo2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eCopyImageToBufferInfo2>
@@ -23312,6 +24757,14 @@ namespace VULKAN_HPP_NAMESPACE
     const ImageCopy2 * pRegions       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyImageToImageInfo>
+  {
+    using Type = CopyImageToImageInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCopyImageToImageInfo>
   {
@@ -23468,6 +24921,14 @@ namespace VULKAN_HPP_NAMESPACE
     Offset3D               imageOffset       = {};
     Extent3D               imageExtent       = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageToMemoryCopy>
+  {
+    using Type = ImageToMemoryCopy;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageToMemoryCopy>
@@ -23643,6 +25104,14 @@ namespace VULKAN_HPP_NAMESPACE
     const ImageToMemoryCopy * pRegions       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyImageToMemoryInfo>
+  {
+    using Type = CopyImageToMemoryInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCopyImageToMemoryInfo>
   {
@@ -23651,74 +25120,74 @@ namespace VULKAN_HPP_NAMESPACE
 
   using CopyImageToMemoryInfoEXT = CopyImageToMemoryInfo;
 
-  // wrapper struct for struct VkCopyMemoryIndirectCommandNV, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkCopyMemoryIndirectCommandNV.html
-  struct CopyMemoryIndirectCommandNV
+  // wrapper struct for struct VkCopyMemoryIndirectCommandKHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkCopyMemoryIndirectCommandKHR.html
+  struct CopyMemoryIndirectCommandKHR
   {
-    using NativeType = VkCopyMemoryIndirectCommandNV;
+    using NativeType = VkCopyMemoryIndirectCommandKHR;
 
 #if !defined( VULKAN_HPP_NO_CONSTRUCTORS ) && !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
     VULKAN_HPP_CONSTEXPR
-      CopyMemoryIndirectCommandNV( DeviceAddress srcAddress_ = {}, DeviceAddress dstAddress_ = {}, DeviceSize size_ = {} ) VULKAN_HPP_NOEXCEPT
+      CopyMemoryIndirectCommandKHR( DeviceAddress srcAddress_ = {}, DeviceAddress dstAddress_ = {}, DeviceSize size_ = {} ) VULKAN_HPP_NOEXCEPT
       : srcAddress{ srcAddress_ }
       , dstAddress{ dstAddress_ }
       , size{ size_ }
     {
     }
 
-    VULKAN_HPP_CONSTEXPR CopyMemoryIndirectCommandNV( CopyMemoryIndirectCommandNV const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+    VULKAN_HPP_CONSTEXPR CopyMemoryIndirectCommandKHR( CopyMemoryIndirectCommandKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
 
-    CopyMemoryIndirectCommandNV( VkCopyMemoryIndirectCommandNV const & rhs ) VULKAN_HPP_NOEXCEPT
-      : CopyMemoryIndirectCommandNV( *reinterpret_cast<CopyMemoryIndirectCommandNV const *>( &rhs ) )
+    CopyMemoryIndirectCommandKHR( VkCopyMemoryIndirectCommandKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+      : CopyMemoryIndirectCommandKHR( *reinterpret_cast<CopyMemoryIndirectCommandKHR const *>( &rhs ) )
     {
     }
 
-    CopyMemoryIndirectCommandNV & operator=( CopyMemoryIndirectCommandNV const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+    CopyMemoryIndirectCommandKHR & operator=( CopyMemoryIndirectCommandKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
 #endif /*VULKAN_HPP_NO_CONSTRUCTORS*/
 
-    CopyMemoryIndirectCommandNV & operator=( VkCopyMemoryIndirectCommandNV const & rhs ) VULKAN_HPP_NOEXCEPT
+    CopyMemoryIndirectCommandKHR & operator=( VkCopyMemoryIndirectCommandKHR const & rhs ) VULKAN_HPP_NOEXCEPT
     {
-      *this = *reinterpret_cast<CopyMemoryIndirectCommandNV const *>( &rhs );
+      *this = *reinterpret_cast<CopyMemoryIndirectCommandKHR const *>( &rhs );
       return *this;
     }
 
 #if !defined( VULKAN_HPP_NO_SETTERS ) && !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
-    VULKAN_HPP_CONSTEXPR_14 CopyMemoryIndirectCommandNV & setSrcAddress( DeviceAddress srcAddress_ ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryIndirectCommandKHR & setSrcAddress( DeviceAddress srcAddress_ ) VULKAN_HPP_NOEXCEPT
     {
       srcAddress = srcAddress_;
       return *this;
     }
 
-    VULKAN_HPP_CONSTEXPR_14 CopyMemoryIndirectCommandNV & setDstAddress( DeviceAddress dstAddress_ ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryIndirectCommandKHR & setDstAddress( DeviceAddress dstAddress_ ) VULKAN_HPP_NOEXCEPT
     {
       dstAddress = dstAddress_;
       return *this;
     }
 
-    VULKAN_HPP_CONSTEXPR_14 CopyMemoryIndirectCommandNV & setSize( DeviceSize size_ ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryIndirectCommandKHR & setSize( DeviceSize size_ ) VULKAN_HPP_NOEXCEPT
     {
       size = size_;
       return *this;
     }
 #endif /*VULKAN_HPP_NO_SETTERS*/
 
-    operator VkCopyMemoryIndirectCommandNV const &() const VULKAN_HPP_NOEXCEPT
+    operator VkCopyMemoryIndirectCommandKHR const &() const VULKAN_HPP_NOEXCEPT
     {
-      return *reinterpret_cast<const VkCopyMemoryIndirectCommandNV *>( this );
+      return *reinterpret_cast<const VkCopyMemoryIndirectCommandKHR *>( this );
     }
 
-    operator VkCopyMemoryIndirectCommandNV &() VULKAN_HPP_NOEXCEPT
+    operator VkCopyMemoryIndirectCommandKHR &() VULKAN_HPP_NOEXCEPT
     {
-      return *reinterpret_cast<VkCopyMemoryIndirectCommandNV *>( this );
+      return *reinterpret_cast<VkCopyMemoryIndirectCommandKHR *>( this );
     }
 
-    operator VkCopyMemoryIndirectCommandNV const *() const VULKAN_HPP_NOEXCEPT
+    operator VkCopyMemoryIndirectCommandKHR const *() const VULKAN_HPP_NOEXCEPT
     {
-      return reinterpret_cast<const VkCopyMemoryIndirectCommandNV *>( this );
+      return reinterpret_cast<const VkCopyMemoryIndirectCommandKHR *>( this );
     }
 
-    operator VkCopyMemoryIndirectCommandNV *() VULKAN_HPP_NOEXCEPT
+    operator VkCopyMemoryIndirectCommandKHR *() VULKAN_HPP_NOEXCEPT
     {
-      return reinterpret_cast<VkCopyMemoryIndirectCommandNV *>( this );
+      return reinterpret_cast<VkCopyMemoryIndirectCommandKHR *>( this );
     }
 
 #if defined( VULKAN_HPP_USE_REFLECT )
@@ -23729,9 +25198,9 @@ namespace VULKAN_HPP_NAMESPACE
 #endif
 
 #if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( CopyMemoryIndirectCommandNV const & ) const = default;
+    auto operator<=>( CopyMemoryIndirectCommandKHR const & ) const = default;
 #else
-    bool operator==( CopyMemoryIndirectCommandNV const & rhs ) const VULKAN_HPP_NOEXCEPT
+    bool operator==( CopyMemoryIndirectCommandKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
     {
 #  if defined( VULKAN_HPP_USE_REFLECT )
       return this->reflect() == rhs.reflect();
@@ -23740,7 +25209,7 @@ namespace VULKAN_HPP_NAMESPACE
 #  endif
     }
 
-    bool operator!=( CopyMemoryIndirectCommandNV const & rhs ) const VULKAN_HPP_NOEXCEPT
+    bool operator!=( CopyMemoryIndirectCommandKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
     {
       return !operator==( rhs );
     }
@@ -23750,6 +25219,268 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceAddress srcAddress = {};
     DeviceAddress dstAddress = {};
     DeviceSize    size       = {};
+  };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyMemoryIndirectCommandKHR>
+  {
+    using Type = CopyMemoryIndirectCommandKHR;
+  };
+#endif
+  using CopyMemoryIndirectCommandNV = CopyMemoryIndirectCommandKHR;
+
+  // wrapper struct for struct VkStridedDeviceAddressRangeKHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkStridedDeviceAddressRangeKHR.html
+  struct StridedDeviceAddressRangeKHR
+  {
+    using NativeType = VkStridedDeviceAddressRangeKHR;
+
+#if !defined( VULKAN_HPP_NO_CONSTRUCTORS ) && !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR StridedDeviceAddressRangeKHR( DeviceAddress address_ = {}, DeviceSize size_ = {}, DeviceSize stride_ = {} ) VULKAN_HPP_NOEXCEPT
+      : address{ address_ }
+      , size{ size_ }
+      , stride{ stride_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR StridedDeviceAddressRangeKHR( StridedDeviceAddressRangeKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    StridedDeviceAddressRangeKHR( VkStridedDeviceAddressRangeKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+      : StridedDeviceAddressRangeKHR( *reinterpret_cast<StridedDeviceAddressRangeKHR const *>( &rhs ) )
+    {
+    }
+
+    StridedDeviceAddressRangeKHR & operator=( StridedDeviceAddressRangeKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_CONSTRUCTORS*/
+
+    StridedDeviceAddressRangeKHR & operator=( VkStridedDeviceAddressRangeKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<StridedDeviceAddressRangeKHR const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_SETTERS ) && !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 StridedDeviceAddressRangeKHR & setAddress( DeviceAddress address_ ) VULKAN_HPP_NOEXCEPT
+    {
+      address = address_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 StridedDeviceAddressRangeKHR & setSize( DeviceSize size_ ) VULKAN_HPP_NOEXCEPT
+    {
+      size = size_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 StridedDeviceAddressRangeKHR & setStride( DeviceSize stride_ ) VULKAN_HPP_NOEXCEPT
+    {
+      stride = stride_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_SETTERS*/
+
+    operator VkStridedDeviceAddressRangeKHR const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkStridedDeviceAddressRangeKHR *>( this );
+    }
+
+    operator VkStridedDeviceAddressRangeKHR &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkStridedDeviceAddressRangeKHR *>( this );
+    }
+
+    operator VkStridedDeviceAddressRangeKHR const *() const VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<const VkStridedDeviceAddressRangeKHR *>( this );
+    }
+
+    operator VkStridedDeviceAddressRangeKHR *() VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<VkStridedDeviceAddressRangeKHR *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+    std::tuple<DeviceAddress const &, DeviceSize const &, DeviceSize const &> reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( address, size, stride );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( StridedDeviceAddressRangeKHR const & ) const = default;
+#else
+    bool operator==( StridedDeviceAddressRangeKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( address == rhs.address ) && ( size == rhs.size ) && ( stride == rhs.stride );
+#  endif
+    }
+
+    bool operator!=( StridedDeviceAddressRangeKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    DeviceAddress address = {};
+    DeviceSize    size    = {};
+    DeviceSize    stride  = {};
+  };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkStridedDeviceAddressRangeKHR>
+  {
+    using Type = StridedDeviceAddressRangeKHR;
+  };
+#endif
+
+  // wrapper struct for struct VkCopyMemoryIndirectInfoKHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkCopyMemoryIndirectInfoKHR.html
+  struct CopyMemoryIndirectInfoKHR
+  {
+    using NativeType = VkCopyMemoryIndirectInfoKHR;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eCopyMemoryIndirectInfoKHR;
+
+#if !defined( VULKAN_HPP_NO_CONSTRUCTORS ) && !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR CopyMemoryIndirectInfoKHR( AddressCopyFlagsKHR          srcCopyFlags_     = {},
+                                                    AddressCopyFlagsKHR          dstCopyFlags_     = {},
+                                                    uint32_t                     copyCount_        = {},
+                                                    StridedDeviceAddressRangeKHR copyAddressRange_ = {},
+                                                    const void *                 pNext_            = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , srcCopyFlags{ srcCopyFlags_ }
+      , dstCopyFlags{ dstCopyFlags_ }
+      , copyCount{ copyCount_ }
+      , copyAddressRange{ copyAddressRange_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR CopyMemoryIndirectInfoKHR( CopyMemoryIndirectInfoKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    CopyMemoryIndirectInfoKHR( VkCopyMemoryIndirectInfoKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+      : CopyMemoryIndirectInfoKHR( *reinterpret_cast<CopyMemoryIndirectInfoKHR const *>( &rhs ) )
+    {
+    }
+
+    CopyMemoryIndirectInfoKHR & operator=( CopyMemoryIndirectInfoKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_CONSTRUCTORS*/
+
+    CopyMemoryIndirectInfoKHR & operator=( VkCopyMemoryIndirectInfoKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<CopyMemoryIndirectInfoKHR const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_SETTERS ) && !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryIndirectInfoKHR & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryIndirectInfoKHR & setSrcCopyFlags( AddressCopyFlagsKHR srcCopyFlags_ ) VULKAN_HPP_NOEXCEPT
+    {
+      srcCopyFlags = srcCopyFlags_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryIndirectInfoKHR & setDstCopyFlags( AddressCopyFlagsKHR dstCopyFlags_ ) VULKAN_HPP_NOEXCEPT
+    {
+      dstCopyFlags = dstCopyFlags_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryIndirectInfoKHR & setCopyCount( uint32_t copyCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      copyCount = copyCount_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryIndirectInfoKHR & setCopyAddressRange( StridedDeviceAddressRangeKHR const & copyAddressRange_ ) VULKAN_HPP_NOEXCEPT
+    {
+      copyAddressRange = copyAddressRange_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_SETTERS*/
+
+    operator VkCopyMemoryIndirectInfoKHR const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkCopyMemoryIndirectInfoKHR *>( this );
+    }
+
+    operator VkCopyMemoryIndirectInfoKHR &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkCopyMemoryIndirectInfoKHR *>( this );
+    }
+
+    operator VkCopyMemoryIndirectInfoKHR const *() const VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<const VkCopyMemoryIndirectInfoKHR *>( this );
+    }
+
+    operator VkCopyMemoryIndirectInfoKHR *() VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<VkCopyMemoryIndirectInfoKHR *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+    std::tuple<StructureType const &,
+               const void * const &,
+               AddressCopyFlagsKHR const &,
+               AddressCopyFlagsKHR const &,
+               uint32_t const &,
+               StridedDeviceAddressRangeKHR const &>
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, srcCopyFlags, dstCopyFlags, copyCount, copyAddressRange );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( CopyMemoryIndirectInfoKHR const & ) const = default;
+#else
+    bool operator==( CopyMemoryIndirectInfoKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( srcCopyFlags == rhs.srcCopyFlags ) && ( dstCopyFlags == rhs.dstCopyFlags ) &&
+             ( copyCount == rhs.copyCount ) && ( copyAddressRange == rhs.copyAddressRange );
+#  endif
+    }
+
+    bool operator!=( CopyMemoryIndirectInfoKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    StructureType                sType            = StructureType::eCopyMemoryIndirectInfoKHR;
+    const void *                 pNext            = {};
+    AddressCopyFlagsKHR          srcCopyFlags     = {};
+    AddressCopyFlagsKHR          dstCopyFlags     = {};
+    uint32_t                     copyCount        = {};
+    StridedDeviceAddressRangeKHR copyAddressRange = {};
+  };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyMemoryIndirectInfoKHR>
+  {
+    using Type = CopyMemoryIndirectInfoKHR;
+  };
+#endif
+
+  template <>
+  struct CppType<StructureType, StructureType::eCopyMemoryIndirectInfoKHR>
+  {
+    using Type = CopyMemoryIndirectInfoKHR;
   };
 
   // wrapper struct for struct VkCopyMemoryToAccelerationStructureInfoKHR, see
@@ -23855,25 +25586,33 @@ namespace VULKAN_HPP_NAMESPACE
     CopyAccelerationStructureModeKHR mode  = CopyAccelerationStructureModeKHR::eClone;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyMemoryToAccelerationStructureInfoKHR>
+  {
+    using Type = CopyMemoryToAccelerationStructureInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCopyMemoryToAccelerationStructureInfoKHR>
   {
     using Type = CopyMemoryToAccelerationStructureInfoKHR;
   };
 
-  // wrapper struct for struct VkCopyMemoryToImageIndirectCommandNV, see
-  // https://registry.khronos.org/vulkan/specs/latest/man/html/VkCopyMemoryToImageIndirectCommandNV.html
-  struct CopyMemoryToImageIndirectCommandNV
+  // wrapper struct for struct VkCopyMemoryToImageIndirectCommandKHR, see
+  // https://registry.khronos.org/vulkan/specs/latest/man/html/VkCopyMemoryToImageIndirectCommandKHR.html
+  struct CopyMemoryToImageIndirectCommandKHR
   {
-    using NativeType = VkCopyMemoryToImageIndirectCommandNV;
+    using NativeType = VkCopyMemoryToImageIndirectCommandKHR;
 
 #if !defined( VULKAN_HPP_NO_CONSTRUCTORS ) && !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
-    VULKAN_HPP_CONSTEXPR CopyMemoryToImageIndirectCommandNV( DeviceAddress          srcAddress_        = {},
-                                                             uint32_t               bufferRowLength_   = {},
-                                                             uint32_t               bufferImageHeight_ = {},
-                                                             ImageSubresourceLayers imageSubresource_  = {},
-                                                             Offset3D               imageOffset_       = {},
-                                                             Extent3D               imageExtent_       = {} ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR CopyMemoryToImageIndirectCommandKHR( DeviceAddress          srcAddress_        = {},
+                                                              uint32_t               bufferRowLength_   = {},
+                                                              uint32_t               bufferImageHeight_ = {},
+                                                              ImageSubresourceLayers imageSubresource_  = {},
+                                                              Offset3D               imageOffset_       = {},
+                                                              Extent3D               imageExtent_       = {} ) VULKAN_HPP_NOEXCEPT
       : srcAddress{ srcAddress_ }
       , bufferRowLength{ bufferRowLength_ }
       , bufferImageHeight{ bufferImageHeight_ }
@@ -23883,78 +25622,78 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-    VULKAN_HPP_CONSTEXPR CopyMemoryToImageIndirectCommandNV( CopyMemoryToImageIndirectCommandNV const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+    VULKAN_HPP_CONSTEXPR CopyMemoryToImageIndirectCommandKHR( CopyMemoryToImageIndirectCommandKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
 
-    CopyMemoryToImageIndirectCommandNV( VkCopyMemoryToImageIndirectCommandNV const & rhs ) VULKAN_HPP_NOEXCEPT
-      : CopyMemoryToImageIndirectCommandNV( *reinterpret_cast<CopyMemoryToImageIndirectCommandNV const *>( &rhs ) )
+    CopyMemoryToImageIndirectCommandKHR( VkCopyMemoryToImageIndirectCommandKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+      : CopyMemoryToImageIndirectCommandKHR( *reinterpret_cast<CopyMemoryToImageIndirectCommandKHR const *>( &rhs ) )
     {
     }
 
-    CopyMemoryToImageIndirectCommandNV & operator=( CopyMemoryToImageIndirectCommandNV const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+    CopyMemoryToImageIndirectCommandKHR & operator=( CopyMemoryToImageIndirectCommandKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
 #endif /*VULKAN_HPP_NO_CONSTRUCTORS*/
 
-    CopyMemoryToImageIndirectCommandNV & operator=( VkCopyMemoryToImageIndirectCommandNV const & rhs ) VULKAN_HPP_NOEXCEPT
+    CopyMemoryToImageIndirectCommandKHR & operator=( VkCopyMemoryToImageIndirectCommandKHR const & rhs ) VULKAN_HPP_NOEXCEPT
     {
-      *this = *reinterpret_cast<CopyMemoryToImageIndirectCommandNV const *>( &rhs );
+      *this = *reinterpret_cast<CopyMemoryToImageIndirectCommandKHR const *>( &rhs );
       return *this;
     }
 
 #if !defined( VULKAN_HPP_NO_SETTERS ) && !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
-    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectCommandNV & setSrcAddress( DeviceAddress srcAddress_ ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectCommandKHR & setSrcAddress( DeviceAddress srcAddress_ ) VULKAN_HPP_NOEXCEPT
     {
       srcAddress = srcAddress_;
       return *this;
     }
 
-    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectCommandNV & setBufferRowLength( uint32_t bufferRowLength_ ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectCommandKHR & setBufferRowLength( uint32_t bufferRowLength_ ) VULKAN_HPP_NOEXCEPT
     {
       bufferRowLength = bufferRowLength_;
       return *this;
     }
 
-    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectCommandNV & setBufferImageHeight( uint32_t bufferImageHeight_ ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectCommandKHR & setBufferImageHeight( uint32_t bufferImageHeight_ ) VULKAN_HPP_NOEXCEPT
     {
       bufferImageHeight = bufferImageHeight_;
       return *this;
     }
 
-    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectCommandNV & setImageSubresource( ImageSubresourceLayers const & imageSubresource_ ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectCommandKHR & setImageSubresource( ImageSubresourceLayers const & imageSubresource_ ) VULKAN_HPP_NOEXCEPT
     {
       imageSubresource = imageSubresource_;
       return *this;
     }
 
-    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectCommandNV & setImageOffset( Offset3D const & imageOffset_ ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectCommandKHR & setImageOffset( Offset3D const & imageOffset_ ) VULKAN_HPP_NOEXCEPT
     {
       imageOffset = imageOffset_;
       return *this;
     }
 
-    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectCommandNV & setImageExtent( Extent3D const & imageExtent_ ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectCommandKHR & setImageExtent( Extent3D const & imageExtent_ ) VULKAN_HPP_NOEXCEPT
     {
       imageExtent = imageExtent_;
       return *this;
     }
 #endif /*VULKAN_HPP_NO_SETTERS*/
 
-    operator VkCopyMemoryToImageIndirectCommandNV const &() const VULKAN_HPP_NOEXCEPT
+    operator VkCopyMemoryToImageIndirectCommandKHR const &() const VULKAN_HPP_NOEXCEPT
     {
-      return *reinterpret_cast<const VkCopyMemoryToImageIndirectCommandNV *>( this );
+      return *reinterpret_cast<const VkCopyMemoryToImageIndirectCommandKHR *>( this );
     }
 
-    operator VkCopyMemoryToImageIndirectCommandNV &() VULKAN_HPP_NOEXCEPT
+    operator VkCopyMemoryToImageIndirectCommandKHR &() VULKAN_HPP_NOEXCEPT
     {
-      return *reinterpret_cast<VkCopyMemoryToImageIndirectCommandNV *>( this );
+      return *reinterpret_cast<VkCopyMemoryToImageIndirectCommandKHR *>( this );
     }
 
-    operator VkCopyMemoryToImageIndirectCommandNV const *() const VULKAN_HPP_NOEXCEPT
+    operator VkCopyMemoryToImageIndirectCommandKHR const *() const VULKAN_HPP_NOEXCEPT
     {
-      return reinterpret_cast<const VkCopyMemoryToImageIndirectCommandNV *>( this );
+      return reinterpret_cast<const VkCopyMemoryToImageIndirectCommandKHR *>( this );
     }
 
-    operator VkCopyMemoryToImageIndirectCommandNV *() VULKAN_HPP_NOEXCEPT
+    operator VkCopyMemoryToImageIndirectCommandKHR *() VULKAN_HPP_NOEXCEPT
     {
-      return reinterpret_cast<VkCopyMemoryToImageIndirectCommandNV *>( this );
+      return reinterpret_cast<VkCopyMemoryToImageIndirectCommandKHR *>( this );
     }
 
 #if defined( VULKAN_HPP_USE_REFLECT )
@@ -23966,9 +25705,9 @@ namespace VULKAN_HPP_NAMESPACE
 #endif
 
 #if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( CopyMemoryToImageIndirectCommandNV const & ) const = default;
+    auto operator<=>( CopyMemoryToImageIndirectCommandKHR const & ) const = default;
 #else
-    bool operator==( CopyMemoryToImageIndirectCommandNV const & rhs ) const VULKAN_HPP_NOEXCEPT
+    bool operator==( CopyMemoryToImageIndirectCommandKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
     {
 #  if defined( VULKAN_HPP_USE_REFLECT )
       return this->reflect() == rhs.reflect();
@@ -23978,7 +25717,7 @@ namespace VULKAN_HPP_NAMESPACE
 #  endif
     }
 
-    bool operator!=( CopyMemoryToImageIndirectCommandNV const & rhs ) const VULKAN_HPP_NOEXCEPT
+    bool operator!=( CopyMemoryToImageIndirectCommandKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
     {
       return !operator==( rhs );
     }
@@ -23991,6 +25730,210 @@ namespace VULKAN_HPP_NAMESPACE
     ImageSubresourceLayers imageSubresource  = {};
     Offset3D               imageOffset       = {};
     Extent3D               imageExtent       = {};
+  };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyMemoryToImageIndirectCommandKHR>
+  {
+    using Type = CopyMemoryToImageIndirectCommandKHR;
+  };
+#endif
+  using CopyMemoryToImageIndirectCommandNV = CopyMemoryToImageIndirectCommandKHR;
+
+  // wrapper struct for struct VkCopyMemoryToImageIndirectInfoKHR, see
+  // https://registry.khronos.org/vulkan/specs/latest/man/html/VkCopyMemoryToImageIndirectInfoKHR.html
+  struct CopyMemoryToImageIndirectInfoKHR
+  {
+    using NativeType = VkCopyMemoryToImageIndirectInfoKHR;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eCopyMemoryToImageIndirectInfoKHR;
+
+#if !defined( VULKAN_HPP_NO_CONSTRUCTORS ) && !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR CopyMemoryToImageIndirectInfoKHR( AddressCopyFlagsKHR            srcCopyFlags_       = {},
+                                                           uint32_t                       copyCount_          = {},
+                                                           StridedDeviceAddressRangeKHR   copyAddressRange_   = {},
+                                                           Image                          dstImage_           = {},
+                                                           ImageLayout                    dstImageLayout_     = ImageLayout::eUndefined,
+                                                           const ImageSubresourceLayers * pImageSubresources_ = {},
+                                                           const void *                   pNext_              = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , srcCopyFlags{ srcCopyFlags_ }
+      , copyCount{ copyCount_ }
+      , copyAddressRange{ copyAddressRange_ }
+      , dstImage{ dstImage_ }
+      , dstImageLayout{ dstImageLayout_ }
+      , pImageSubresources{ pImageSubresources_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR CopyMemoryToImageIndirectInfoKHR( CopyMemoryToImageIndirectInfoKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    CopyMemoryToImageIndirectInfoKHR( VkCopyMemoryToImageIndirectInfoKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+      : CopyMemoryToImageIndirectInfoKHR( *reinterpret_cast<CopyMemoryToImageIndirectInfoKHR const *>( &rhs ) )
+    {
+    }
+
+#  if !defined( VULKAN_HPP_DISABLE_ENHANCED_MODE )
+    CopyMemoryToImageIndirectInfoKHR( AddressCopyFlagsKHR                                           srcCopyFlags_,
+                                      StridedDeviceAddressRangeKHR                                  copyAddressRange_,
+                                      Image                                                         dstImage_,
+                                      ImageLayout                                                   dstImageLayout_,
+                                      ArrayProxyNoTemporaries<const ImageSubresourceLayers> const & imageSubresources_,
+                                      const void *                                                  pNext_ = nullptr )
+      : pNext( pNext_ )
+      , srcCopyFlags( srcCopyFlags_ )
+      , copyCount( static_cast<uint32_t>( imageSubresources_.size() ) )
+      , copyAddressRange( copyAddressRange_ )
+      , dstImage( dstImage_ )
+      , dstImageLayout( dstImageLayout_ )
+      , pImageSubresources( imageSubresources_.data() )
+    {
+    }
+#  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
+
+    CopyMemoryToImageIndirectInfoKHR & operator=( CopyMemoryToImageIndirectInfoKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_CONSTRUCTORS*/
+
+    CopyMemoryToImageIndirectInfoKHR & operator=( VkCopyMemoryToImageIndirectInfoKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<CopyMemoryToImageIndirectInfoKHR const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_SETTERS ) && !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectInfoKHR & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectInfoKHR & setSrcCopyFlags( AddressCopyFlagsKHR srcCopyFlags_ ) VULKAN_HPP_NOEXCEPT
+    {
+      srcCopyFlags = srcCopyFlags_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectInfoKHR & setCopyCount( uint32_t copyCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      copyCount = copyCount_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectInfoKHR & setCopyAddressRange( StridedDeviceAddressRangeKHR const & copyAddressRange_ ) VULKAN_HPP_NOEXCEPT
+    {
+      copyAddressRange = copyAddressRange_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectInfoKHR & setDstImage( Image dstImage_ ) VULKAN_HPP_NOEXCEPT
+    {
+      dstImage = dstImage_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectInfoKHR & setDstImageLayout( ImageLayout dstImageLayout_ ) VULKAN_HPP_NOEXCEPT
+    {
+      dstImageLayout = dstImageLayout_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 CopyMemoryToImageIndirectInfoKHR & setPImageSubresources( const ImageSubresourceLayers * pImageSubresources_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pImageSubresources = pImageSubresources_;
+      return *this;
+    }
+
+#  if !defined( VULKAN_HPP_DISABLE_ENHANCED_MODE )
+    CopyMemoryToImageIndirectInfoKHR &
+      setImageSubresources( ArrayProxyNoTemporaries<const ImageSubresourceLayers> const & imageSubresources_ ) VULKAN_HPP_NOEXCEPT
+    {
+      copyCount          = static_cast<uint32_t>( imageSubresources_.size() );
+      pImageSubresources = imageSubresources_.data();
+      return *this;
+    }
+#  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
+#endif   /*VULKAN_HPP_NO_SETTERS*/
+
+    operator VkCopyMemoryToImageIndirectInfoKHR const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkCopyMemoryToImageIndirectInfoKHR *>( this );
+    }
+
+    operator VkCopyMemoryToImageIndirectInfoKHR &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkCopyMemoryToImageIndirectInfoKHR *>( this );
+    }
+
+    operator VkCopyMemoryToImageIndirectInfoKHR const *() const VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<const VkCopyMemoryToImageIndirectInfoKHR *>( this );
+    }
+
+    operator VkCopyMemoryToImageIndirectInfoKHR *() VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<VkCopyMemoryToImageIndirectInfoKHR *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+    std::tuple<StructureType const &,
+               const void * const &,
+               AddressCopyFlagsKHR const &,
+               uint32_t const &,
+               StridedDeviceAddressRangeKHR const &,
+               Image const &,
+               ImageLayout const &,
+               const ImageSubresourceLayers * const &>
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, srcCopyFlags, copyCount, copyAddressRange, dstImage, dstImageLayout, pImageSubresources );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( CopyMemoryToImageIndirectInfoKHR const & ) const = default;
+#else
+    bool operator==( CopyMemoryToImageIndirectInfoKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( srcCopyFlags == rhs.srcCopyFlags ) && ( copyCount == rhs.copyCount ) &&
+             ( copyAddressRange == rhs.copyAddressRange ) && ( dstImage == rhs.dstImage ) && ( dstImageLayout == rhs.dstImageLayout ) &&
+             ( pImageSubresources == rhs.pImageSubresources );
+#  endif
+    }
+
+    bool operator!=( CopyMemoryToImageIndirectInfoKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    StructureType                  sType              = StructureType::eCopyMemoryToImageIndirectInfoKHR;
+    const void *                   pNext              = {};
+    AddressCopyFlagsKHR            srcCopyFlags       = {};
+    uint32_t                       copyCount          = {};
+    StridedDeviceAddressRangeKHR   copyAddressRange   = {};
+    Image                          dstImage           = {};
+    ImageLayout                    dstImageLayout     = ImageLayout::eUndefined;
+    const ImageSubresourceLayers * pImageSubresources = {};
+  };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyMemoryToImageIndirectInfoKHR>
+  {
+    using Type = CopyMemoryToImageIndirectInfoKHR;
+  };
+#endif
+
+  template <>
+  struct CppType<StructureType, StructureType::eCopyMemoryToImageIndirectInfoKHR>
+  {
+    using Type = CopyMemoryToImageIndirectInfoKHR;
   };
 
   // wrapper struct for struct VkMemoryToImageCopy, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkMemoryToImageCopy.html
@@ -24141,6 +26084,14 @@ namespace VULKAN_HPP_NAMESPACE
     Offset3D               imageOffset       = {};
     Extent3D               imageExtent       = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryToImageCopy>
+  {
+    using Type = MemoryToImageCopy;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eMemoryToImageCopy>
@@ -24316,6 +26267,14 @@ namespace VULKAN_HPP_NAMESPACE
     const MemoryToImageCopy * pRegions       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyMemoryToImageInfo>
+  {
+    using Type = CopyMemoryToImageInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCopyMemoryToImageInfo>
   {
@@ -24421,6 +26380,14 @@ namespace VULKAN_HPP_NAMESPACE
     MicromapEXT                 dst   = {};
     CopyMicromapModeEXT         mode  = CopyMicromapModeEXT::eClone;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyMemoryToMicromapInfoEXT>
+  {
+    using Type = CopyMemoryToMicromapInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eCopyMemoryToMicromapInfoEXT>
@@ -24543,6 +26510,14 @@ namespace VULKAN_HPP_NAMESPACE
     CopyMicromapModeEXT mode  = CopyMicromapModeEXT::eClone;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyMicromapInfoEXT>
+  {
+    using Type = CopyMicromapInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCopyMicromapInfoEXT>
   {
@@ -24646,6 +26621,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceOrHostAddressKHR dst   = {};
     CopyMicromapModeEXT    mode  = CopyMicromapModeEXT::eClone;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyMicromapToMemoryInfoEXT>
+  {
+    using Type = CopyMicromapToMemoryInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eCopyMicromapToMemoryInfoEXT>
@@ -24838,6 +26821,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint64_t * pExtent        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTensorCopyARM>
+  {
+    using Type = TensorCopyARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eTensorCopyARM>
   {
@@ -24986,6 +26977,14 @@ namespace VULKAN_HPP_NAMESPACE
     const TensorCopyARM * pRegions    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCopyTensorInfoARM>
+  {
+    using Type = CopyTensorInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCopyTensorInfoARM>
   {
@@ -25104,6 +27103,14 @@ namespace VULKAN_HPP_NAMESPACE
     CuModuleNVX   module = {};
     const char *  pName  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCuFunctionCreateInfoNVX>
+  {
+    using Type = CuFunctionCreateInfoNVX;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eCuFunctionCreateInfoNVX>
@@ -25369,6 +27376,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void * const * pExtras        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCuLaunchInfoNVX>
+  {
+    using Type = CuLaunchInfoNVX;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCuLaunchInfoNVX>
   {
@@ -25497,6 +27512,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pData    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCuModuleCreateInfoNVX>
+  {
+    using Type = CuModuleCreateInfoNVX;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eCuModuleCreateInfoNVX>
   {
@@ -25599,6 +27622,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext             = {};
     Bool32        use64bitTexturing = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCuModuleTexturingModeCreateInfoNVX>
+  {
+    using Type = CuModuleTexturingModeCreateInfoNVX;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eCuModuleTexturingModeCreateInfoNVX>
@@ -25719,6 +27750,14 @@ namespace VULKAN_HPP_NAMESPACE
     CudaModuleNV  module = {};
     const char *  pName  = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCudaFunctionCreateInfoNV>
+  {
+    using Type = CudaFunctionCreateInfoNV;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eCudaFunctionCreateInfoNV>
@@ -25986,6 +28025,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void * const * pExtras        = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCudaLaunchInfoNV>
+  {
+    using Type = CudaLaunchInfoNV;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eCudaLaunchInfoNV>
   {
@@ -26115,6 +28162,14 @@ namespace VULKAN_HPP_NAMESPACE
     size_t        dataSize = {};
     const void *  pData    = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkCudaModuleCreateInfoNV>
+  {
+    using Type = CudaModuleCreateInfoNV;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eCudaModuleCreateInfoNV>
@@ -26282,6 +28337,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint64_t * pSignalSemaphoreValues     = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkD3D12FenceSubmitInfoKHR>
+  {
+    using Type = D3D12FenceSubmitInfoKHR;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eD3D12FenceSubmitInfoKHR>
   {
@@ -26395,6 +28458,14 @@ namespace VULKAN_HPP_NAMESPACE
     const char *  pVendorOptions = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphPipelineCompilerControlCreateInfoARM>
+  {
+    using Type = DataGraphPipelineCompilerControlCreateInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDataGraphPipelineCompilerControlCreateInfoARM>
   {
@@ -26504,6 +28575,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      id            = {};
     const void *  pConstantData = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphPipelineConstantARM>
+  {
+    using Type = DataGraphPipelineConstantARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDataGraphPipelineConstantARM>
@@ -26633,6 +28712,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      groupSize = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphPipelineConstantTensorSemiStructuredSparsityInfoARM>
+  {
+    using Type = DataGraphPipelineConstantTensorSemiStructuredSparsityInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDataGraphPipelineConstantTensorSemiStructuredSparsityInfoARM>
   {
@@ -26755,6 +28842,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      binding       = {};
     uint32_t      arrayElement  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphPipelineResourceInfoARM>
+  {
+    using Type = DataGraphPipelineResourceInfoARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDataGraphPipelineResourceInfoARM>
@@ -26918,6 +29013,14 @@ namespace VULKAN_HPP_NAMESPACE
     const DataGraphPipelineResourceInfoARM * pResourceInfos    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphPipelineCreateInfoARM>
+  {
+    using Type = DataGraphPipelineCreateInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDataGraphPipelineCreateInfoARM>
   {
@@ -27020,6 +29123,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                            pNext = {};
     DataGraphPipelineDispatchFlagsARM flags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphPipelineDispatchInfoARM>
+  {
+    using Type = DataGraphPipelineDispatchInfoARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDataGraphPipelineDispatchInfoARM>
@@ -27150,6 +29261,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint8_t * pIdentifier    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphPipelineIdentifierCreateInfoARM>
+  {
+    using Type = DataGraphPipelineIdentifierCreateInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDataGraphPipelineIdentifierCreateInfoARM>
   {
@@ -27251,6 +29370,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext             = {};
     Pipeline      dataGraphPipeline = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphPipelineInfoARM>
+  {
+    using Type = DataGraphPipelineInfoARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDataGraphPipelineInfoARM>
@@ -27406,6 +29533,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                       pData    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphPipelinePropertyQueryResultARM>
+  {
+    using Type = DataGraphPipelinePropertyQueryResultARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDataGraphPipelinePropertyQueryResultARM>
   {
@@ -27538,6 +29673,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                                 numObjects    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphPipelineSessionBindPointRequirementARM>
+  {
+    using Type = DataGraphPipelineSessionBindPointRequirementARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDataGraphPipelineSessionBindPointRequirementARM>
   {
@@ -27643,6 +29786,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                pNext   = {};
     DataGraphPipelineSessionARM session = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphPipelineSessionBindPointRequirementsInfoARM>
+  {
+    using Type = DataGraphPipelineSessionBindPointRequirementsInfoARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDataGraphPipelineSessionBindPointRequirementsInfoARM>
@@ -27757,6 +29908,14 @@ namespace VULKAN_HPP_NAMESPACE
     DataGraphPipelineSessionCreateFlagsARM flags             = {};
     Pipeline                               dataGraphPipeline = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphPipelineSessionCreateInfoARM>
+  {
+    using Type = DataGraphPipelineSessionCreateInfoARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDataGraphPipelineSessionCreateInfoARM>
@@ -27885,6 +30044,14 @@ namespace VULKAN_HPP_NAMESPACE
     DataGraphPipelineSessionBindPointARM bindPoint   = DataGraphPipelineSessionBindPointARM::eTransient;
     uint32_t                             objectIndex = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphPipelineSessionMemoryRequirementsInfoARM>
+  {
+    using Type = DataGraphPipelineSessionMemoryRequirementsInfoARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDataGraphPipelineSessionMemoryRequirementsInfoARM>
@@ -28077,6 +30244,14 @@ namespace VULKAN_HPP_NAMESPACE
     const DataGraphPipelineConstantARM * pConstants          = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphPipelineShaderModuleCreateInfoARM>
+  {
+    using Type = DataGraphPipelineShaderModuleCreateInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDataGraphPipelineShaderModuleCreateInfoARM>
   {
@@ -28177,6 +30352,14 @@ namespace VULKAN_HPP_NAMESPACE
     PhysicalDeviceDataGraphProcessingEngineTypeARM type      = PhysicalDeviceDataGraphProcessingEngineTypeARM::eDefault;
     Bool32                                         isForeign = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDataGraphProcessingEngineARM>
+  {
+    using Type = PhysicalDeviceDataGraphProcessingEngineARM;
+  };
+#endif
 
   // wrapper struct for struct VkDataGraphProcessingEngineCreateInfoARM, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkDataGraphProcessingEngineCreateInfoARM.html
@@ -28306,6 +30489,14 @@ namespace VULKAN_HPP_NAMESPACE
     PhysicalDeviceDataGraphProcessingEngineARM * pProcessingEngines    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDataGraphProcessingEngineCreateInfoARM>
+  {
+    using Type = DataGraphProcessingEngineCreateInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDataGraphProcessingEngineCreateInfoARM>
   {
@@ -28426,6 +30617,14 @@ namespace VULKAN_HPP_NAMESPACE
     const char *             pMarkerName = {};
     ArrayWrapper1D<float, 4> color       = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDebugMarkerMarkerInfoEXT>
+  {
+    using Type = DebugMarkerMarkerInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDebugMarkerMarkerInfoEXT>
@@ -28560,6 +30759,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t                 object      = {};
     const char *             pObjectName = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDebugMarkerObjectNameInfoEXT>
+  {
+    using Type = DebugMarkerObjectNameInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDebugMarkerObjectNameInfoEXT>
@@ -28727,6 +30934,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *             pTag       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDebugMarkerObjectTagInfoEXT>
+  {
+    using Type = DebugMarkerObjectTagInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDebugMarkerObjectTagInfoEXT>
   {
@@ -28892,6 +31107,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                     pUserData   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDebugReportCallbackCreateInfoEXT>
+  {
+    using Type = DebugReportCallbackCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDebugReportCallbackCreateInfoEXT>
   {
@@ -29009,6 +31232,14 @@ namespace VULKAN_HPP_NAMESPACE
     const char *             pLabelName = {};
     ArrayWrapper1D<float, 4> color      = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDebugUtilsLabelEXT>
+  {
+    using Type = DebugUtilsLabelEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDebugUtilsLabelEXT>
@@ -29142,6 +31373,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t      objectHandle = {};
     const char *  pObjectName  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDebugUtilsObjectNameInfoEXT>
+  {
+    using Type = DebugUtilsObjectNameInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDebugUtilsObjectNameInfoEXT>
@@ -29422,6 +31661,14 @@ namespace VULKAN_HPP_NAMESPACE
     const DebugUtilsObjectNameInfoEXT *     pObjects         = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDebugUtilsMessengerCallbackDataEXT>
+  {
+    using Type = DebugUtilsMessengerCallbackDataEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDebugUtilsMessengerCallbackDataEXT>
   {
@@ -29611,6 +31858,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                             pUserData       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDebugUtilsMessengerCreateInfoEXT>
+  {
+    using Type = DebugUtilsMessengerCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDebugUtilsMessengerCreateInfoEXT>
   {
@@ -29776,6 +32031,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pTag         = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDebugUtilsObjectTagInfoEXT>
+  {
+    using Type = DebugUtilsObjectTagInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDebugUtilsObjectTagInfoEXT>
   {
@@ -29904,6 +32167,14 @@ namespace VULKAN_HPP_NAMESPACE
     MemoryDecompressionMethodFlagsNV decompressionMethod = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDecompressMemoryRegionNV>
+  {
+    using Type = DecompressMemoryRegionNV;
+  };
+#endif
+
   // wrapper struct for struct VkDedicatedAllocationBufferCreateInfoNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkDedicatedAllocationBufferCreateInfoNV.html
   struct DedicatedAllocationBufferCreateInfoNV
@@ -30000,6 +32271,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext               = {};
     Bool32        dedicatedAllocation = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDedicatedAllocationBufferCreateInfoNV>
+  {
+    using Type = DedicatedAllocationBufferCreateInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDedicatedAllocationBufferCreateInfoNV>
@@ -30103,6 +32382,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext               = {};
     Bool32        dedicatedAllocation = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDedicatedAllocationImageCreateInfoNV>
+  {
+    using Type = DedicatedAllocationImageCreateInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDedicatedAllocationImageCreateInfoNV>
@@ -30214,6 +32501,14 @@ namespace VULKAN_HPP_NAMESPACE
     Image         image  = {};
     Buffer        buffer = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDedicatedAllocationMemoryAllocateInfoNV>
+  {
+    using Type = DedicatedAllocationMemoryAllocateInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDedicatedAllocationMemoryAllocateInfoNV>
@@ -30345,6 +32640,14 @@ namespace VULKAN_HPP_NAMESPACE
     AccessFlags2        dstAccessMask = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryBarrier2>
+  {
+    using Type = MemoryBarrier2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryBarrier2>
   {
@@ -30473,6 +32776,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t         baseArrayLayer = {};
     uint32_t         layerCount     = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageSubresourceRange>
+  {
+    using Type = ImageSubresourceRange;
+  };
+#endif
 
   // wrapper struct for struct VkImageMemoryBarrier2, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkImageMemoryBarrier2.html
   struct ImageMemoryBarrier2
@@ -30676,6 +32987,14 @@ namespace VULKAN_HPP_NAMESPACE
     Image                 image               = {};
     ImageSubresourceRange subresourceRange    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageMemoryBarrier2>
+  {
+    using Type = ImageMemoryBarrier2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageMemoryBarrier2>
@@ -30898,6 +33217,14 @@ namespace VULKAN_HPP_NAMESPACE
     const ImageMemoryBarrier2 *  pImageMemoryBarriers     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDependencyInfo>
+  {
+    using Type = DependencyInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDependencyInfo>
   {
@@ -31019,6 +33346,14 @@ namespace VULKAN_HPP_NAMESPACE
     float         depthBiasSlopeFactor    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDepthBiasInfoEXT>
+  {
+    using Type = DepthBiasInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDepthBiasInfoEXT>
   {
@@ -31135,6 +33470,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                     depthBiasExact          = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDepthBiasRepresentationInfoEXT>
+  {
+    using Type = DepthBiasRepresentationInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDepthBiasRepresentationInfoEXT>
   {
@@ -31229,6 +33572,14 @@ namespace VULKAN_HPP_NAMESPACE
     float minDepthClamp = {};
     float maxDepthClamp = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDepthClampRangeEXT>
+  {
+    using Type = DepthClampRangeEXT;
+  };
+#endif
 
   // wrapper struct for struct VkDescriptorAddressInfoEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDescriptorAddressInfoEXT.html
   struct DescriptorAddressInfoEXT
@@ -31345,6 +33696,14 @@ namespace VULKAN_HPP_NAMESPACE
     Format        format  = Format::eUndefined;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorAddressInfoEXT>
+  {
+    using Type = DescriptorAddressInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDescriptorAddressInfoEXT>
   {
@@ -31457,6 +33816,14 @@ namespace VULKAN_HPP_NAMESPACE
     BufferUsageFlags usage   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorBufferBindingInfoEXT>
+  {
+    using Type = DescriptorBufferBindingInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDescriptorBufferBindingInfoEXT>
   {
@@ -31561,6 +33928,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext  = {};
     Buffer        buffer = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorBufferBindingPushDescriptorBufferHandleEXT>
+  {
+    using Type = DescriptorBufferBindingPushDescriptorBufferHandleEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDescriptorBufferBindingPushDescriptorBufferHandleEXT>
@@ -31668,6 +34043,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize range  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorBufferInfo>
+  {
+    using Type = DescriptorBufferInfo;
+  };
+#endif
+
   // wrapper struct for struct VkDescriptorImageInfo, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDescriptorImageInfo.html
   struct DescriptorImageInfo
   {
@@ -31767,6 +34150,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageView   imageView   = {};
     ImageLayout imageLayout = ImageLayout::eUndefined;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorImageInfo>
+  {
+    using Type = DescriptorImageInfo;
+  };
+#endif
 
   union DescriptorDataEXT
   {
@@ -31881,6 +34272,14 @@ namespace VULKAN_HPP_NAMESPACE
 #endif /*VULKAN_HPP_HAS_UNRESTRICTED_UNIONS*/
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorDataEXT>
+  {
+    using Type = DescriptorDataEXT;
+  };
+#endif
+
   // wrapper struct for struct VkDescriptorGetInfoEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDescriptorGetInfoEXT.html
   struct DescriptorGetInfoEXT
   {
@@ -31967,6 +34366,14 @@ namespace VULKAN_HPP_NAMESPACE
     DescriptorType    type  = DescriptorType::eSampler;
     DescriptorDataEXT data  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorGetInfoEXT>
+  {
+    using Type = DescriptorGetInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDescriptorGetInfoEXT>
@@ -32070,6 +34477,14 @@ namespace VULKAN_HPP_NAMESPACE
     TensorViewARM tensorView = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorGetTensorInfoARM>
+  {
+    using Type = DescriptorGetTensorInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDescriptorGetTensorInfoARM>
   {
@@ -32164,6 +34579,14 @@ namespace VULKAN_HPP_NAMESPACE
     DescriptorType type            = DescriptorType::eSampler;
     uint32_t       descriptorCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorPoolSize>
+  {
+    using Type = DescriptorPoolSize;
+  };
+#endif
 
   // wrapper struct for struct VkDescriptorPoolCreateInfo, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDescriptorPoolCreateInfo.html
   struct DescriptorPoolCreateInfo
@@ -32315,6 +34738,14 @@ namespace VULKAN_HPP_NAMESPACE
     const DescriptorPoolSize * pPoolSizes    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorPoolCreateInfo>
+  {
+    using Type = DescriptorPoolCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDescriptorPoolCreateInfo>
   {
@@ -32419,6 +34850,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext                         = {};
     uint32_t      maxInlineUniformBlockBindings = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorPoolInlineUniformBlockCreateInfo>
+  {
+    using Type = DescriptorPoolInlineUniformBlockCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDescriptorPoolInlineUniformBlockCreateInfo>
@@ -32563,6 +35002,14 @@ namespace VULKAN_HPP_NAMESPACE
     const DescriptorSetLayout * pSetLayouts        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorSetAllocateInfo>
+  {
+    using Type = DescriptorSetAllocateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDescriptorSetAllocateInfo>
   {
@@ -32675,6 +35122,14 @@ namespace VULKAN_HPP_NAMESPACE
     DescriptorSetLayout descriptorSetLayout = {};
     uint32_t            binding             = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorSetBindingReferenceVALVE>
+  {
+    using Type = DescriptorSetBindingReferenceVALVE;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDescriptorSetBindingReferenceVALVE>
@@ -32827,6 +35282,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Sampler *  pImmutableSamplers = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorSetLayoutBinding>
+  {
+    using Type = DescriptorSetLayoutBinding;
+  };
+#endif
+
   // wrapper struct for struct VkDescriptorSetLayoutBindingFlagsCreateInfo, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkDescriptorSetLayoutBindingFlagsCreateInfo.html
   struct DescriptorSetLayoutBindingFlagsCreateInfo
@@ -32950,6 +35413,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                       bindingCount  = {};
     const DescriptorBindingFlags * pBindingFlags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorSetLayoutBindingFlagsCreateInfo>
+  {
+    using Type = DescriptorSetLayoutBindingFlagsCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDescriptorSetLayoutBindingFlagsCreateInfo>
@@ -33096,6 +35567,14 @@ namespace VULKAN_HPP_NAMESPACE
     const DescriptorSetLayoutBinding * pBindings    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorSetLayoutCreateInfo>
+  {
+    using Type = DescriptorSetLayoutCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDescriptorSetLayoutCreateInfo>
   {
@@ -33208,6 +35687,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      descriptorSize   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorSetLayoutHostMappingInfoVALVE>
+  {
+    using Type = DescriptorSetLayoutHostMappingInfoVALVE;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDescriptorSetLayoutHostMappingInfoVALVE>
   {
@@ -33295,6 +35782,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext     = {};
     Bool32        supported = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorSetLayoutSupport>
+  {
+    using Type = DescriptorSetLayoutSupport;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDescriptorSetLayoutSupport>
@@ -33430,6 +35925,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t * pDescriptorCounts  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorSetVariableDescriptorCountAllocateInfo>
+  {
+    using Type = DescriptorSetVariableDescriptorCountAllocateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDescriptorSetVariableDescriptorCountAllocateInfo>
   {
@@ -33523,6 +36026,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                      = {};
     uint32_t      maxVariableDescriptorCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorSetVariableDescriptorCountLayoutSupport>
+  {
+    using Type = DescriptorSetVariableDescriptorCountLayoutSupport;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDescriptorSetVariableDescriptorCountLayoutSupport>
@@ -33663,6 +36174,13 @@ namespace VULKAN_HPP_NAMESPACE
     size_t         stride          = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorUpdateTemplateEntry>
+  {
+    using Type = DescriptorUpdateTemplateEntry;
+  };
+#endif
   using DescriptorUpdateTemplateEntryKHR = DescriptorUpdateTemplateEntry;
 
   // wrapper struct for struct VkDescriptorUpdateTemplateCreateInfo, see
@@ -33873,6 +36391,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                              set                        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDescriptorUpdateTemplateCreateInfo>
+  {
+    using Type = DescriptorUpdateTemplateCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDescriptorUpdateTemplateCreateInfo>
   {
@@ -34013,6 +36539,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceAddressBindingTypeEXT  bindingType = DeviceAddressBindingTypeEXT::eBind;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceAddressBindingCallbackDataEXT>
+  {
+    using Type = DeviceAddressBindingCallbackDataEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDeviceAddressBindingCallbackDataEXT>
   {
@@ -34115,6 +36649,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *             pNext       = {};
     const BufferCreateInfo * pCreateInfo = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceBufferMemoryRequirements>
+  {
+    using Type = DeviceBufferMemoryRequirements;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDeviceBufferMemoryRequirements>
@@ -34272,6 +36814,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t               queueCount       = {};
     const float *          pQueuePriorities = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceQueueCreateInfo>
+  {
+    using Type = DeviceQueueCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDeviceQueueCreateInfo>
@@ -34990,6 +37540,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32 inheritedQueries                        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFeatures>
+  {
+    using Type = PhysicalDeviceFeatures;
+  };
+#endif
+
   // wrapper struct for struct VkDeviceCreateInfo, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDeviceCreateInfo.html
   struct DeviceCreateInfo
   {
@@ -35271,6 +37829,14 @@ namespace VULKAN_HPP_NAMESPACE
     const PhysicalDeviceFeatures * pEnabledFeatures        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceCreateInfo>
+  {
+    using Type = DeviceCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDeviceCreateInfo>
   {
@@ -35388,6 +37954,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t                       objectHandle   = {};
     uint32_t                       heapIndex      = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceMemoryReportCallbackDataEXT>
+  {
+    using Type = DeviceMemoryReportCallbackDataEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDeviceMemoryReportCallbackDataEXT>
@@ -35548,6 +38122,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                            pUserData       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceDeviceMemoryReportCreateInfoEXT>
+  {
+    using Type = DeviceDeviceMemoryReportCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDeviceDeviceMemoryReportCreateInfoEXT>
   {
@@ -35651,6 +38233,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceDiagnosticsConfigFlagsNV flags = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceDiagnosticsConfigCreateInfoNV>
+  {
+    using Type = DeviceDiagnosticsConfigCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDeviceDiagnosticsConfigCreateInfoNV>
   {
@@ -35750,6 +38340,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *       pNext       = {};
     DeviceEventTypeEXT deviceEvent = DeviceEventTypeEXT::eDisplayHotplug;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceEventInfoEXT>
+  {
+    using Type = DeviceEventInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDeviceEventInfoEXT>
@@ -35858,6 +38456,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceAddress             reportedAddress  = {};
     DeviceSize                addressPrecision = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceFaultAddressInfoEXT>
+  {
+    using Type = DeviceFaultAddressInfoEXT;
+  };
+#endif
 
   // wrapper struct for struct VkDeviceFaultCountsEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDeviceFaultCountsEXT.html
   struct DeviceFaultCountsEXT
@@ -35974,6 +38580,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      vendorInfoCount  = {};
     DeviceSize    vendorBinarySize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceFaultCountsEXT>
+  {
+    using Type = DeviceFaultCountsEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDeviceFaultCountsEXT>
@@ -36114,6 +38728,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t                                      vendorFaultCode = {};
     uint64_t                                      vendorFaultData = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceFaultVendorInfoEXT>
+  {
+    using Type = DeviceFaultVendorInfoEXT;
+  };
+#endif
 
   // wrapper struct for struct VkDeviceFaultInfoEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDeviceFaultInfoEXT.html
   struct DeviceFaultInfoEXT
@@ -36264,6 +38886,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceFaultVendorInfoEXT *                    pVendorInfos      = {};
     void *                                        pVendorBinaryData = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceFaultInfoEXT>
+  {
+    using Type = DeviceFaultInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDeviceFaultInfoEXT>
@@ -36473,6 +39103,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                                apiVersion            = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceFaultVendorBinaryHeaderVersionOneEXT>
+  {
+    using Type = DeviceFaultVendorBinaryHeaderVersionOneEXT;
+  };
+#endif
+
   // wrapper struct for struct VkDeviceGroupBindSparseInfo, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDeviceGroupBindSparseInfo.html
   struct DeviceGroupBindSparseInfo
   {
@@ -36579,6 +39217,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      memoryDeviceIndex   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceGroupBindSparseInfo>
+  {
+    using Type = DeviceGroupBindSparseInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDeviceGroupBindSparseInfo>
   {
@@ -36683,6 +39329,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext      = {};
     uint32_t      deviceMask = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceGroupCommandBufferBeginInfo>
+  {
+    using Type = DeviceGroupCommandBufferBeginInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDeviceGroupCommandBufferBeginInfo>
@@ -36815,6 +39469,14 @@ namespace VULKAN_HPP_NAMESPACE
     const PhysicalDevice * pPhysicalDevices    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceGroupDeviceCreateInfo>
+  {
+    using Type = DeviceGroupDeviceCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDeviceGroupDeviceCreateInfo>
   {
@@ -36910,6 +39572,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<uint32_t, VK_MAX_DEVICE_GROUP_SIZE> presentMask = {};
     DeviceGroupPresentModeFlagsKHR                     modes       = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceGroupPresentCapabilitiesKHR>
+  {
+    using Type = DeviceGroupPresentCapabilitiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDeviceGroupPresentCapabilitiesKHR>
@@ -37052,6 +39722,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceGroupPresentModeFlagBitsKHR mode           = DeviceGroupPresentModeFlagBitsKHR::eLocal;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceGroupPresentInfoKHR>
+  {
+    using Type = DeviceGroupPresentInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDeviceGroupPresentInfoKHR>
   {
@@ -37193,6 +39871,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t       deviceRenderAreaCount = {};
     const Rect2D * pDeviceRenderAreas    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceGroupRenderPassBeginInfo>
+  {
+    using Type = DeviceGroupRenderPassBeginInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDeviceGroupRenderPassBeginInfo>
@@ -37405,6 +40091,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t * pSignalSemaphoreDeviceIndices = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceGroupSubmitInfo>
+  {
+    using Type = DeviceGroupSubmitInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDeviceGroupSubmitInfo>
   {
@@ -37509,6 +40203,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                   pNext = {};
     DeviceGroupPresentModeFlagsKHR modes = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceGroupSwapchainCreateInfoKHR>
+  {
+    using Type = DeviceGroupSwapchainCreateInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDeviceGroupSwapchainCreateInfoKHR>
@@ -37792,6 +40494,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageLayout         initialLayout         = ImageLayout::eUndefined;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageCreateInfo>
+  {
+    using Type = ImageCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageCreateInfo>
   {
@@ -37905,6 +40615,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageAspectFlagBits     planeAspect = ImageAspectFlagBits::eColor;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceImageMemoryRequirements>
+  {
+    using Type = DeviceImageMemoryRequirements;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDeviceImageMemoryRequirements>
   {
@@ -38005,6 +40723,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *           pNext            = {};
     ImageSubresource imageSubresource = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageSubresource2>
+  {
+    using Type = ImageSubresource2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageSubresource2>
@@ -38122,6 +40848,14 @@ namespace VULKAN_HPP_NAMESPACE
     const ImageSubresource2 * pSubresource = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceImageSubresourceInfo>
+  {
+    using Type = DeviceImageSubresourceInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDeviceImageSubresourceInfo>
   {
@@ -38226,6 +40960,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext  = {};
     DeviceMemory  memory = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceMemoryOpaqueCaptureAddressInfo>
+  {
+    using Type = DeviceMemoryOpaqueCaptureAddressInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDeviceMemoryOpaqueCaptureAddressInfo>
@@ -38335,6 +41077,14 @@ namespace VULKAN_HPP_NAMESPACE
     MemoryOverallocationBehaviorAMD overallocationBehavior = MemoryOverallocationBehaviorAMD::eDefault;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceMemoryOverallocationCreateInfoAMD>
+  {
+    using Type = DeviceMemoryOverallocationCreateInfoAMD;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDeviceMemoryOverallocationCreateInfoAMD>
   {
@@ -38384,6 +41134,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *    hostAddress;
 #  endif /*VULKAN_HPP_HAS_UNRESTRICTED_UNIONS*/
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceOrHostAddressConstAMDX>
+  {
+    using Type = DeviceOrHostAddressConstAMDX;
+  };
+#  endif
 #endif /*VK_ENABLE_BETA_EXTENSIONS*/
 
   // wrapper struct for struct VkDevicePipelineBinaryInternalCacheControlKHR, see
@@ -38482,6 +41240,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext                = {};
     Bool32        disableInternalCache = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDevicePipelineBinaryInternalCacheControlKHR>
+  {
+    using Type = DevicePipelineBinaryInternalCacheControlKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDevicePipelineBinaryInternalCacheControlKHR>
@@ -38584,6 +41350,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext                       = {};
     uint32_t      privateDataSlotRequestCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDevicePrivateDataCreateInfo>
+  {
+    using Type = DevicePrivateDataCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDevicePrivateDataCreateInfo>
@@ -38690,6 +41464,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *        pNext          = {};
     QueueGlobalPriority globalPriority = QueueGlobalPriority::eLow;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceQueueGlobalPriorityCreateInfo>
+  {
+    using Type = DeviceQueueGlobalPriorityCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDeviceQueueGlobalPriorityCreateInfo>
@@ -38814,6 +41596,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t               queueIndex       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceQueueInfo2>
+  {
+    using Type = DeviceQueueInfo2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDeviceQueueInfo2>
   {
@@ -38916,6 +41706,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext           = {};
     uint32_t      shaderCoreCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceQueueShaderCoreControlCreateInfoARM>
+  {
+    using Type = DeviceQueueShaderCoreControlCreateInfoARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDeviceQueueShaderCoreControlCreateInfoARM>
@@ -39119,6 +41917,14 @@ namespace VULKAN_HPP_NAMESPACE
     TensorUsageFlagsARM usage          = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTensorDescriptionARM>
+  {
+    using Type = TensorDescriptionARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eTensorDescriptionARM>
   {
@@ -39290,6 +42096,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t *             pQueueFamilyIndices   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTensorCreateInfoARM>
+  {
+    using Type = TensorCreateInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eTensorCreateInfoARM>
   {
@@ -39392,6 +42206,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                pNext       = {};
     const TensorCreateInfoARM * pCreateInfo = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDeviceTensorMemoryRequirementsARM>
+  {
+    using Type = DeviceTensorMemoryRequirementsARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDeviceTensorMemoryRequirementsARM>
@@ -39505,6 +42327,14 @@ namespace VULKAN_HPP_NAMESPACE
     DirectDriverLoadingFlagsLUNARG flags                  = {};
     PFN_GetInstanceProcAddrLUNARG  pfnGetInstanceProcAddr = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDirectDriverLoadingInfoLUNARG>
+  {
+    using Type = DirectDriverLoadingInfoLUNARG;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDirectDriverLoadingInfoLUNARG>
@@ -39644,6 +42474,14 @@ namespace VULKAN_HPP_NAMESPACE
     const DirectDriverLoadingInfoLUNARG * pDrivers    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDirectDriverLoadingListLUNARG>
+  {
+    using Type = DirectDriverLoadingListLUNARG;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDirectDriverLoadingListLUNARG>
   {
@@ -39767,6 +42605,14 @@ namespace VULKAN_HPP_NAMESPACE
     IDirectFBSurface *            surface = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDirectFBSurfaceCreateInfoEXT>
+  {
+    using Type = DirectFBSurfaceCreateInfoEXT;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eDirectfbSurfaceCreateInfoEXT>
   {
@@ -39857,6 +42703,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceOrHostAddressConstAMDX infos  = {};
     uint64_t                     stride = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDispatchGraphCountInfoAMDX>
+  {
+    using Type = DispatchGraphCountInfoAMDX;
+  };
+#  endif
 #endif /*VK_ENABLE_BETA_EXTENSIONS*/
 
 #if defined( VK_ENABLE_BETA_EXTENSIONS )
@@ -39952,6 +42806,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceOrHostAddressConstAMDX payloads      = {};
     uint64_t                     payloadStride = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDispatchGraphInfoAMDX>
+  {
+    using Type = DispatchGraphInfoAMDX;
+  };
+#  endif
 #endif /*VK_ENABLE_BETA_EXTENSIONS*/
 
   // wrapper struct for struct VkDispatchIndirectCommand, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDispatchIndirectCommand.html
@@ -40054,6 +42916,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t z = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDispatchIndirectCommand>
+  {
+    using Type = DispatchIndirectCommand;
+  };
+#endif
+
   // wrapper struct for struct VkDispatchTileInfoQCOM, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDispatchTileInfoQCOM.html
   struct DispatchTileInfoQCOM
   {
@@ -40138,6 +43008,14 @@ namespace VULKAN_HPP_NAMESPACE
     StructureType sType = StructureType::eDispatchTileInfoQCOM;
     const void *  pNext = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDispatchTileInfoQCOM>
+  {
+    using Type = DispatchTileInfoQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDispatchTileInfoQCOM>
@@ -40241,6 +43119,14 @@ namespace VULKAN_HPP_NAMESPACE
     DisplayEventTypeEXT displayEvent = DisplayEventTypeEXT::eFirstPixelOut;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayEventInfoEXT>
+  {
+    using Type = DisplayEventInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDisplayEventInfoEXT>
   {
@@ -40338,6 +43224,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent2D visibleRegion = {};
     uint32_t refreshRate   = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayModeParametersKHR>
+  {
+    using Type = DisplayModeParametersKHR;
+  };
+#endif
 
   // wrapper struct for struct VkDisplayModeCreateInfoKHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDisplayModeCreateInfoKHR.html
   struct DisplayModeCreateInfoKHR
@@ -40446,6 +43340,14 @@ namespace VULKAN_HPP_NAMESPACE
     DisplayModeParametersKHR  parameters = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayModeCreateInfoKHR>
+  {
+    using Type = DisplayModeCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDisplayModeCreateInfoKHR>
   {
@@ -40530,6 +43432,14 @@ namespace VULKAN_HPP_NAMESPACE
     DisplayModeParametersKHR parameters  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayModePropertiesKHR>
+  {
+    using Type = DisplayModePropertiesKHR;
+  };
+#endif
+
   // wrapper struct for struct VkDisplayModeProperties2KHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDisplayModeProperties2KHR.html
   struct DisplayModeProperties2KHR
   {
@@ -40611,6 +43521,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                   pNext                 = {};
     DisplayModePropertiesKHR displayModeProperties = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayModeProperties2KHR>
+  {
+    using Type = DisplayModeProperties2KHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDisplayModeProperties2KHR>
@@ -40701,6 +43619,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        hdmi3DSupported = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayModeStereoPropertiesNV>
+  {
+    using Type = DisplayModeStereoPropertiesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDisplayModeStereoPropertiesNV>
   {
@@ -40789,6 +43715,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext               = {};
     Bool32        localDimmingSupport = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayNativeHdrSurfaceCapabilitiesAMD>
+  {
+    using Type = DisplayNativeHdrSurfaceCapabilitiesAMD;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDisplayNativeHdrSurfaceCapabilitiesAMD>
@@ -40907,6 +43841,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent2D                  maxDstExtent   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayPlaneCapabilitiesKHR>
+  {
+    using Type = DisplayPlaneCapabilitiesKHR;
+  };
+#endif
+
   // wrapper struct for struct VkDisplayPlaneCapabilities2KHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDisplayPlaneCapabilities2KHR.html
   struct DisplayPlaneCapabilities2KHR
   {
@@ -40988,6 +43930,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                      pNext        = {};
     DisplayPlaneCapabilitiesKHR capabilities = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayPlaneCapabilities2KHR>
+  {
+    using Type = DisplayPlaneCapabilities2KHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDisplayPlaneCapabilities2KHR>
@@ -41099,6 +44049,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t       planeIndex = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayPlaneInfo2KHR>
+  {
+    using Type = DisplayPlaneInfo2KHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDisplayPlaneInfo2KHR>
   {
@@ -41183,6 +44141,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t   currentStackIndex = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayPlanePropertiesKHR>
+  {
+    using Type = DisplayPlanePropertiesKHR;
+  };
+#endif
+
   // wrapper struct for struct VkDisplayPlaneProperties2KHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDisplayPlaneProperties2KHR.html
   struct DisplayPlaneProperties2KHR
   {
@@ -41264,6 +44230,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                    pNext                  = {};
     DisplayPlanePropertiesKHR displayPlaneProperties = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayPlaneProperties2KHR>
+  {
+    using Type = DisplayPlaneProperties2KHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDisplayPlaneProperties2KHR>
@@ -41365,6 +44339,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *         pNext      = {};
     DisplayPowerStateEXT powerState = DisplayPowerStateEXT::eOff;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayPowerInfoEXT>
+  {
+    using Type = DisplayPowerInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDisplayPowerInfoEXT>
@@ -41485,6 +44467,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        persistent = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayPresentInfoKHR>
+  {
+    using Type = DisplayPresentInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDisplayPresentInfoKHR>
   {
@@ -41604,6 +44594,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                   persistentContent    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayPropertiesKHR>
+  {
+    using Type = DisplayPropertiesKHR;
+  };
+#endif
+
   // wrapper struct for struct VkDisplayProperties2KHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDisplayProperties2KHR.html
   struct DisplayProperties2KHR
   {
@@ -41685,6 +44683,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *               pNext             = {};
     DisplayPropertiesKHR displayProperties = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplayProperties2KHR>
+  {
+    using Type = DisplayProperties2KHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDisplayProperties2KHR>
@@ -41864,6 +44870,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent2D                     imageExtent     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplaySurfaceCreateInfoKHR>
+  {
+    using Type = DisplaySurfaceCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eDisplaySurfaceCreateInfoKHR>
   {
@@ -41967,6 +44981,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *               pNext      = {};
     DisplaySurfaceStereoTypeNV stereoType = DisplaySurfaceStereoTypeNV::eNone;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDisplaySurfaceStereoCreateInfoNV>
+  {
+    using Type = DisplaySurfaceStereoCreateInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDisplaySurfaceStereoCreateInfoNV>
@@ -42095,6 +45117,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t firstInstance = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDrawIndexedIndirectCommand>
+  {
+    using Type = DrawIndexedIndirectCommand;
+  };
+#endif
+
   // wrapper struct for struct VkDrawIndirectCommand, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkDrawIndirectCommand.html
   struct DrawIndirectCommand
   {
@@ -42206,6 +45236,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t firstInstance = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDrawIndirectCommand>
+  {
+    using Type = DrawIndirectCommand;
+  };
+#endif
+
   // wrapper struct for struct VkDrawIndirectCountIndirectCommandEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkDrawIndirectCountIndirectCommandEXT.html
   struct DrawIndirectCountIndirectCommandEXT
@@ -42307,6 +45345,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      stride        = {};
     uint32_t      commandCount  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDrawIndirectCountIndirectCommandEXT>
+  {
+    using Type = DrawIndirectCountIndirectCommandEXT;
+  };
+#endif
 
   // wrapper struct for struct VkDrawMeshTasksIndirectCommandEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkDrawMeshTasksIndirectCommandEXT.html
@@ -42410,6 +45456,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t groupCountZ = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDrawMeshTasksIndirectCommandEXT>
+  {
+    using Type = DrawMeshTasksIndirectCommandEXT;
+  };
+#endif
+
   // wrapper struct for struct VkDrawMeshTasksIndirectCommandNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkDrawMeshTasksIndirectCommandNV.html
   struct DrawMeshTasksIndirectCommandNV
@@ -42503,6 +45557,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t firstTask = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDrawMeshTasksIndirectCommandNV>
+  {
+    using Type = DrawMeshTasksIndirectCommandNV;
+  };
+#endif
+
   // wrapper struct for struct VkDrmFormatModifierProperties2EXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkDrmFormatModifierProperties2EXT.html
   struct DrmFormatModifierProperties2EXT
@@ -42587,6 +45649,14 @@ namespace VULKAN_HPP_NAMESPACE
     FormatFeatureFlags2 drmFormatModifierTilingFeatures = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDrmFormatModifierProperties2EXT>
+  {
+    using Type = DrmFormatModifierProperties2EXT;
+  };
+#endif
+
   // wrapper struct for struct VkDrmFormatModifierPropertiesEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkDrmFormatModifierPropertiesEXT.html
   struct DrmFormatModifierPropertiesEXT
@@ -42670,6 +45740,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t           drmFormatModifierPlaneCount     = {};
     FormatFeatureFlags drmFormatModifierTilingFeatures = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDrmFormatModifierPropertiesEXT>
+  {
+    using Type = DrmFormatModifierPropertiesEXT;
+  };
+#endif
 
   // wrapper struct for struct VkDrmFormatModifierPropertiesList2EXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkDrmFormatModifierPropertiesList2EXT.html
@@ -42758,6 +45836,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                          drmFormatModifierCount       = {};
     DrmFormatModifierProperties2EXT * pDrmFormatModifierProperties = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDrmFormatModifierPropertiesList2EXT>
+  {
+    using Type = DrmFormatModifierPropertiesList2EXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDrmFormatModifierPropertiesList2EXT>
@@ -42852,6 +45938,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                         drmFormatModifierCount       = {};
     DrmFormatModifierPropertiesEXT * pDrmFormatModifierProperties = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkDrmFormatModifierPropertiesListEXT>
+  {
+    using Type = DrmFormatModifierPropertiesListEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eDrmFormatModifierPropertiesListEXT>
@@ -42951,6 +46045,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *     pNext = {};
     EventCreateFlags flags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkEventCreateInfo>
+  {
+    using Type = EventCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eEventCreateInfo>
@@ -43078,6 +46180,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t         libraryCount = {};
     const Pipeline * pLibraries   = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineLibraryCreateInfoKHR>
+  {
+    using Type = PipelineLibraryCreateInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineLibraryCreateInfoKHR>
@@ -43278,6 +46388,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t                               basePipelineIndex  = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExecutionGraphPipelineCreateInfoAMDX>
+  {
+    using Type = ExecutionGraphPipelineCreateInfoAMDX;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eExecutionGraphPipelineCreateInfoAMDX>
   {
@@ -43403,6 +46521,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    sizeGranularity = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExecutionGraphPipelineScratchSizeAMDX>
+  {
+    using Type = ExecutionGraphPipelineScratchSizeAMDX;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eExecutionGraphPipelineScratchSizeAMDX>
   {
@@ -43505,6 +46631,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                 pNext       = {};
     ExternalFenceHandleTypeFlags handleTypes = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportFenceCreateInfo>
+  {
+    using Type = ExportFenceCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eExportFenceCreateInfo>
@@ -43632,6 +46766,14 @@ namespace VULKAN_HPP_NAMESPACE
     LPCWSTR                     name        = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportFenceWin32HandleInfoKHR>
+  {
+    using Type = ExportFenceWin32HandleInfoKHR;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eExportFenceWin32HandleInfoKHR>
   {
@@ -43734,6 +46876,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                  pNext       = {};
     ExternalMemoryHandleTypeFlags handleTypes = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportMemoryAllocateInfo>
+  {
+    using Type = ExportMemoryAllocateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eExportMemoryAllocateInfo>
@@ -43838,6 +46988,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                    pNext       = {};
     ExternalMemoryHandleTypeFlagsNV handleTypes = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportMemoryAllocateInfoNV>
+  {
+    using Type = ExportMemoryAllocateInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eExportMemoryAllocateInfoNV>
@@ -43963,6 +47121,14 @@ namespace VULKAN_HPP_NAMESPACE
     LPCWSTR                     name        = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportMemoryWin32HandleInfoKHR>
+  {
+    using Type = ExportMemoryWin32HandleInfoKHR;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eExportMemoryWin32HandleInfoKHR>
   {
@@ -44077,6 +47243,14 @@ namespace VULKAN_HPP_NAMESPACE
     DWORD                       dwAccess    = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportMemoryWin32HandleInfoNV>
+  {
+    using Type = ExportMemoryWin32HandleInfoNV;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eExportMemoryWin32HandleInfoNV>
   {
@@ -44188,6 +47362,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceMemory  memory    = {};
     MTLBuffer_id  mtlBuffer = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportMetalBufferInfoEXT>
+  {
+    using Type = ExportMetalBufferInfoEXT;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eExportMetalBufferInfoEXT>
@@ -44303,6 +47485,14 @@ namespace VULKAN_HPP_NAMESPACE
     MTLCommandQueue_id mtlCommandQueue = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportMetalCommandQueueInfoEXT>
+  {
+    using Type = ExportMetalCommandQueueInfoEXT;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eExportMetalCommandQueueInfoEXT>
   {
@@ -44406,6 +47596,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext     = {};
     MTLDevice_id  mtlDevice = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportMetalDeviceInfoEXT>
+  {
+    using Type = ExportMetalDeviceInfoEXT;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eExportMetalDeviceInfoEXT>
@@ -44519,6 +47717,14 @@ namespace VULKAN_HPP_NAMESPACE
     IOSurfaceRef  ioSurface = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportMetalIOSurfaceInfoEXT>
+  {
+    using Type = ExportMetalIOSurfaceInfoEXT;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eExportMetalIoSurfaceInfoEXT>
   {
@@ -44625,6 +47831,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExportMetalObjectTypeFlagBitsEXT exportObjectType = ExportMetalObjectTypeFlagBitsEXT::eMetalDevice;
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportMetalObjectCreateInfoEXT>
+  {
+    using Type = ExportMetalObjectCreateInfoEXT;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eExportMetalObjectCreateInfoEXT>
   {
@@ -44717,6 +47931,14 @@ namespace VULKAN_HPP_NAMESPACE
     StructureType sType = StructureType::eExportMetalObjectsInfoEXT;
     const void *  pNext = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportMetalObjectsInfoEXT>
+  {
+    using Type = ExportMetalObjectsInfoEXT;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eExportMetalObjectsInfoEXT>
@@ -44842,6 +48064,14 @@ namespace VULKAN_HPP_NAMESPACE
     Event             event          = {};
     MTLSharedEvent_id mtlSharedEvent = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportMetalSharedEventInfoEXT>
+  {
+    using Type = ExportMetalSharedEventInfoEXT;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eExportMetalSharedEventInfoEXT>
@@ -44992,6 +48222,14 @@ namespace VULKAN_HPP_NAMESPACE
     MTLTexture_id       mtlTexture = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportMetalTextureInfoEXT>
+  {
+    using Type = ExportMetalTextureInfoEXT;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eExportMetalTextureInfoEXT>
   {
@@ -45094,6 +48332,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                     pNext       = {};
     ExternalSemaphoreHandleTypeFlags handleTypes = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportSemaphoreCreateInfo>
+  {
+    using Type = ExportSemaphoreCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eExportSemaphoreCreateInfo>
@@ -45221,6 +48467,14 @@ namespace VULKAN_HPP_NAMESPACE
     LPCWSTR                     name        = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExportSemaphoreWin32HandleInfoKHR>
+  {
+    using Type = ExportSemaphoreWin32HandleInfoKHR;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eExportSemaphoreWin32HandleInfoKHR>
   {
@@ -45310,6 +48564,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                                         specVersion   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExtensionProperties>
+  {
+    using Type = ExtensionProperties;
+  };
+#endif
+
   // wrapper struct for struct VkExternalMemoryProperties, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkExternalMemoryProperties.html
   struct ExternalMemoryProperties
   {
@@ -45394,6 +48656,13 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlags compatibleHandleTypes         = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalMemoryProperties>
+  {
+    using Type = ExternalMemoryProperties;
+  };
+#endif
   using ExternalMemoryPropertiesKHR = ExternalMemoryProperties;
 
   // wrapper struct for struct VkExternalBufferProperties, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkExternalBufferProperties.html
@@ -45477,6 +48746,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                   pNext                    = {};
     ExternalMemoryProperties externalMemoryProperties = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalBufferProperties>
+  {
+    using Type = ExternalBufferProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eExternalBufferProperties>
@@ -45583,6 +48860,14 @@ namespace VULKAN_HPP_NAMESPACE
     Queue         preferredQueue = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalComputeQueueCreateInfoNV>
+  {
+    using Type = ExternalComputeQueueCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eExternalComputeQueueCreateInfoNV>
   {
@@ -45685,6 +48970,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext       = {};
     uint32_t      deviceIndex = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalComputeQueueDataParamsNV>
+  {
+    using Type = ExternalComputeQueueDataParamsNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eExternalComputeQueueDataParamsNV>
@@ -45789,6 +49082,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      reservedExternalQueues = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalComputeQueueDeviceCreateInfoNV>
+  {
+    using Type = ExternalComputeQueueDeviceCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eExternalComputeQueueDeviceCreateInfoNV>
   {
@@ -45889,6 +49190,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalFenceHandleTypeFlags compatibleHandleTypes         = {};
     ExternalFenceFeatureFlags    externalFenceFeatures         = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalFenceProperties>
+  {
+    using Type = ExternalFenceProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eExternalFenceProperties>
@@ -45995,6 +49304,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t      externalFormat = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalFormatANDROID>
+  {
+    using Type = ExternalFormatANDROID;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eExternalFormatANDROID>
   {
@@ -46096,6 +49413,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t      externalFormat = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalFormatQNX>
+  {
+    using Type = ExternalFormatQNX;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eExternalFormatQNX>
   {
@@ -46185,6 +49510,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                   pNext                    = {};
     ExternalMemoryProperties externalMemoryProperties = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalImageFormatProperties>
+  {
+    using Type = ExternalImageFormatProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eExternalImageFormatProperties>
@@ -46283,6 +49616,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize       maxResourceSize = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageFormatProperties>
+  {
+    using Type = ImageFormatProperties;
+  };
+#endif
+
   // wrapper struct for struct VkExternalImageFormatPropertiesNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkExternalImageFormatPropertiesNV.html
   struct ExternalImageFormatPropertiesNV
@@ -46373,6 +49714,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlagsNV exportFromImportedHandleTypes = {};
     ExternalMemoryHandleTypeFlagsNV compatibleHandleTypes         = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalImageFormatPropertiesNV>
+  {
+    using Type = ExternalImageFormatPropertiesNV;
+  };
+#endif
 
   // wrapper struct for struct VkExternalMemoryAcquireUnmodifiedEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkExternalMemoryAcquireUnmodifiedEXT.html
@@ -46470,6 +49819,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext                   = {};
     Bool32        acquireUnmodifiedMemory = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalMemoryAcquireUnmodifiedEXT>
+  {
+    using Type = ExternalMemoryAcquireUnmodifiedEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eExternalMemoryAcquireUnmodifiedEXT>
@@ -46573,6 +49930,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                  pNext       = {};
     ExternalMemoryHandleTypeFlags handleTypes = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalMemoryBufferCreateInfo>
+  {
+    using Type = ExternalMemoryBufferCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eExternalMemoryBufferCreateInfo>
@@ -46679,6 +50044,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlags handleTypes = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalMemoryImageCreateInfo>
+  {
+    using Type = ExternalMemoryImageCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eExternalMemoryImageCreateInfo>
   {
@@ -46784,6 +50157,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlagsNV handleTypes = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalMemoryImageCreateInfoNV>
+  {
+    using Type = ExternalMemoryImageCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eExternalMemoryImageCreateInfoNV>
   {
@@ -46887,6 +50268,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlags handleTypes = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalMemoryTensorCreateInfoARM>
+  {
+    using Type = ExternalMemoryTensorCreateInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eExternalMemoryTensorCreateInfoARM>
   {
@@ -46987,6 +50376,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalSemaphoreHandleTypeFlags compatibleHandleTypes         = {};
     ExternalSemaphoreFeatureFlags    externalSemaphoreFeatures     = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalSemaphoreProperties>
+  {
+    using Type = ExternalSemaphoreProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eExternalSemaphoreProperties>
@@ -47094,6 +50491,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryProperties externalMemoryProperties = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkExternalTensorPropertiesARM>
+  {
+    using Type = ExternalTensorPropertiesARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eExternalTensorPropertiesARM>
   {
@@ -47192,6 +50597,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *     pNext = {};
     FenceCreateFlags flags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkFenceCreateInfo>
+  {
+    using Type = FenceCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eFenceCreateInfo>
@@ -47301,6 +50714,14 @@ namespace VULKAN_HPP_NAMESPACE
     Fence                           fence      = {};
     ExternalFenceHandleTypeFlagBits handleType = ExternalFenceHandleTypeFlagBits::eOpaqueFd;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkFenceGetFdInfoKHR>
+  {
+    using Type = FenceGetFdInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eFenceGetFdInfoKHR>
@@ -47415,6 +50836,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalFenceHandleTypeFlagBits handleType = ExternalFenceHandleTypeFlagBits::eOpaqueFd;
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkFenceGetWin32HandleInfoKHR>
+  {
+    using Type = FenceGetWin32HandleInfoKHR;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eFenceGetWin32HandleInfoKHR>
   {
@@ -47508,6 +50937,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        filterCubicMinmax = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkFilterCubicImageViewImageFormatPropertiesEXT>
+  {
+    using Type = FilterCubicImageViewImageFormatPropertiesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eFilterCubicImageViewImageFormatPropertiesEXT>
   {
@@ -47594,6 +51031,14 @@ namespace VULKAN_HPP_NAMESPACE
     FormatFeatureFlags bufferFeatures        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkFormatProperties>
+  {
+    using Type = FormatProperties;
+  };
+#endif
+
   // wrapper struct for struct VkFormatProperties2, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkFormatProperties2.html
   struct FormatProperties2
   {
@@ -47672,6 +51117,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *           pNext            = {};
     FormatProperties formatProperties = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkFormatProperties2>
+  {
+    using Type = FormatProperties2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eFormatProperties2>
@@ -47768,6 +51221,14 @@ namespace VULKAN_HPP_NAMESPACE
     FormatFeatureFlags2 optimalTilingFeatures = {};
     FormatFeatureFlags2 bufferFeatures        = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkFormatProperties3>
+  {
+    using Type = FormatProperties3;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eFormatProperties3>
@@ -47886,6 +51347,14 @@ namespace VULKAN_HPP_NAMESPACE
     const AttachmentReference2 * pFragmentShadingRateAttachment = {};
     Extent2D                     shadingRateAttachmentTexelSize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkFragmentShadingRateAttachmentInfoKHR>
+  {
+    using Type = FragmentShadingRateAttachmentInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eFragmentShadingRateAttachmentInfoKHR>
@@ -48123,6 +51592,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *          pTag        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkFrameBoundaryEXT>
+  {
+    using Type = FrameBoundaryEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eFrameBoundaryEXT>
   {
@@ -48249,6 +51726,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t          tensorCount = {};
     const TensorARM * pTensors    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkFrameBoundaryTensorsARM>
+  {
+    using Type = FrameBoundaryTensorsARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eFrameBoundaryTensorsARM>
@@ -48447,6 +51932,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Format *   pViewFormats    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkFramebufferAttachmentImageInfo>
+  {
+    using Type = FramebufferAttachmentImageInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eFramebufferAttachmentImageInfo>
   {
@@ -48584,6 +52077,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                               attachmentImageInfoCount = {};
     const FramebufferAttachmentImageInfo * pAttachmentImageInfos    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkFramebufferAttachmentsCreateInfo>
+  {
+    using Type = FramebufferAttachmentsCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eFramebufferAttachmentsCreateInfo>
@@ -48784,6 +52285,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t               layers          = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkFramebufferCreateInfo>
+  {
+    using Type = FramebufferCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eFramebufferCreateInfo>
   {
@@ -48889,6 +52398,14 @@ namespace VULKAN_HPP_NAMESPACE
     SampleCountFlags        depthStencilSamples   = {};
     SampleCountFlags        colorSamples          = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkFramebufferMixedSamplesCombinationNV>
+  {
+    using Type = FramebufferMixedSamplesCombinationNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eFramebufferMixedSamplesCombinationNV>
@@ -49100,6 +52617,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                  maxDrawCount           = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGeneratedCommandsInfoEXT>
+  {
+    using Type = GeneratedCommandsInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eGeneratedCommandsInfoEXT>
   {
@@ -49197,6 +52722,14 @@ namespace VULKAN_HPP_NAMESPACE
     Buffer     buffer = {};
     DeviceSize offset = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectCommandsStreamNV>
+  {
+    using Type = IndirectCommandsStreamNV;
+  };
+#endif
 
   // wrapper struct for struct VkGeneratedCommandsInfoNV, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkGeneratedCommandsInfoNV.html
   struct GeneratedCommandsInfoNV
@@ -49478,6 +53011,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize                       sequencesIndexOffset   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGeneratedCommandsInfoNV>
+  {
+    using Type = GeneratedCommandsInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eGeneratedCommandsInfoNV>
   {
@@ -49614,6 +53155,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                  maxDrawCount           = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGeneratedCommandsMemoryRequirementsInfoEXT>
+  {
+    using Type = GeneratedCommandsMemoryRequirementsInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eGeneratedCommandsMemoryRequirementsInfoEXT>
   {
@@ -49748,6 +53297,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                 maxSequencesCount      = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGeneratedCommandsMemoryRequirementsInfoNV>
+  {
+    using Type = GeneratedCommandsMemoryRequirementsInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eGeneratedCommandsMemoryRequirementsInfoNV>
   {
@@ -49850,6 +53407,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext    = {};
     Pipeline      pipeline = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGeneratedCommandsPipelineInfoEXT>
+  {
+    using Type = GeneratedCommandsPipelineInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eGeneratedCommandsPipelineInfoEXT>
@@ -49978,6 +53543,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t          shaderCount = {};
     const ShaderEXT * pShaders    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGeneratedCommandsShaderInfoEXT>
+  {
+    using Type = GeneratedCommandsShaderInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eGeneratedCommandsShaderInfoEXT>
@@ -50143,6 +53716,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t      gpuRenderEndTimeUs       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkLatencyTimingsFrameReportNV>
+  {
+    using Type = LatencyTimingsFrameReportNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eLatencyTimingsFrameReportNV>
   {
@@ -50270,6 +53851,14 @@ namespace VULKAN_HPP_NAMESPACE
     LatencyTimingsFrameReportNV * pTimings    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGetLatencyMarkerInfoNV>
+  {
+    using Type = GetLatencyMarkerInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eGetLatencyMarkerInfoNV>
   {
@@ -50377,6 +53966,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t        stride    = {};
     VertexInputRate inputRate = VertexInputRate::eVertex;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVertexInputBindingDescription>
+  {
+    using Type = VertexInputBindingDescription;
+  };
+#endif
 
   // wrapper struct for struct VkVertexInputAttributeDescription, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkVertexInputAttributeDescription.html
@@ -50489,6 +54086,14 @@ namespace VULKAN_HPP_NAMESPACE
     Format   format   = Format::eUndefined;
     uint32_t offset   = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVertexInputAttributeDescription>
+  {
+    using Type = VertexInputAttributeDescription;
+  };
+#endif
 
   // wrapper struct for struct VkPipelineVertexInputStateCreateInfo, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPipelineVertexInputStateCreateInfo.html
@@ -50672,6 +54277,14 @@ namespace VULKAN_HPP_NAMESPACE
     const VertexInputAttributeDescription * pVertexAttributeDescriptions    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineVertexInputStateCreateInfo>
+  {
+    using Type = PipelineVertexInputStateCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineVertexInputStateCreateInfo>
   {
@@ -50796,6 +54409,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                                primitiveRestartEnable = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineInputAssemblyStateCreateInfo>
+  {
+    using Type = PipelineInputAssemblyStateCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineInputAssemblyStateCreateInfo>
   {
@@ -50908,6 +54529,14 @@ namespace VULKAN_HPP_NAMESPACE
     PipelineTessellationStateCreateFlags flags              = {};
     uint32_t                             patchControlPoints = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineTessellationStateCreateInfo>
+  {
+    using Type = PipelineTessellationStateCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineTessellationStateCreateInfo>
@@ -51089,6 +54718,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                         scissorCount  = {};
     const Rect2D *                   pScissors     = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineViewportStateCreateInfo>
+  {
+    using Type = PipelineViewportStateCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineViewportStateCreateInfo>
@@ -51312,6 +54949,14 @@ namespace VULKAN_HPP_NAMESPACE
     float                                 lineWidth               = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineRasterizationStateCreateInfo>
+  {
+    using Type = PipelineRasterizationStateCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineRasterizationStateCreateInfo>
   {
@@ -51481,6 +55126,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                              alphaToOneEnable      = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineMultisampleStateCreateInfo>
+  {
+    using Type = PipelineMultisampleStateCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineMultisampleStateCreateInfo>
   {
@@ -51623,6 +55276,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t  writeMask   = {};
     uint32_t  reference   = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkStencilOpState>
+  {
+    using Type = StencilOpState;
+  };
+#endif
 
   // wrapper struct for struct VkPipelineDepthStencilStateCreateInfo, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPipelineDepthStencilStateCreateInfo.html
@@ -51829,6 +55490,14 @@ namespace VULKAN_HPP_NAMESPACE
     float                                maxDepthBounds        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineDepthStencilStateCreateInfo>
+  {
+    using Type = PipelineDepthStencilStateCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineDepthStencilStateCreateInfo>
   {
@@ -51993,6 +55662,14 @@ namespace VULKAN_HPP_NAMESPACE
     BlendOp             alphaBlendOp        = BlendOp::eAdd;
     ColorComponentFlags colorWriteMask      = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineColorBlendAttachmentState>
+  {
+    using Type = PipelineColorBlendAttachmentState;
+  };
+#endif
 
   // wrapper struct for struct VkPipelineColorBlendStateCreateInfo, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPipelineColorBlendStateCreateInfo.html
@@ -52175,6 +55852,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<float, 4>                  blendConstants  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineColorBlendStateCreateInfo>
+  {
+    using Type = PipelineColorBlendStateCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineColorBlendStateCreateInfo>
   {
@@ -52316,6 +56001,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                        dynamicStateCount = {};
     const DynamicState *            pDynamicStates    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineDynamicStateCreateInfo>
+  {
+    using Type = PipelineDynamicStateCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineDynamicStateCreateInfo>
@@ -52662,6 +56355,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t                                      basePipelineIndex   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGraphicsPipelineCreateInfo>
+  {
+    using Type = GraphicsPipelineCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eGraphicsPipelineCreateInfo>
   {
@@ -52764,6 +56465,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                    pNext = {};
     GraphicsPipelineLibraryFlagsEXT flags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGraphicsPipelineLibraryCreateInfoEXT>
+  {
+    using Type = GraphicsPipelineLibraryCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eGraphicsPipelineLibraryCreateInfoEXT>
@@ -52927,6 +56636,14 @@ namespace VULKAN_HPP_NAMESPACE
     const PipelineVertexInputStateCreateInfo *  pVertexInputState  = {};
     const PipelineTessellationStateCreateInfo * pTessellationState = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGraphicsShaderGroupCreateInfoNV>
+  {
+    using Type = GraphicsShaderGroupCreateInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eGraphicsShaderGroupCreateInfoNV>
@@ -53097,6 +56814,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Pipeline *                        pPipelines    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkGraphicsPipelineShaderGroupsCreateInfoNV>
+  {
+    using Type = GraphicsPipelineShaderGroupsCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eGraphicsPipelineShaderGroupsCreateInfoNV>
   {
@@ -53191,6 +56916,14 @@ namespace VULKAN_HPP_NAMESPACE
     float x = {};
     float y = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkXYColorEXT>
+  {
+    using Type = XYColorEXT;
+  };
+#endif
 
   // wrapper struct for struct VkHdrMetadataEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkHdrMetadataEXT.html
   struct HdrMetadataEXT
@@ -53371,6 +57104,14 @@ namespace VULKAN_HPP_NAMESPACE
     float         maxFrameAverageLightLevel = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkHdrMetadataEXT>
+  {
+    using Type = HdrMetadataEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eHdrMetadataEXT>
   {
@@ -53502,6 +57243,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pDynamicMetadata    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkHdrVividDynamicMetadataHUAWEI>
+  {
+    using Type = HdrVividDynamicMetadataHUAWEI;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eHdrVividDynamicMetadataHUAWEI>
   {
@@ -53604,6 +57353,14 @@ namespace VULKAN_HPP_NAMESPACE
     HeadlessSurfaceCreateFlagsEXT flags = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkHeadlessSurfaceCreateInfoEXT>
+  {
+    using Type = HeadlessSurfaceCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eHeadlessSurfaceCreateInfoEXT>
   {
@@ -53696,6 +57453,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        optimalDeviceAccess   = {};
     Bool32        identicalMemoryLayout = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkHostImageCopyDevicePerformanceQuery>
+  {
+    using Type = HostImageCopyDevicePerformanceQuery;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eHostImageCopyDevicePerformanceQuery>
@@ -53832,6 +57597,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageSubresourceRange subresourceRange = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkHostImageLayoutTransitionInfo>
+  {
+    using Type = HostImageLayoutTransitionInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eHostImageLayoutTransitionInfo>
   {
@@ -53946,6 +57719,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *             pView = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIOSSurfaceCreateInfoMVK>
+  {
+    using Type = IOSSurfaceCreateInfoMVK;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eIosSurfaceCreateInfoMVK>
   {
@@ -54049,6 +57830,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext                     = {};
     uint32_t      maximumRequestedAlignment = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageAlignmentControlCreateInfoMESA>
+  {
+    using Type = ImageAlignmentControlCreateInfoMESA;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageAlignmentControlCreateInfoMESA>
@@ -54166,6 +57955,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<Offset3D, 2> dstOffsets     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageBlit>
+  {
+    using Type = ImageBlit;
+  };
+#endif
+
   // wrapper struct for struct VkImageCaptureDescriptorDataInfoEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkImageCaptureDescriptorDataInfoEXT.html
   struct ImageCaptureDescriptorDataInfoEXT
@@ -54262,6 +58059,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext = {};
     Image         image = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageCaptureDescriptorDataInfoEXT>
+  {
+    using Type = ImageCaptureDescriptorDataInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageCaptureDescriptorDataInfoEXT>
@@ -54407,6 +58212,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageCompressionFixedRateFlagsEXT * pFixedRateFlags              = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageCompressionControlEXT>
+  {
+    using Type = ImageCompressionControlEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageCompressionControlEXT>
   {
@@ -54501,6 +58314,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageCompressionFlagsEXT          imageCompressionFlags          = {};
     ImageCompressionFixedRateFlagsEXT imageCompressionFixedRateFlags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageCompressionPropertiesEXT>
+  {
+    using Type = ImageCompressionPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageCompressionPropertiesEXT>
@@ -54689,6 +58510,14 @@ namespace VULKAN_HPP_NAMESPACE
     const SysmemColorSpaceFUCHSIA *    pColorSpaces           = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageFormatConstraintsInfoFUCHSIA>
+  {
+    using Type = ImageFormatConstraintsInfoFUCHSIA;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageFormatConstraintsInfoFUCHSIA>
   {
@@ -54854,6 +58683,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageConstraintsInfoFlagsFUCHSIA          flags                       = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageConstraintsInfoFUCHSIA>
+  {
+    using Type = ImageConstraintsInfoFUCHSIA;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageConstraintsInfoFUCHSIA>
   {
@@ -54980,6 +58817,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent3D               extent         = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageCopy>
+  {
+    using Type = ImageCopy;
+  };
+#endif
+
   // wrapper struct for struct VkSubresourceLayout, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkSubresourceLayout.html
   struct SubresourceLayout
   {
@@ -55094,6 +58939,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize arrayPitch = {};
     DeviceSize depthPitch = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubresourceLayout>
+  {
+    using Type = SubresourceLayout;
+  };
+#endif
 
   // wrapper struct for struct VkImageDrmFormatModifierExplicitCreateInfoEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkImageDrmFormatModifierExplicitCreateInfoEXT.html
@@ -55235,6 +59088,14 @@ namespace VULKAN_HPP_NAMESPACE
     const SubresourceLayout * pPlaneLayouts               = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageDrmFormatModifierExplicitCreateInfoEXT>
+  {
+    using Type = ImageDrmFormatModifierExplicitCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageDrmFormatModifierExplicitCreateInfoEXT>
   {
@@ -55365,6 +59226,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint64_t * pDrmFormatModifiers    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageDrmFormatModifierListCreateInfoEXT>
+  {
+    using Type = ImageDrmFormatModifierListCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageDrmFormatModifierListCreateInfoEXT>
   {
@@ -55453,6 +59322,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext             = {};
     uint64_t      drmFormatModifier = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageDrmFormatModifierPropertiesEXT>
+  {
+    using Type = ImageDrmFormatModifierPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageDrmFormatModifierPropertiesEXT>
@@ -55581,6 +59458,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Format * pViewFormats    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageFormatListCreateInfo>
+  {
+    using Type = ImageFormatListCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageFormatListCreateInfo>
   {
@@ -55670,6 +59555,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                pNext                 = {};
     ImageFormatProperties imageFormatProperties = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageFormatProperties2>
+  {
+    using Type = ImageFormatProperties2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageFormatProperties2>
@@ -55848,6 +59741,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageSubresourceRange subresourceRange    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageMemoryBarrier>
+  {
+    using Type = ImageMemoryBarrier;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageMemoryBarrier>
   {
@@ -55949,6 +59850,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext = {};
     Image         image = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageMemoryRequirementsInfo2>
+  {
+    using Type = ImageMemoryRequirementsInfo2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageMemoryRequirementsInfo2>
@@ -56075,6 +59984,14 @@ namespace VULKAN_HPP_NAMESPACE
     zx_handle_t                        imagePipeHandle = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImagePipeSurfaceCreateInfoFUCHSIA>
+  {
+    using Type = ImagePipeSurfaceCreateInfoFUCHSIA;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eImagepipeSurfaceCreateInfoFUCHSIA>
   {
@@ -56179,6 +60096,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *        pNext       = {};
     ImageAspectFlagBits planeAspect = ImageAspectFlagBits::eColor;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImagePlaneMemoryRequirementsInfo>
+  {
+    using Type = ImagePlaneMemoryRequirementsInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImagePlaneMemoryRequirementsInfo>
@@ -56306,6 +60231,14 @@ namespace VULKAN_HPP_NAMESPACE
     Offset3D               dstOffset      = {};
     Extent3D               extent         = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageResolve>
+  {
+    using Type = ImageResolve;
+  };
+#endif
 
   // wrapper struct for struct VkImageResolve2, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkImageResolve2.html
   struct ImageResolve2
@@ -56445,6 +60378,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent3D               extent         = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageResolve2>
+  {
+    using Type = ImageResolve2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageResolve2>
   {
@@ -56550,6 +60491,14 @@ namespace VULKAN_HPP_NAMESPACE
     Image         image = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageSparseMemoryRequirementsInfo2>
+  {
+    using Type = ImageSparseMemoryRequirementsInfo2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageSparseMemoryRequirementsInfo2>
   {
@@ -56653,6 +60602,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *    pNext        = {};
     ImageUsageFlags stencilUsage = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageStencilUsageCreateInfo>
+  {
+    using Type = ImageStencilUsageCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageStencilUsageCreateInfo>
@@ -56758,6 +60715,14 @@ namespace VULKAN_HPP_NAMESPACE
     SwapchainKHR  swapchain = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageSwapchainCreateInfoKHR>
+  {
+    using Type = ImageSwapchainCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageSwapchainCreateInfoKHR>
   {
@@ -56860,6 +60825,14 @@ namespace VULKAN_HPP_NAMESPACE
     Format        decodeMode = Format::eUndefined;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageViewASTCDecodeModeEXT>
+  {
+    using Type = ImageViewASTCDecodeModeEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageViewAstcDecodeModeEXT>
   {
@@ -56950,6 +60923,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceAddress deviceAddress = {};
     DeviceSize    size          = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageViewAddressPropertiesNVX>
+  {
+    using Type = ImageViewAddressPropertiesNVX;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageViewAddressPropertiesNVX>
@@ -57053,6 +61034,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext     = {};
     ImageView     imageView = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageViewCaptureDescriptorDataInfoEXT>
+  {
+    using Type = ImageViewCaptureDescriptorDataInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageViewCaptureDescriptorDataInfoEXT>
@@ -57210,6 +61199,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageSubresourceRange subresourceRange = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageViewCreateInfo>
+  {
+    using Type = ImageViewCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageViewCreateInfo>
   {
@@ -57332,6 +61329,14 @@ namespace VULKAN_HPP_NAMESPACE
     Sampler        sampler        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageViewHandleInfoNVX>
+  {
+    using Type = ImageViewHandleInfoNVX;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageViewHandleInfoNVX>
   {
@@ -57433,6 +61438,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext  = {};
     float         minLod = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageViewMinLodCreateInfoEXT>
+  {
+    using Type = ImageViewMinLodCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageViewMinLodCreateInfoEXT>
@@ -57557,6 +61570,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      numPhases    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageViewSampleWeightCreateInfoQCOM>
+  {
+    using Type = ImageViewSampleWeightCreateInfoQCOM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageViewSampleWeightCreateInfoQCOM>
   {
@@ -57668,6 +61689,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      sliceCount  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageViewSlicedCreateInfoEXT>
+  {
+    using Type = ImageViewSlicedCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImageViewSlicedCreateInfoEXT>
   {
@@ -57769,6 +61798,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *    pNext = {};
     ImageUsageFlags usage = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImageViewUsageCreateInfo>
+  {
+    using Type = ImageViewUsageCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImageViewUsageCreateInfo>
@@ -57875,6 +61912,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *             pNext  = {};
     struct AHardwareBuffer * buffer = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportAndroidHardwareBufferInfoANDROID>
+  {
+    using Type = ImportAndroidHardwareBufferInfoANDROID;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eImportAndroidHardwareBufferInfoANDROID>
@@ -58008,6 +62053,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalFenceHandleTypeFlagBits handleType = ExternalFenceHandleTypeFlagBits::eOpaqueFd;
     int                             fd         = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportFenceFdInfoKHR>
+  {
+    using Type = ImportFenceFdInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImportFenceFdInfoKHR>
@@ -58158,6 +62211,14 @@ namespace VULKAN_HPP_NAMESPACE
     LPCWSTR                         name       = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportFenceWin32HandleInfoKHR>
+  {
+    using Type = ImportFenceWin32HandleInfoKHR;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eImportFenceWin32HandleInfoKHR>
   {
@@ -58272,6 +62333,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                index      = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportMemoryBufferCollectionFUCHSIA>
+  {
+    using Type = ImportMemoryBufferCollectionFUCHSIA;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eImportMemoryBufferCollectionFUCHSIA>
   {
@@ -58384,6 +62453,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlagBits handleType = ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
     int                              fd         = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportMemoryFdInfoKHR>
+  {
+    using Type = ImportMemoryFdInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImportMemoryFdInfoKHR>
@@ -58498,6 +62575,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                           pHostPointer = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportMemoryHostPointerInfoEXT>
+  {
+    using Type = ImportMemoryHostPointerInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eImportMemoryHostPointerInfoEXT>
   {
@@ -58611,6 +62696,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlagBits handleType = ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
     void *                           handle     = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportMemoryMetalHandleInfoEXT>
+  {
+    using Type = ImportMemoryMetalHandleInfoEXT;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eImportMemoryMetalHandleInfoEXT>
@@ -58737,6 +62830,14 @@ namespace VULKAN_HPP_NAMESPACE
     LPCWSTR                          name       = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportMemoryWin32HandleInfoKHR>
+  {
+    using Type = ImportMemoryWin32HandleInfoKHR;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eImportMemoryWin32HandleInfoKHR>
   {
@@ -58850,6 +62951,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlagsNV handleType = {};
     HANDLE                          handle     = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportMemoryWin32HandleInfoNV>
+  {
+    using Type = ImportMemoryWin32HandleInfoNV;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eImportMemoryWin32HandleInfoNV>
@@ -58975,6 +63084,14 @@ namespace VULKAN_HPP_NAMESPACE
     zx_handle_t                      handle     = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportMemoryZirconHandleInfoFUCHSIA>
+  {
+    using Type = ImportMemoryZirconHandleInfoFUCHSIA;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eImportMemoryZirconHandleInfoFUCHSIA>
   {
@@ -59078,6 +63195,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext     = {};
     MTLBuffer_id  mtlBuffer = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportMetalBufferInfoEXT>
+  {
+    using Type = ImportMetalBufferInfoEXT;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eImportMetalBufferInfoEXT>
@@ -59183,6 +63308,14 @@ namespace VULKAN_HPP_NAMESPACE
     IOSurfaceRef  ioSurface = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportMetalIOSurfaceInfoEXT>
+  {
+    using Type = ImportMetalIOSurfaceInfoEXT;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eImportMetalIoSurfaceInfoEXT>
   {
@@ -59287,6 +63420,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *      pNext          = {};
     MTLSharedEvent_id mtlSharedEvent = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportMetalSharedEventInfoEXT>
+  {
+    using Type = ImportMetalSharedEventInfoEXT;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eImportMetalSharedEventInfoEXT>
@@ -59402,6 +63543,14 @@ namespace VULKAN_HPP_NAMESPACE
     MTLTexture_id       mtlTexture = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportMetalTextureInfoEXT>
+  {
+    using Type = ImportMetalTextureInfoEXT;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eImportMetalTextureInfoEXT>
   {
@@ -59505,6 +63654,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *            pNext  = {};
     struct _screen_buffer * buffer = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportScreenBufferInfoQNX>
+  {
+    using Type = ImportScreenBufferInfoQNX;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eImportScreenBufferInfoQNX>
@@ -59643,6 +63800,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalSemaphoreHandleTypeFlagBits handleType = ExternalSemaphoreHandleTypeFlagBits::eOpaqueFd;
     int                                 fd         = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportSemaphoreFdInfoKHR>
+  {
+    using Type = ImportSemaphoreFdInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eImportSemaphoreFdInfoKHR>
@@ -59792,6 +63957,14 @@ namespace VULKAN_HPP_NAMESPACE
     HANDLE                              handle     = {};
     LPCWSTR                             name       = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportSemaphoreWin32HandleInfoKHR>
+  {
+    using Type = ImportSemaphoreWin32HandleInfoKHR;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eImportSemaphoreWin32HandleInfoKHR>
@@ -59946,6 +64119,14 @@ namespace VULKAN_HPP_NAMESPACE
     zx_handle_t                         zirconHandle = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkImportSemaphoreZirconHandleInfoFUCHSIA>
+  {
+    using Type = ImportSemaphoreZirconHandleInfoFUCHSIA;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eImportSemaphoreZirconHandleInfoFUCHSIA>
   {
@@ -60047,6 +64228,14 @@ namespace VULKAN_HPP_NAMESPACE
     ShaderStageFlags                shaderStages = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectCommandsExecutionSetTokenEXT>
+  {
+    using Type = IndirectCommandsExecutionSetTokenEXT;
+  };
+#endif
+
   // wrapper struct for struct VkIndirectCommandsIndexBufferTokenEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkIndirectCommandsIndexBufferTokenEXT.html
   struct IndirectCommandsIndexBufferTokenEXT
@@ -60131,6 +64320,14 @@ namespace VULKAN_HPP_NAMESPACE
   public:
     IndirectCommandsInputModeFlagBitsEXT mode = IndirectCommandsInputModeFlagBitsEXT::eVulkanIndexBuffer;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectCommandsIndexBufferTokenEXT>
+  {
+    using Type = IndirectCommandsIndexBufferTokenEXT;
+  };
+#endif
 
   // wrapper struct for struct VkPushConstantRange, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkPushConstantRange.html
   struct PushConstantRange
@@ -60229,6 +64426,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t         size       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPushConstantRange>
+  {
+    using Type = PushConstantRange;
+  };
+#endif
+
   // wrapper struct for struct VkIndirectCommandsPushConstantTokenEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkIndirectCommandsPushConstantTokenEXT.html
   struct IndirectCommandsPushConstantTokenEXT
@@ -60310,6 +64515,14 @@ namespace VULKAN_HPP_NAMESPACE
   public:
     PushConstantRange updateRange = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectCommandsPushConstantTokenEXT>
+  {
+    using Type = IndirectCommandsPushConstantTokenEXT;
+  };
+#endif
 
   // wrapper struct for struct VkIndirectCommandsVertexBufferTokenEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkIndirectCommandsVertexBufferTokenEXT.html
@@ -60395,6 +64608,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t vertexBindingUnit = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectCommandsVertexBufferTokenEXT>
+  {
+    using Type = IndirectCommandsVertexBufferTokenEXT;
+  };
+#endif
+
   union IndirectCommandsTokenDataEXT
   {
     using NativeType = VkIndirectCommandsTokenDataEXT;
@@ -60459,6 +64680,14 @@ namespace VULKAN_HPP_NAMESPACE
     const VkIndirectCommandsExecutionSetTokenEXT * pExecutionSet;
 #endif /*VULKAN_HPP_HAS_UNRESTRICTED_UNIONS*/
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectCommandsTokenDataEXT>
+  {
+    using Type = IndirectCommandsTokenDataEXT;
+  };
+#endif
 
   // wrapper struct for struct VkIndirectCommandsLayoutTokenEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkIndirectCommandsLayoutTokenEXT.html
@@ -60558,6 +64787,14 @@ namespace VULKAN_HPP_NAMESPACE
     IndirectCommandsTokenDataEXT data   = {};
     uint32_t                     offset = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectCommandsLayoutTokenEXT>
+  {
+    using Type = IndirectCommandsLayoutTokenEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eIndirectCommandsLayoutTokenEXT>
@@ -60744,6 +64981,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                               tokenCount     = {};
     const IndirectCommandsLayoutTokenEXT * pTokens        = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectCommandsLayoutCreateInfoEXT>
+  {
+    using Type = IndirectCommandsLayoutCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eIndirectCommandsLayoutCreateInfoEXT>
@@ -61051,6 +65296,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t *            pIndexTypeValues             = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectCommandsLayoutTokenNV>
+  {
+    using Type = IndirectCommandsLayoutTokenNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eIndirectCommandsLayoutTokenNV>
   {
@@ -61244,6 +65497,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t *                      pStreamStrides    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectCommandsLayoutCreateInfoNV>
+  {
+    using Type = IndirectCommandsLayoutCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eIndirectCommandsLayoutCreateInfoNV>
   {
@@ -61355,6 +65616,14 @@ namespace VULKAN_HPP_NAMESPACE
     Pipeline      initialPipeline  = {};
     uint32_t      maxPipelineCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectExecutionSetPipelineInfoEXT>
+  {
+    using Type = IndirectExecutionSetPipelineInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eIndirectExecutionSetPipelineInfoEXT>
@@ -61484,6 +65753,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                    setLayoutCount = {};
     const DescriptorSetLayout * pSetLayouts    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectExecutionSetShaderLayoutInfoEXT>
+  {
+    using Type = IndirectExecutionSetShaderLayoutInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eIndirectExecutionSetShaderLayoutInfoEXT>
@@ -61701,6 +65978,14 @@ namespace VULKAN_HPP_NAMESPACE
     const PushConstantRange *                       pPushConstantRanges    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectExecutionSetShaderInfoEXT>
+  {
+    using Type = IndirectExecutionSetShaderInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eIndirectExecutionSetShaderInfoEXT>
   {
@@ -61749,6 +66034,14 @@ namespace VULKAN_HPP_NAMESPACE
     const VkIndirectExecutionSetShaderInfoEXT *   pShaderInfo;
 #endif /*VULKAN_HPP_HAS_UNRESTRICTED_UNIONS*/
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectExecutionSetInfoEXT>
+  {
+    using Type = IndirectExecutionSetInfoEXT;
+  };
+#endif
 
   // wrapper struct for struct VkIndirectExecutionSetCreateInfoEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkIndirectExecutionSetCreateInfoEXT.html
@@ -61839,6 +66132,14 @@ namespace VULKAN_HPP_NAMESPACE
     IndirectExecutionSetInfoTypeEXT type  = IndirectExecutionSetInfoTypeEXT::ePipelines;
     IndirectExecutionSetInfoEXT     info  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkIndirectExecutionSetCreateInfoEXT>
+  {
+    using Type = IndirectExecutionSetCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eIndirectExecutionSetCreateInfoEXT>
@@ -61942,6 +66243,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext     = {};
     void *        pUserData = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkInitializePerformanceApiInfoINTEL>
+  {
+    using Type = InitializePerformanceApiInfoINTEL;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eInitializePerformanceApiInfoINTEL>
@@ -62051,6 +66360,13 @@ namespace VULKAN_HPP_NAMESPACE
     ImageAspectFlags aspectMask           = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkInputAttachmentAspectReference>
+  {
+    using Type = InputAttachmentAspectReference;
+  };
+#endif
   using InputAttachmentAspectReferenceKHR = InputAttachmentAspectReference;
 
   // wrapper struct for struct VkInstanceCreateInfo, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkInstanceCreateInfo.html
@@ -62269,6 +66585,14 @@ namespace VULKAN_HPP_NAMESPACE
     const char * const *    ppEnabledExtensionNames = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkInstanceCreateInfo>
+  {
+    using Type = InstanceCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eInstanceCreateInfo>
   {
@@ -62375,6 +66699,14 @@ namespace VULKAN_HPP_NAMESPACE
     Semaphore     signalSemaphore = {};
     uint64_t      value           = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkLatencySleepInfoNV>
+  {
+    using Type = LatencySleepInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eLatencySleepInfoNV>
@@ -62498,6 +66830,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      minimumIntervalUs = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkLatencySleepModeInfoNV>
+  {
+    using Type = LatencySleepModeInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eLatencySleepModeInfoNV>
   {
@@ -62599,6 +66939,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext     = {};
     uint64_t      presentID = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkLatencySubmissionPresentIdNV>
+  {
+    using Type = LatencySubmissionPresentIdNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eLatencySubmissionPresentIdNV>
@@ -62727,6 +67075,14 @@ namespace VULKAN_HPP_NAMESPACE
     PresentModeKHR * pPresentModes    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkLatencySurfaceCapabilitiesNV>
+  {
+    using Type = LatencySurfaceCapabilitiesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eLatencySurfaceCapabilitiesNV>
   {
@@ -62825,6 +67181,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                                         implementationVersion = {};
     ArrayWrapper1D<char, VK_MAX_DESCRIPTION_SIZE>    description           = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkLayerProperties>
+  {
+    using Type = LayerProperties;
+  };
+#endif
 
   // wrapper struct for struct VkLayerSettingEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkLayerSettingEXT.html
   struct LayerSettingEXT
@@ -63076,6 +67440,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *        pValues      = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkLayerSettingEXT>
+  {
+    using Type = LayerSettingEXT;
+  };
+#endif
+
   // wrapper struct for struct VkLayerSettingsCreateInfoEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkLayerSettingsCreateInfoEXT.html
   struct LayerSettingsCreateInfoEXT
   {
@@ -63197,6 +67569,14 @@ namespace VULKAN_HPP_NAMESPACE
     const LayerSettingEXT * pSettings    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkLayerSettingsCreateInfoEXT>
+  {
+    using Type = LayerSettingsCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eLayerSettingsCreateInfoEXT>
   {
@@ -63308,6 +67688,14 @@ namespace VULKAN_HPP_NAMESPACE
     MacOSSurfaceCreateFlagsMVK flags = {};
     const void *               pView = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMacOSSurfaceCreateInfoMVK>
+  {
+    using Type = MacOSSurfaceCreateInfoMVK;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eMacosSurfaceCreateInfoMVK>
@@ -63426,6 +67814,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    size   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMappedMemoryRange>
+  {
+    using Type = MappedMemoryRange;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMappedMemoryRange>
   {
@@ -63537,6 +67933,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t            deviceMask = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryAllocateFlagsInfo>
+  {
+    using Type = MemoryAllocateFlagsInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryAllocateFlagsInfo>
   {
@@ -63647,6 +68051,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      memoryTypeIndex = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryAllocateInfo>
+  {
+    using Type = MemoryAllocateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryAllocateInfo>
   {
@@ -63753,6 +68165,14 @@ namespace VULKAN_HPP_NAMESPACE
     AccessFlags   srcAccessMask = {};
     AccessFlags   dstAccessMask = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryBarrier>
+  {
+    using Type = MemoryBarrier;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eMemoryBarrier>
@@ -63866,6 +68286,14 @@ namespace VULKAN_HPP_NAMESPACE
     AccessFlags3KHR dstAccessMask3 = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryBarrierAccessFlags3KHR>
+  {
+    using Type = MemoryBarrierAccessFlags3KHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryBarrierAccessFlags3KHR>
   {
@@ -63976,6 +68404,14 @@ namespace VULKAN_HPP_NAMESPACE
     Buffer        buffer = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryDedicatedAllocateInfo>
+  {
+    using Type = MemoryDedicatedAllocateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryDedicatedAllocateInfo>
   {
@@ -64081,6 +68517,14 @@ namespace VULKAN_HPP_NAMESPACE
     TensorARM     tensor = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryDedicatedAllocateInfoTensorARM>
+  {
+    using Type = MemoryDedicatedAllocateInfoTensorARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryDedicatedAllocateInfoTensorARM>
   {
@@ -64174,6 +68618,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        requiresDedicatedAllocation = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryDedicatedRequirements>
+  {
+    using Type = MemoryDedicatedRequirements;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryDedicatedRequirements>
   {
@@ -64263,6 +68715,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext          = {};
     uint32_t      memoryTypeBits = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryFdPropertiesKHR>
+  {
+    using Type = MemoryFdPropertiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eMemoryFdPropertiesKHR>
@@ -64367,6 +68827,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext  = {};
     DeviceMemory  memory = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryGetAndroidHardwareBufferInfoANDROID>
+  {
+    using Type = MemoryGetAndroidHardwareBufferInfoANDROID;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eMemoryGetAndroidHardwareBufferInfoANDROID>
@@ -64477,6 +68945,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceMemory                     memory     = {};
     ExternalMemoryHandleTypeFlagBits handleType = ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryGetFdInfoKHR>
+  {
+    using Type = MemoryGetFdInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eMemoryGetFdInfoKHR>
@@ -64591,6 +69067,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlagBits handleType = ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryGetMetalHandleInfoEXT>
+  {
+    using Type = MemoryGetMetalHandleInfoEXT;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryGetMetalHandleInfoEXT>
   {
@@ -64704,6 +69188,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlagBits handleType = ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryGetRemoteAddressInfoNV>
+  {
+    using Type = MemoryGetRemoteAddressInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryGetRemoteAddressInfoNV>
   {
@@ -64816,6 +69308,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceMemory                     memory     = {};
     ExternalMemoryHandleTypeFlagBits handleType = ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryGetWin32HandleInfoKHR>
+  {
+    using Type = MemoryGetWin32HandleInfoKHR;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eMemoryGetWin32HandleInfoKHR>
@@ -64932,6 +69432,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlagBits handleType = ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryGetZirconHandleInfoFUCHSIA>
+  {
+    using Type = MemoryGetZirconHandleInfoFUCHSIA;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryGetZirconHandleInfoFUCHSIA>
   {
@@ -65013,6 +69521,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize      size  = {};
     MemoryHeapFlags flags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryHeap>
+  {
+    using Type = MemoryHeap;
+  };
+#endif
 
   // wrapper struct for struct VkMemoryHostPointerPropertiesEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkMemoryHostPointerPropertiesEXT.html
@@ -65096,6 +69612,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext          = {};
     uint32_t      memoryTypeBits = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryHostPointerPropertiesEXT>
+  {
+    using Type = MemoryHostPointerPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eMemoryHostPointerPropertiesEXT>
@@ -65223,6 +69747,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize     size   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryMapInfo>
+  {
+    using Type = MemoryMapInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryMapInfo>
   {
@@ -65327,6 +69859,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pPlacedAddress = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryMapPlacedInfoEXT>
+  {
+    using Type = MemoryMapPlacedInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryMapPlacedInfoEXT>
   {
@@ -65416,6 +69956,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext          = {};
     uint32_t      memoryTypeBits = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryMetalHandlePropertiesEXT>
+  {
+    using Type = MemoryMetalHandlePropertiesEXT;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eMemoryMetalHandlePropertiesEXT>
@@ -65520,6 +70068,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext                = {};
     uint64_t      opaqueCaptureAddress = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryOpaqueCaptureAddressAllocateInfo>
+  {
+    using Type = MemoryOpaqueCaptureAddressAllocateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eMemoryOpaqueCaptureAddressAllocateInfo>
@@ -65626,6 +70182,14 @@ namespace VULKAN_HPP_NAMESPACE
     float         priority = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryPriorityAllocateInfoEXT>
+  {
+    using Type = MemoryPriorityAllocateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryPriorityAllocateInfoEXT>
   {
@@ -65709,6 +70273,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t   memoryTypeBits = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryRequirements>
+  {
+    using Type = MemoryRequirements;
+  };
+#endif
+
   // wrapper struct for struct VkMemoryRequirements2, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkMemoryRequirements2.html
   struct MemoryRequirements2
   {
@@ -65789,6 +70361,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *             pNext              = {};
     MemoryRequirements memoryRequirements = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryRequirements2>
+  {
+    using Type = MemoryRequirements2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eMemoryRequirements2>
@@ -65872,6 +70452,14 @@ namespace VULKAN_HPP_NAMESPACE
     MemoryPropertyFlags propertyFlags = {};
     uint32_t            heapIndex     = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryType>
+  {
+    using Type = MemoryType;
+  };
+#endif
 
   // wrapper struct for struct VkMemoryUnmapInfo, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkMemoryUnmapInfo.html
   struct MemoryUnmapInfo
@@ -65974,6 +70562,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceMemory     memory = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryUnmapInfo>
+  {
+    using Type = MemoryUnmapInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryUnmapInfo>
   {
@@ -66066,6 +70662,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      memoryTypeBits = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryWin32HandlePropertiesKHR>
+  {
+    using Type = MemoryWin32HandlePropertiesKHR;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eMemoryWin32HandlePropertiesKHR>
   {
@@ -66156,6 +70760,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext          = {};
     uint32_t      memoryTypeBits = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMemoryZirconHandlePropertiesFUCHSIA>
+  {
+    using Type = MemoryZirconHandlePropertiesFUCHSIA;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eMemoryZirconHandlePropertiesFUCHSIA>
@@ -66270,6 +70882,14 @@ namespace VULKAN_HPP_NAMESPACE
     MetalSurfaceCreateFlagsEXT flags  = {};
     const CAMetalLayer *       pLayer = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMetalSurfaceCreateInfoEXT>
+  {
+    using Type = MetalSurfaceCreateInfoEXT;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eMetalSurfaceCreateInfoEXT>
@@ -66515,6 +71135,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize                       triangleArrayStride = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMicromapBuildInfoEXT>
+  {
+    using Type = MicromapBuildInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMicromapBuildInfoEXT>
   {
@@ -66636,6 +71264,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    buildScratchSize = {};
     Bool32        discardable      = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMicromapBuildSizesInfoEXT>
+  {
+    using Type = MicromapBuildSizesInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eMicromapBuildSizesInfoEXT>
@@ -66794,6 +71430,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceAddress          deviceAddress = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMicromapCreateInfoEXT>
+  {
+    using Type = MicromapCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMicromapCreateInfoEXT>
   {
@@ -66899,6 +71543,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint16_t format           = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMicromapTriangleEXT>
+  {
+    using Type = MicromapTriangleEXT;
+  };
+#endif
+
   // wrapper struct for struct VkMicromapVersionInfoEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkMicromapVersionInfoEXT.html
   struct MicromapVersionInfoEXT
   {
@@ -66994,6 +71646,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *    pNext        = {};
     const uint8_t * pVersionData = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMicromapVersionInfoEXT>
+  {
+    using Type = MicromapVersionInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eMicromapVersionInfoEXT>
@@ -67101,6 +71761,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t  vertexOffset = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMultiDrawIndexedInfoEXT>
+  {
+    using Type = MultiDrawIndexedInfoEXT;
+  };
+#endif
+
   // wrapper struct for struct VkMultiDrawInfoEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkMultiDrawInfoEXT.html
   struct MultiDrawInfoEXT
   {
@@ -67190,6 +71858,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t vertexCount = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMultiDrawInfoEXT>
+  {
+    using Type = MultiDrawInfoEXT;
+  };
+#endif
+
   // wrapper struct for struct VkMultisamplePropertiesEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkMultisamplePropertiesEXT.html
   struct MultisamplePropertiesEXT
   {
@@ -67271,6 +71947,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                     = {};
     Extent2D      maxSampleLocationGridSize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMultisamplePropertiesEXT>
+  {
+    using Type = MultisamplePropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eMultisamplePropertiesEXT>
@@ -67387,6 +72071,14 @@ namespace VULKAN_HPP_NAMESPACE
     SampleCountFlagBits rasterizationSamples                    = SampleCountFlagBits::e1;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMultisampledRenderToSingleSampledInfoEXT>
+  {
+    using Type = MultisampledRenderToSingleSampledInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMultisampledRenderToSingleSampledInfoEXT>
   {
@@ -67500,6 +72192,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        perViewAttributes              = {};
     Bool32        perViewAttributesPositionXOnly = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMultiviewPerViewAttributesInfoNVX>
+  {
+    using Type = MultiviewPerViewAttributesInfoNVX;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eMultiviewPerViewAttributesInfoNVX>
@@ -67636,6 +72336,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Rect2D * pPerViewRenderAreas    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM>
+  {
+    using Type = MultiviewPerViewRenderAreasRenderPassBeginInfoQCOM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM>
   {
@@ -67750,6 +72458,13 @@ namespace VULKAN_HPP_NAMESPACE
     const DescriptorType * pDescriptorTypes    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMutableDescriptorTypeListEXT>
+  {
+    using Type = MutableDescriptorTypeListEXT;
+  };
+#endif
   using MutableDescriptorTypeListVALVE = MutableDescriptorTypeListEXT;
 
   // wrapper struct for struct VkMutableDescriptorTypeCreateInfoEXT, see
@@ -67882,6 +72597,14 @@ namespace VULKAN_HPP_NAMESPACE
     const MutableDescriptorTypeListEXT * pMutableDescriptorTypeLists    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkMutableDescriptorTypeCreateInfoEXT>
+  {
+    using Type = MutableDescriptorTypeCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eMutableDescriptorTypeCreateInfoEXT>
   {
@@ -67988,6 +72711,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext                       = {};
     const void *  opaqueCaptureDescriptorData = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkOpaqueCaptureDescriptorDataCreateInfoEXT>
+  {
+    using Type = OpaqueCaptureDescriptorDataCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eOpaqueCaptureDescriptorDataCreateInfoEXT>
@@ -68127,6 +72858,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Rect2D *            pRegions    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkOpticalFlowExecuteInfoNV>
+  {
+    using Type = OpticalFlowExecuteInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eOpticalFlowExecuteInfoNV>
   {
@@ -68229,6 +72968,14 @@ namespace VULKAN_HPP_NAMESPACE
     OpticalFlowUsageFlagsNV usage = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkOpticalFlowImageFormatInfoNV>
+  {
+    using Type = OpticalFlowImageFormatInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eOpticalFlowImageFormatInfoNV>
   {
@@ -68317,6 +73064,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext  = {};
     Format        format = Format::eUndefined;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkOpticalFlowImageFormatPropertiesNV>
+  {
+    using Type = OpticalFlowImageFormatPropertiesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eOpticalFlowImageFormatPropertiesNV>
@@ -68507,6 +73262,14 @@ namespace VULKAN_HPP_NAMESPACE
     OpticalFlowSessionCreateFlagsNV flags            = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkOpticalFlowSessionCreateInfoNV>
+  {
+    using Type = OpticalFlowSessionCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eOpticalFlowSessionCreateInfoNV>
   {
@@ -68629,6 +73392,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pPrivateData = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkOpticalFlowSessionCreatePrivateDataInfoNV>
+  {
+    using Type = OpticalFlowSessionCreatePrivateDataInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eOpticalFlowSessionCreatePrivateDataInfoNV>
   {
@@ -68732,6 +73503,14 @@ namespace VULKAN_HPP_NAMESPACE
     OutOfBandQueueTypeNV queueType = OutOfBandQueueTypeNV::eRender;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkOutOfBandQueueTypeInfoNV>
+  {
+    using Type = OutOfBandQueueTypeInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eOutOfBandQueueTypeInfoNV>
   {
@@ -68834,6 +73613,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                      = {};
     Bool32        enablePartitionTranslation = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPartitionedAccelerationStructureFlagsNV>
+  {
+    using Type = PartitionedAccelerationStructureFlagsNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePartitionedAccelerationStructureFlagsNV>
@@ -68948,6 +73735,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      instanceContributionToHitGroupIndex = {};
     DeviceAddress accelerationStructure               = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPartitionedAccelerationStructureUpdateInstanceDataNV>
+  {
+    using Type = PartitionedAccelerationStructureUpdateInstanceDataNV;
+  };
+#endif
 
   // wrapper struct for struct VkPartitionedAccelerationStructureWriteInstanceDataNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPartitionedAccelerationStructureWriteInstanceDataNV.html
@@ -69131,6 +73926,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceAddress                                   accelerationStructure               = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPartitionedAccelerationStructureWriteInstanceDataNV>
+  {
+    using Type = PartitionedAccelerationStructureWriteInstanceDataNV;
+  };
+#endif
+
   // wrapper struct for struct VkPartitionedAccelerationStructureWritePartitionTranslationDataNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPartitionedAccelerationStructureWritePartitionTranslationDataNV.html
   struct PartitionedAccelerationStructureWritePartitionTranslationDataNV
@@ -69232,6 +74035,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<float, 3> partitionTranslation = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPartitionedAccelerationStructureWritePartitionTranslationDataNV>
+  {
+    using Type = PartitionedAccelerationStructureWritePartitionTranslationDataNV;
+  };
+#endif
+
   // wrapper struct for struct VkPastPresentationTimingGOOGLE, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkPastPresentationTimingGOOGLE.html
   struct PastPresentationTimingGOOGLE
   {
@@ -69321,6 +74132,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t presentMargin       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPastPresentationTimingGOOGLE>
+  {
+    using Type = PastPresentationTimingGOOGLE;
+  };
+#endif
+
   // wrapper struct for struct VkPerTileBeginInfoQCOM, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkPerTileBeginInfoQCOM.html
   struct PerTileBeginInfoQCOM
   {
@@ -69405,6 +74224,14 @@ namespace VULKAN_HPP_NAMESPACE
     StructureType sType = StructureType::ePerTileBeginInfoQCOM;
     const void *  pNext = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPerTileBeginInfoQCOM>
+  {
+    using Type = PerTileBeginInfoQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePerTileBeginInfoQCOM>
@@ -69493,6 +74320,14 @@ namespace VULKAN_HPP_NAMESPACE
     StructureType sType = StructureType::ePerTileEndInfoQCOM;
     const void *  pNext = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPerTileEndInfoQCOM>
+  {
+    using Type = PerTileEndInfoQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePerTileEndInfoQCOM>
@@ -69598,6 +74433,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                      pNext = {};
     PerformanceConfigurationTypeINTEL type  = PerformanceConfigurationTypeINTEL::eCommandQueueMetricsDiscoveryActivated;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPerformanceConfigurationAcquireInfoINTEL>
+  {
+    using Type = PerformanceConfigurationAcquireInfoINTEL;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePerformanceConfigurationAcquireInfoINTEL>
@@ -69717,6 +74560,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<char, VK_MAX_DESCRIPTION_SIZE> description = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPerformanceCounterDescriptionKHR>
+  {
+    using Type = PerformanceCounterDescriptionKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePerformanceCounterDescriptionKHR>
   {
@@ -69822,6 +74673,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<uint8_t, VK_UUID_SIZE> uuid    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPerformanceCounterKHR>
+  {
+    using Type = PerformanceCounterKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePerformanceCounterKHR>
   {
@@ -69901,6 +74760,14 @@ namespace VULKAN_HPP_NAMESPACE
     float    float32;
     double   float64;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPerformanceCounterResultKHR>
+  {
+    using Type = PerformanceCounterResultKHR;
+  };
+#endif
 
   // wrapper struct for struct VkPerformanceMarkerInfoINTEL, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkPerformanceMarkerInfoINTEL.html
   struct PerformanceMarkerInfoINTEL
@@ -69997,6 +74864,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext  = {};
     uint64_t      marker = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPerformanceMarkerInfoINTEL>
+  {
+    using Type = PerformanceMarkerInfoINTEL;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePerformanceMarkerInfoINTEL>
@@ -70120,6 +74995,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t                     parameter = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPerformanceOverrideInfoINTEL>
+  {
+    using Type = PerformanceOverrideInfoINTEL;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePerformanceOverrideInfoINTEL>
   {
@@ -70222,6 +75105,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext            = {};
     uint32_t      counterPassIndex = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPerformanceQuerySubmitInfoKHR>
+  {
+    using Type = PerformanceQuerySubmitInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePerformanceQuerySubmitInfoKHR>
@@ -70326,6 +75217,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      marker = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPerformanceStreamMarkerInfoINTEL>
+  {
+    using Type = PerformanceStreamMarkerInfoINTEL;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePerformanceStreamMarkerInfoINTEL>
   {
@@ -70403,6 +75302,14 @@ namespace VULKAN_HPP_NAMESPACE
 #endif /*VULKAN_HPP_HAS_UNRESTRICTED_UNIONS*/
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPerformanceValueDataINTEL>
+  {
+    using Type = PerformanceValueDataINTEL;
+  };
+#endif
+
   // wrapper struct for struct VkPerformanceValueINTEL, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkPerformanceValueINTEL.html
   struct PerformanceValueINTEL
   {
@@ -70463,6 +75370,14 @@ namespace VULKAN_HPP_NAMESPACE
     PerformanceValueTypeINTEL type = PerformanceValueTypeINTEL::eUint32;
     PerformanceValueDataINTEL data = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPerformanceValueINTEL>
+  {
+    using Type = PerformanceValueINTEL;
+  };
+#endif
 
   // wrapper struct for struct VkPhysicalDevice16BitStorageFeatures, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPhysicalDevice16BitStorageFeatures.html
@@ -70592,6 +75507,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        storageInputOutput16               = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevice16BitStorageFeatures>
+  {
+    using Type = PhysicalDevice16BitStorageFeatures;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevice16BitStorageFeatures>
   {
@@ -70705,6 +75628,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        formatA4R4G4B4 = {};
     Bool32        formatA4B4G4R4 = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevice4444FormatsFeaturesEXT>
+  {
+    using Type = PhysicalDevice4444FormatsFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevice4444FormatsFeaturesEXT>
@@ -70830,6 +75761,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        storagePushConstant8              = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevice8BitStorageFeatures>
+  {
+    using Type = PhysicalDevice8BitStorageFeatures;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevice8BitStorageFeatures>
   {
@@ -70934,6 +75873,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                    = {};
     Bool32        decodeModeSharedExponent = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceASTCDecodeFeaturesEXT>
+  {
+    using Type = PhysicalDeviceASTCDecodeFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceAstcDecodeFeaturesEXT>
@@ -71091,6 +76038,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        descriptorBindingAccelerationStructureUpdateAfterBind = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceAccelerationStructureFeaturesKHR>
+  {
+    using Type = PhysicalDeviceAccelerationStructureFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceAccelerationStructureFeaturesKHR>
   {
@@ -71228,6 +76183,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      minAccelerationStructureScratchOffsetAlignment             = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceAccelerationStructurePropertiesKHR>
+  {
+    using Type = PhysicalDeviceAccelerationStructurePropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceAccelerationStructurePropertiesKHR>
   {
@@ -71332,6 +76295,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        reportAddressBinding = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceAddressBindingReportFeaturesEXT>
+  {
+    using Type = PhysicalDeviceAddressBindingReportFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceAddressBindingReportFeaturesEXT>
   {
@@ -71435,6 +76406,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        amigoProfiling = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceAmigoProfilingFeaturesSEC>
+  {
+    using Type = PhysicalDeviceAmigoProfilingFeaturesSEC;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceAmigoProfilingFeaturesSEC>
   {
@@ -71537,6 +76516,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext   = {};
     Bool32        antiLag = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceAntiLagFeaturesAMD>
+  {
+    using Type = PhysicalDeviceAntiLagFeaturesAMD;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceAntiLagFeaturesAMD>
@@ -71647,6 +76634,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        attachmentFeedbackLoopDynamicState = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT>
+  {
+    using Type = PhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT>
   {
@@ -71754,6 +76749,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        attachmentFeedbackLoopLayout = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT>
+  {
+    using Type = PhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT>
   {
@@ -71859,6 +76862,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                           = {};
     Bool32        advancedBlendCoherentOperations = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT>
+  {
+    using Type = PhysicalDeviceBlendOperationAdvancedFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceBlendOperationAdvancedFeaturesEXT>
@@ -71979,6 +76990,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        advancedBlendAllOperations            = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceBlendOperationAdvancedPropertiesEXT>
+  {
+    using Type = PhysicalDeviceBlendOperationAdvancedPropertiesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceBlendOperationAdvancedPropertiesEXT>
   {
@@ -72093,6 +77112,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        borderColorSwizzle          = {};
     Bool32        borderColorSwizzleFromImage = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceBorderColorSwizzleFeaturesEXT>
+  {
+    using Type = PhysicalDeviceBorderColorSwizzleFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceBorderColorSwizzleFeaturesEXT>
@@ -72219,6 +77246,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        bufferDeviceAddressCaptureReplay = {};
     Bool32        bufferDeviceAddressMultiDevice   = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceBufferDeviceAddressFeatures>
+  {
+    using Type = PhysicalDeviceBufferDeviceAddressFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceBufferDeviceAddressFeatures>
@@ -72348,6 +77383,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        bufferDeviceAddressMultiDevice   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceBufferDeviceAddressFeaturesEXT>
+  {
+    using Type = PhysicalDeviceBufferDeviceAddressFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceBufferDeviceAddressFeaturesEXT>
   {
@@ -72456,6 +77499,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                        = {};
     Bool32        clusterAccelerationStructure = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceClusterAccelerationStructureFeaturesNV>
+  {
+    using Type = PhysicalDeviceClusterAccelerationStructureFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceClusterAccelerationStructureFeaturesNV>
@@ -72594,6 +77645,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      maxClusterGeometryIndex            = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceClusterAccelerationStructurePropertiesNV>
+  {
+    using Type = PhysicalDeviceClusterAccelerationStructurePropertiesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceClusterAccelerationStructurePropertiesNV>
   {
@@ -72710,6 +77769,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        multiviewClusterCullingShader = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceClusterCullingShaderFeaturesHUAWEI>
+  {
+    using Type = PhysicalDeviceClusterCullingShaderFeaturesHUAWEI;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceClusterCullingShaderFeaturesHUAWEI>
   {
@@ -72819,6 +77886,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize                  indirectBufferOffsetAlignment = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceClusterCullingShaderPropertiesHUAWEI>
+  {
+    using Type = PhysicalDeviceClusterCullingShaderPropertiesHUAWEI;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceClusterCullingShaderPropertiesHUAWEI>
   {
@@ -72924,6 +77999,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        clusterShadingRate = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceClusterCullingShaderVrsFeaturesHUAWEI>
+  {
+    using Type = PhysicalDeviceClusterCullingShaderVrsFeaturesHUAWEI;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceClusterCullingShaderVrsFeaturesHUAWEI>
   {
@@ -73027,6 +78110,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        deviceCoherentMemory = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCoherentMemoryFeaturesAMD>
+  {
+    using Type = PhysicalDeviceCoherentMemoryFeaturesAMD;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCoherentMemoryFeaturesAMD>
   {
@@ -73129,6 +78220,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext            = {};
     Bool32        colorWriteEnable = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceColorWriteEnableFeaturesEXT>
+  {
+    using Type = PhysicalDeviceColorWriteEnableFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceColorWriteEnableFeaturesEXT>
@@ -73234,6 +78333,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                    = {};
     Bool32        commandBufferInheritance = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCommandBufferInheritanceFeaturesNV>
+  {
+    using Type = PhysicalDeviceCommandBufferInheritanceFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCommandBufferInheritanceFeaturesNV>
@@ -73353,6 +78460,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        computeDerivativeGroupLinear = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR>
+  {
+    using Type = PhysicalDeviceComputeShaderDerivativesFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceComputeShaderDerivativesFeaturesKHR>
   {
@@ -73446,6 +78561,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                        = {};
     Bool32        meshAndTaskShaderDerivatives = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR>
+  {
+    using Type = PhysicalDeviceComputeShaderDerivativesPropertiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceComputeShaderDerivativesPropertiesKHR>
@@ -73562,6 +78685,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        conditionalRendering          = {};
     Bool32        inheritedConditionalRendering = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceConditionalRenderingFeaturesEXT>
+  {
+    using Type = PhysicalDeviceConditionalRenderingFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceConditionalRenderingFeaturesEXT>
@@ -73706,6 +78837,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        fullyCoveredFragmentShaderInputVariable     = {};
     Bool32        conservativeRasterizationPostDepthCoverage  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceConservativeRasterizationPropertiesEXT>
+  {
+    using Type = PhysicalDeviceConservativeRasterizationPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceConservativeRasterizationPropertiesEXT>
@@ -73894,6 +79033,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        cooperativeMatrixBlockLoads           = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCooperativeMatrix2FeaturesNV>
+  {
+    using Type = PhysicalDeviceCooperativeMatrix2FeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCooperativeMatrix2FeaturesNV>
   {
@@ -73996,6 +79143,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      cooperativeMatrixFlexibleDimensionsMaxDimension     = {};
     uint32_t      cooperativeMatrixWorkgroupScopeReservedSharedMemory = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCooperativeMatrix2PropertiesNV>
+  {
+    using Type = PhysicalDeviceCooperativeMatrix2PropertiesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCooperativeMatrix2PropertiesNV>
@@ -74112,6 +79267,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        cooperativeMatrixRobustBufferAccess = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCooperativeMatrixFeaturesKHR>
+  {
+    using Type = PhysicalDeviceCooperativeMatrixFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCooperativeMatrixFeaturesKHR>
   {
@@ -74227,6 +79390,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        cooperativeMatrixRobustBufferAccess = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCooperativeMatrixFeaturesNV>
+  {
+    using Type = PhysicalDeviceCooperativeMatrixFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCooperativeMatrixFeaturesNV>
   {
@@ -74317,6 +79488,14 @@ namespace VULKAN_HPP_NAMESPACE
     ShaderStageFlags cooperativeMatrixSupportedStages = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCooperativeMatrixPropertiesKHR>
+  {
+    using Type = PhysicalDeviceCooperativeMatrixPropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCooperativeMatrixPropertiesKHR>
   {
@@ -74406,6 +79585,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *           pNext                            = {};
     ShaderStageFlags cooperativeMatrixSupportedStages = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCooperativeMatrixPropertiesNV>
+  {
+    using Type = PhysicalDeviceCooperativeMatrixPropertiesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCooperativeMatrixPropertiesNV>
@@ -74521,6 +79708,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        cooperativeVectorTraining = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCooperativeVectorFeaturesNV>
+  {
+    using Type = PhysicalDeviceCooperativeVectorFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCooperativeVectorFeaturesNV>
   {
@@ -74629,10 +79824,140 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t         maxCooperativeVectorComponents               = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCooperativeVectorPropertiesNV>
+  {
+    using Type = PhysicalDeviceCooperativeVectorPropertiesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCooperativeVectorPropertiesNV>
   {
     using Type = PhysicalDeviceCooperativeVectorPropertiesNV;
+  };
+
+  // wrapper struct for struct VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR, see
+  // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR.html
+  struct PhysicalDeviceCopyMemoryIndirectFeaturesKHR
+  {
+    using NativeType = VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceCopyMemoryIndirectFeaturesKHR;
+
+#if !defined( VULKAN_HPP_NO_CONSTRUCTORS ) && !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceCopyMemoryIndirectFeaturesKHR( Bool32 indirectMemoryCopy_        = {},
+                                                                      Bool32 indirectMemoryToImageCopy_ = {},
+                                                                      void * pNext_                     = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , indirectMemoryCopy{ indirectMemoryCopy_ }
+      , indirectMemoryToImageCopy{ indirectMemoryToImageCopy_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceCopyMemoryIndirectFeaturesKHR( PhysicalDeviceCopyMemoryIndirectFeaturesKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    PhysicalDeviceCopyMemoryIndirectFeaturesKHR( VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDeviceCopyMemoryIndirectFeaturesKHR( *reinterpret_cast<PhysicalDeviceCopyMemoryIndirectFeaturesKHR const *>( &rhs ) )
+    {
+    }
+
+    PhysicalDeviceCopyMemoryIndirectFeaturesKHR & operator=( PhysicalDeviceCopyMemoryIndirectFeaturesKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_CONSTRUCTORS*/
+
+    PhysicalDeviceCopyMemoryIndirectFeaturesKHR & operator=( VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<PhysicalDeviceCopyMemoryIndirectFeaturesKHR const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_SETTERS ) && !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceCopyMemoryIndirectFeaturesKHR & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceCopyMemoryIndirectFeaturesKHR & setIndirectMemoryCopy( Bool32 indirectMemoryCopy_ ) VULKAN_HPP_NOEXCEPT
+    {
+      indirectMemoryCopy = indirectMemoryCopy_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceCopyMemoryIndirectFeaturesKHR & setIndirectMemoryToImageCopy( Bool32 indirectMemoryToImageCopy_ ) VULKAN_HPP_NOEXCEPT
+    {
+      indirectMemoryToImageCopy = indirectMemoryToImageCopy_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_SETTERS*/
+
+    operator VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR *>( this );
+    }
+
+    operator VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR *>( this );
+    }
+
+    operator VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR const *() const VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<const VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR *>( this );
+    }
+
+    operator VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR *() VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+    std::tuple<StructureType const &, void * const &, Bool32 const &, Bool32 const &> reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, indirectMemoryCopy, indirectMemoryToImageCopy );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PhysicalDeviceCopyMemoryIndirectFeaturesKHR const & ) const = default;
+#else
+    bool operator==( PhysicalDeviceCopyMemoryIndirectFeaturesKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( indirectMemoryCopy == rhs.indirectMemoryCopy ) &&
+             ( indirectMemoryToImageCopy == rhs.indirectMemoryToImageCopy );
+#  endif
+    }
+
+    bool operator!=( PhysicalDeviceCopyMemoryIndirectFeaturesKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    StructureType sType                     = StructureType::ePhysicalDeviceCopyMemoryIndirectFeaturesKHR;
+    void *        pNext                     = {};
+    Bool32        indirectMemoryCopy        = {};
+    Bool32        indirectMemoryToImageCopy = {};
+  };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR>
+  {
+    using Type = PhysicalDeviceCopyMemoryIndirectFeaturesKHR;
+  };
+#endif
+
+  template <>
+  struct CppType<StructureType, StructureType::ePhysicalDeviceCopyMemoryIndirectFeaturesKHR>
+  {
+    using Type = PhysicalDeviceCopyMemoryIndirectFeaturesKHR;
   };
 
   // wrapper struct for struct VkPhysicalDeviceCopyMemoryIndirectFeaturesNV, see
@@ -74732,62 +80057,71 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        indirectCopy = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCopyMemoryIndirectFeaturesNV>
+  {
+    using Type = PhysicalDeviceCopyMemoryIndirectFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCopyMemoryIndirectFeaturesNV>
   {
     using Type = PhysicalDeviceCopyMemoryIndirectFeaturesNV;
   };
 
-  // wrapper struct for struct VkPhysicalDeviceCopyMemoryIndirectPropertiesNV, see
-  // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPhysicalDeviceCopyMemoryIndirectPropertiesNV.html
-  struct PhysicalDeviceCopyMemoryIndirectPropertiesNV
+  // wrapper struct for struct VkPhysicalDeviceCopyMemoryIndirectPropertiesKHR, see
+  // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPhysicalDeviceCopyMemoryIndirectPropertiesKHR.html
+  struct PhysicalDeviceCopyMemoryIndirectPropertiesKHR
   {
-    using NativeType = VkPhysicalDeviceCopyMemoryIndirectPropertiesNV;
+    using NativeType = VkPhysicalDeviceCopyMemoryIndirectPropertiesKHR;
 
     static const bool                                  allowDuplicate = false;
-    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceCopyMemoryIndirectPropertiesNV;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceCopyMemoryIndirectPropertiesKHR;
 
 #if !defined( VULKAN_HPP_NO_CONSTRUCTORS ) && !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
-    VULKAN_HPP_CONSTEXPR PhysicalDeviceCopyMemoryIndirectPropertiesNV( QueueFlags supportedQueues_ = {}, void * pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceCopyMemoryIndirectPropertiesKHR( QueueFlags supportedQueues_ = {}, void * pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
       : pNext{ pNext_ }
       , supportedQueues{ supportedQueues_ }
     {
     }
 
-    VULKAN_HPP_CONSTEXPR PhysicalDeviceCopyMemoryIndirectPropertiesNV( PhysicalDeviceCopyMemoryIndirectPropertiesNV const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+    VULKAN_HPP_CONSTEXPR
+      PhysicalDeviceCopyMemoryIndirectPropertiesKHR( PhysicalDeviceCopyMemoryIndirectPropertiesKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
 
-    PhysicalDeviceCopyMemoryIndirectPropertiesNV( VkPhysicalDeviceCopyMemoryIndirectPropertiesNV const & rhs ) VULKAN_HPP_NOEXCEPT
-      : PhysicalDeviceCopyMemoryIndirectPropertiesNV( *reinterpret_cast<PhysicalDeviceCopyMemoryIndirectPropertiesNV const *>( &rhs ) )
+    PhysicalDeviceCopyMemoryIndirectPropertiesKHR( VkPhysicalDeviceCopyMemoryIndirectPropertiesKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDeviceCopyMemoryIndirectPropertiesKHR( *reinterpret_cast<PhysicalDeviceCopyMemoryIndirectPropertiesKHR const *>( &rhs ) )
     {
     }
 
-    PhysicalDeviceCopyMemoryIndirectPropertiesNV & operator=( PhysicalDeviceCopyMemoryIndirectPropertiesNV const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+    PhysicalDeviceCopyMemoryIndirectPropertiesKHR & operator=( PhysicalDeviceCopyMemoryIndirectPropertiesKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
 #endif /*VULKAN_HPP_NO_CONSTRUCTORS*/
 
-    PhysicalDeviceCopyMemoryIndirectPropertiesNV & operator=( VkPhysicalDeviceCopyMemoryIndirectPropertiesNV const & rhs ) VULKAN_HPP_NOEXCEPT
+    PhysicalDeviceCopyMemoryIndirectPropertiesKHR & operator=( VkPhysicalDeviceCopyMemoryIndirectPropertiesKHR const & rhs ) VULKAN_HPP_NOEXCEPT
     {
-      *this = *reinterpret_cast<PhysicalDeviceCopyMemoryIndirectPropertiesNV const *>( &rhs );
+      *this = *reinterpret_cast<PhysicalDeviceCopyMemoryIndirectPropertiesKHR const *>( &rhs );
       return *this;
     }
 
-    operator VkPhysicalDeviceCopyMemoryIndirectPropertiesNV const &() const VULKAN_HPP_NOEXCEPT
+    operator VkPhysicalDeviceCopyMemoryIndirectPropertiesKHR const &() const VULKAN_HPP_NOEXCEPT
     {
-      return *reinterpret_cast<const VkPhysicalDeviceCopyMemoryIndirectPropertiesNV *>( this );
+      return *reinterpret_cast<const VkPhysicalDeviceCopyMemoryIndirectPropertiesKHR *>( this );
     }
 
-    operator VkPhysicalDeviceCopyMemoryIndirectPropertiesNV &() VULKAN_HPP_NOEXCEPT
+    operator VkPhysicalDeviceCopyMemoryIndirectPropertiesKHR &() VULKAN_HPP_NOEXCEPT
     {
-      return *reinterpret_cast<VkPhysicalDeviceCopyMemoryIndirectPropertiesNV *>( this );
+      return *reinterpret_cast<VkPhysicalDeviceCopyMemoryIndirectPropertiesKHR *>( this );
     }
 
-    operator VkPhysicalDeviceCopyMemoryIndirectPropertiesNV const *() const VULKAN_HPP_NOEXCEPT
+    operator VkPhysicalDeviceCopyMemoryIndirectPropertiesKHR const *() const VULKAN_HPP_NOEXCEPT
     {
-      return reinterpret_cast<const VkPhysicalDeviceCopyMemoryIndirectPropertiesNV *>( this );
+      return reinterpret_cast<const VkPhysicalDeviceCopyMemoryIndirectPropertiesKHR *>( this );
     }
 
-    operator VkPhysicalDeviceCopyMemoryIndirectPropertiesNV *() VULKAN_HPP_NOEXCEPT
+    operator VkPhysicalDeviceCopyMemoryIndirectPropertiesKHR *() VULKAN_HPP_NOEXCEPT
     {
-      return reinterpret_cast<VkPhysicalDeviceCopyMemoryIndirectPropertiesNV *>( this );
+      return reinterpret_cast<VkPhysicalDeviceCopyMemoryIndirectPropertiesKHR *>( this );
     }
 
 #if defined( VULKAN_HPP_USE_REFLECT )
@@ -74798,9 +80132,9 @@ namespace VULKAN_HPP_NAMESPACE
 #endif
 
 #if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( PhysicalDeviceCopyMemoryIndirectPropertiesNV const & ) const = default;
+    auto operator<=>( PhysicalDeviceCopyMemoryIndirectPropertiesKHR const & ) const = default;
 #else
-    bool operator==( PhysicalDeviceCopyMemoryIndirectPropertiesNV const & rhs ) const VULKAN_HPP_NOEXCEPT
+    bool operator==( PhysicalDeviceCopyMemoryIndirectPropertiesKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
     {
 #  if defined( VULKAN_HPP_USE_REFLECT )
       return this->reflect() == rhs.reflect();
@@ -74809,23 +80143,33 @@ namespace VULKAN_HPP_NAMESPACE
 #  endif
     }
 
-    bool operator!=( PhysicalDeviceCopyMemoryIndirectPropertiesNV const & rhs ) const VULKAN_HPP_NOEXCEPT
+    bool operator!=( PhysicalDeviceCopyMemoryIndirectPropertiesKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
     {
       return !operator==( rhs );
     }
 #endif
 
   public:
-    StructureType sType           = StructureType::ePhysicalDeviceCopyMemoryIndirectPropertiesNV;
+    StructureType sType           = StructureType::ePhysicalDeviceCopyMemoryIndirectPropertiesKHR;
     void *        pNext           = {};
     QueueFlags    supportedQueues = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
   template <>
-  struct CppType<StructureType, StructureType::ePhysicalDeviceCopyMemoryIndirectPropertiesNV>
+  struct CppType<VkPhysicalDeviceCopyMemoryIndirectPropertiesKHR>
   {
-    using Type = PhysicalDeviceCopyMemoryIndirectPropertiesNV;
+    using Type = PhysicalDeviceCopyMemoryIndirectPropertiesKHR;
   };
+#endif
+
+  template <>
+  struct CppType<StructureType, StructureType::ePhysicalDeviceCopyMemoryIndirectPropertiesKHR>
+  {
+    using Type = PhysicalDeviceCopyMemoryIndirectPropertiesKHR;
+  };
+
+  using PhysicalDeviceCopyMemoryIndirectPropertiesNV = PhysicalDeviceCopyMemoryIndirectPropertiesKHR;
 
   // wrapper struct for struct VkPhysicalDeviceCornerSampledImageFeaturesNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPhysicalDeviceCornerSampledImageFeaturesNV.html
@@ -74923,6 +80267,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext              = {};
     Bool32        cornerSampledImage = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCornerSampledImageFeaturesNV>
+  {
+    using Type = PhysicalDeviceCornerSampledImageFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCornerSampledImageFeaturesNV>
@@ -75028,6 +80380,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        coverageReductionMode = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCoverageReductionModeFeaturesNV>
+  {
+    using Type = PhysicalDeviceCoverageReductionModeFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCoverageReductionModeFeaturesNV>
   {
@@ -75131,6 +80491,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        cubicRangeClamp = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCubicClampFeaturesQCOM>
+  {
+    using Type = PhysicalDeviceCubicClampFeaturesQCOM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCubicClampFeaturesQCOM>
   {
@@ -75233,6 +80601,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                  = {};
     Bool32        selectableCubicWeights = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCubicWeightsFeaturesQCOM>
+  {
+    using Type = PhysicalDeviceCubicWeightsFeaturesQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCubicWeightsFeaturesQCOM>
@@ -75338,6 +80714,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        cudaKernelLaunchFeatures = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCudaKernelLaunchFeaturesNV>
+  {
+    using Type = PhysicalDeviceCudaKernelLaunchFeaturesNV;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCudaKernelLaunchFeaturesNV>
   {
@@ -75433,6 +80817,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      computeCapabilityMinor = {};
     uint32_t      computeCapabilityMajor = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCudaKernelLaunchPropertiesNV>
+  {
+    using Type = PhysicalDeviceCudaKernelLaunchPropertiesNV;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCudaKernelLaunchPropertiesNV>
@@ -75550,6 +80942,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        customBorderColorWithoutFormat = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCustomBorderColorFeaturesEXT>
+  {
+    using Type = PhysicalDeviceCustomBorderColorFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCustomBorderColorFeaturesEXT>
   {
@@ -75639,6 +81039,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                        = {};
     uint32_t      maxCustomBorderColorSamplers = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceCustomBorderColorPropertiesEXT>
+  {
+    using Type = PhysicalDeviceCustomBorderColorPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceCustomBorderColorPropertiesEXT>
@@ -75783,6 +81191,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        dataGraphDescriptorBuffer        = {};
     Bool32        dataGraphShaderModule            = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDataGraphFeaturesARM>
+  {
+    using Type = PhysicalDeviceDataGraphFeaturesARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDataGraphFeaturesARM>
@@ -75931,6 +81347,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                                                                            version = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDataGraphOperationSupportARM>
+  {
+    using Type = PhysicalDeviceDataGraphOperationSupportARM;
+  };
+#endif
+
   // wrapper struct for struct VkPhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV.html
   struct PhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV
@@ -76032,6 +81456,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                            = {};
     Bool32        dedicatedAllocationImageAliasing = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV>
+  {
+    using Type = PhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV>
@@ -76137,6 +81569,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext               = {};
     Bool32        denseGeometryFormat = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDenseGeometryFormatFeaturesAMDX>
+  {
+    using Type = PhysicalDeviceDenseGeometryFormatFeaturesAMDX;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDenseGeometryFormatFeaturesAMDX>
@@ -76273,6 +81713,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        depthBiasExact                                  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDepthBiasControlFeaturesEXT>
+  {
+    using Type = PhysicalDeviceDepthBiasControlFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDepthBiasControlFeaturesEXT>
   {
@@ -76376,6 +81824,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        depthClampControl = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDepthClampControlFeaturesEXT>
+  {
+    using Type = PhysicalDeviceDepthClampControlFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDepthClampControlFeaturesEXT>
   {
@@ -76478,6 +81934,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext             = {};
     Bool32        depthClampZeroOne = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDepthClampZeroOneFeaturesKHR>
+  {
+    using Type = PhysicalDeviceDepthClampZeroOneFeaturesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDepthClampZeroOneFeaturesKHR>
@@ -76584,6 +82048,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        depthClipControl = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDepthClipControlFeaturesEXT>
+  {
+    using Type = PhysicalDeviceDepthClipControlFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDepthClipControlFeaturesEXT>
   {
@@ -76687,6 +82159,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        depthClipEnable = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDepthClipEnableFeaturesEXT>
+  {
+    using Type = PhysicalDeviceDepthClipEnableFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDepthClipEnableFeaturesEXT>
   {
@@ -76789,6 +82269,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32           independentResolve           = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDepthStencilResolveProperties>
+  {
+    using Type = PhysicalDeviceDepthStencilResolveProperties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDepthStencilResolveProperties>
   {
@@ -76883,6 +82371,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                                        = {};
     size_t        combinedImageSamplerDensityMapDescriptorSize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDescriptorBufferDensityMapPropertiesEXT>
+  {
+    using Type = PhysicalDeviceDescriptorBufferDensityMapPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDescriptorBufferDensityMapPropertiesEXT>
@@ -77020,6 +82516,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        descriptorBufferImageLayoutIgnored = {};
     Bool32        descriptorBufferPushDescriptors    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDescriptorBufferFeaturesEXT>
+  {
+    using Type = PhysicalDeviceDescriptorBufferFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDescriptorBufferFeaturesEXT>
@@ -77306,6 +82810,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    descriptorBufferAddressSpaceSize                     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDescriptorBufferPropertiesEXT>
+  {
+    using Type = PhysicalDeviceDescriptorBufferPropertiesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDescriptorBufferPropertiesEXT>
   {
@@ -77411,6 +82923,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                             = {};
     Bool32        descriptorBufferTensorDescriptors = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDescriptorBufferTensorFeaturesARM>
+  {
+    using Type = PhysicalDeviceDescriptorBufferTensorFeaturesARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDescriptorBufferTensorFeaturesARM>
@@ -77539,6 +83059,14 @@ namespace VULKAN_HPP_NAMESPACE
     size_t        tensorViewCaptureReplayDescriptorDataSize = {};
     size_t        tensorDescriptorSize                      = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDescriptorBufferTensorPropertiesARM>
+  {
+    using Type = PhysicalDeviceDescriptorBufferTensorPropertiesARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDescriptorBufferTensorPropertiesARM>
@@ -77897,6 +83425,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        runtimeDescriptorArray                             = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDescriptorIndexingFeatures>
+  {
+    using Type = PhysicalDeviceDescriptorIndexingFeatures;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDescriptorIndexingFeatures>
   {
@@ -78125,6 +83661,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      maxDescriptorSetUpdateAfterBindInputAttachments      = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDescriptorIndexingProperties>
+  {
+    using Type = PhysicalDeviceDescriptorIndexingProperties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDescriptorIndexingProperties>
   {
@@ -78234,6 +83778,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        descriptorPoolOverallocation = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDescriptorPoolOverallocationFeaturesNV>
+  {
+    using Type = PhysicalDeviceDescriptorPoolOverallocationFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDescriptorPoolOverallocationFeaturesNV>
   {
@@ -78340,6 +83892,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                    = {};
     Bool32        descriptorSetHostMapping = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDescriptorSetHostMappingFeaturesVALVE>
+  {
+    using Type = PhysicalDeviceDescriptorSetHostMappingFeaturesVALVE;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDescriptorSetHostMappingFeaturesVALVE>
@@ -78471,6 +84031,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        deviceGeneratedComputeCaptureReplay = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDeviceGeneratedCommandsComputeFeaturesNV>
+  {
+    using Type = PhysicalDeviceDeviceGeneratedCommandsComputeFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDeviceGeneratedCommandsComputeFeaturesNV>
   {
@@ -78587,6 +84155,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        dynamicGeneratedPipelineLayout = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT>
+  {
+    using Type = PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDeviceGeneratedCommandsFeaturesEXT>
   {
@@ -78690,6 +84266,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                   = {};
     Bool32        deviceGeneratedCommands = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV>
+  {
+    using Type = PhysicalDeviceDeviceGeneratedCommandsFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDeviceGeneratedCommandsFeaturesNV>
@@ -78853,6 +84437,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                            deviceGeneratedCommandsMultiDrawIndirectCount        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT>
+  {
+    using Type = PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDeviceGeneratedCommandsPropertiesEXT>
   {
@@ -78997,6 +84589,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      minIndirectCommandsBufferOffsetAlignment = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDeviceGeneratedCommandsPropertiesNV>
+  {
+    using Type = PhysicalDeviceDeviceGeneratedCommandsPropertiesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDeviceGeneratedCommandsPropertiesNV>
   {
@@ -79099,6 +84699,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext              = {};
     Bool32        deviceMemoryReport = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDeviceMemoryReportFeaturesEXT>
+  {
+    using Type = PhysicalDeviceDeviceMemoryReportFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDeviceMemoryReportFeaturesEXT>
@@ -79203,6 +84811,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        diagnosticsConfig = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDiagnosticsConfigFeaturesNV>
+  {
+    using Type = PhysicalDeviceDiagnosticsConfigFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDiagnosticsConfigFeaturesNV>
   {
@@ -79291,6 +84907,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                = {};
     uint32_t      maxDiscardRectangles = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDiscardRectanglePropertiesEXT>
+  {
+    using Type = PhysicalDeviceDiscardRectanglePropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDiscardRectanglePropertiesEXT>
@@ -79396,6 +85020,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        displacementMicromap = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDisplacementMicromapFeaturesNV>
+  {
+    using Type = PhysicalDeviceDisplacementMicromapFeaturesNV;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDisplacementMicromapFeaturesNV>
   {
@@ -79488,6 +85120,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                                   = {};
     uint32_t      maxDisplacementMicromapSubdivisionLevel = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDisplacementMicromapPropertiesNV>
+  {
+    using Type = PhysicalDeviceDisplacementMicromapPropertiesNV;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDisplacementMicromapPropertiesNV>
@@ -79608,6 +85248,14 @@ namespace VULKAN_HPP_NAMESPACE
     ConformanceVersion                            conformanceVersion = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDriverProperties>
+  {
+    using Type = PhysicalDeviceDriverProperties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDriverProperties>
   {
@@ -79718,6 +85366,14 @@ namespace VULKAN_HPP_NAMESPACE
     int64_t       renderMinor  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDrmPropertiesEXT>
+  {
+    using Type = PhysicalDeviceDrmPropertiesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDrmPropertiesEXT>
   {
@@ -79820,6 +85476,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext            = {};
     Bool32        dynamicRendering = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDynamicRenderingFeatures>
+  {
+    using Type = PhysicalDeviceDynamicRenderingFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDynamicRenderingFeatures>
@@ -79927,6 +85591,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                     = {};
     Bool32        dynamicRenderingLocalRead = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDynamicRenderingLocalReadFeatures>
+  {
+    using Type = PhysicalDeviceDynamicRenderingLocalReadFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDynamicRenderingLocalReadFeatures>
@@ -80039,6 +85711,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        dynamicRenderingUnusedAttachments = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT>
+  {
+    using Type = PhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT>
   {
@@ -80141,6 +85821,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext            = {};
     Bool32        exclusiveScissor = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExclusiveScissorFeaturesNV>
+  {
+    using Type = PhysicalDeviceExclusiveScissorFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExclusiveScissorFeaturesNV>
@@ -80268,6 +85956,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        extendedDynamicState2LogicOp            = {};
     Bool32        extendedDynamicState2PatchControlPoints = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExtendedDynamicState2FeaturesEXT>
+  {
+    using Type = PhysicalDeviceExtendedDynamicState2FeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExtendedDynamicState2FeaturesEXT>
@@ -80771,6 +86467,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        extendedDynamicState3ShadingRateImageEnable           = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExtendedDynamicState3FeaturesEXT>
+  {
+    using Type = PhysicalDeviceExtendedDynamicState3FeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExtendedDynamicState3FeaturesEXT>
   {
@@ -80861,6 +86565,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                                = {};
     Bool32        dynamicPrimitiveTopologyUnrestricted = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExtendedDynamicState3PropertiesEXT>
+  {
+    using Type = PhysicalDeviceExtendedDynamicState3PropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExtendedDynamicState3PropertiesEXT>
@@ -80965,6 +86677,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                = {};
     Bool32        extendedDynamicState = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExtendedDynamicStateFeaturesEXT>
+  {
+    using Type = PhysicalDeviceExtendedDynamicStateFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExtendedDynamicStateFeaturesEXT>
@@ -81073,6 +86793,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        extendedSparseAddressSpace = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExtendedSparseAddressSpaceFeaturesNV>
+  {
+    using Type = PhysicalDeviceExtendedSparseAddressSpaceFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExtendedSparseAddressSpaceFeaturesNV>
   {
@@ -81171,6 +86899,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageUsageFlags  extendedSparseImageUsageFlags  = {};
     BufferUsageFlags extendedSparseBufferUsageFlags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExtendedSparseAddressSpacePropertiesNV>
+  {
+    using Type = PhysicalDeviceExtendedSparseAddressSpacePropertiesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExtendedSparseAddressSpacePropertiesNV>
@@ -81295,6 +87031,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlagBits handleType = ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExternalBufferInfo>
+  {
+    using Type = PhysicalDeviceExternalBufferInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExternalBufferInfo>
   {
@@ -81390,6 +87134,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      externalDataSize  = {};
     uint32_t      maxExternalQueues = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExternalComputeQueuePropertiesNV>
+  {
+    using Type = PhysicalDeviceExternalComputeQueuePropertiesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExternalComputeQueuePropertiesNV>
@@ -81494,6 +87246,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                    pNext      = {};
     ExternalFenceHandleTypeFlagBits handleType = ExternalFenceHandleTypeFlagBits::eOpaqueFd;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExternalFenceInfo>
+  {
+    using Type = PhysicalDeviceExternalFenceInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExternalFenceInfo>
@@ -81603,6 +87363,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        externalFormatResolve = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExternalFormatResolveFeaturesANDROID>
+  {
+    using Type = PhysicalDeviceExternalFormatResolveFeaturesANDROID;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExternalFormatResolveFeaturesANDROID>
   {
@@ -81706,6 +87474,14 @@ namespace VULKAN_HPP_NAMESPACE
     ChromaLocation externalFormatResolveChromaOffsetX           = ChromaLocation::eCositedEven;
     ChromaLocation externalFormatResolveChromaOffsetY           = ChromaLocation::eCositedEven;
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExternalFormatResolvePropertiesANDROID>
+  {
+    using Type = PhysicalDeviceExternalFormatResolvePropertiesANDROID;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExternalFormatResolvePropertiesANDROID>
@@ -81812,6 +87588,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlagBits handleType = ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExternalImageFormatInfo>
+  {
+    using Type = PhysicalDeviceExternalImageFormatInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExternalImageFormatInfo>
   {
@@ -81904,6 +87688,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                           = {};
     DeviceSize    minImportedHostPointerAlignment = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExternalMemoryHostPropertiesEXT>
+  {
+    using Type = PhysicalDeviceExternalMemoryHostPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExternalMemoryHostPropertiesEXT>
@@ -82007,6 +87799,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext              = {};
     Bool32        externalMemoryRDMA = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExternalMemoryRDMAFeaturesNV>
+  {
+    using Type = PhysicalDeviceExternalMemoryRDMAFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExternalMemoryRdmaFeaturesNV>
@@ -82114,6 +87914,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        screenBufferImport = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExternalMemoryScreenBufferFeaturesQNX>
+  {
+    using Type = PhysicalDeviceExternalMemoryScreenBufferFeaturesQNX;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExternalMemoryScreenBufferFeaturesQNX>
   {
@@ -82218,6 +88026,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                        pNext      = {};
     ExternalSemaphoreHandleTypeFlagBits handleType = ExternalSemaphoreHandleTypeFlagBits::eOpaqueFd;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExternalSemaphoreInfo>
+  {
+    using Type = PhysicalDeviceExternalSemaphoreInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExternalSemaphoreInfo>
@@ -82349,6 +88165,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlagBits handleType   = ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceExternalTensorInfoARM>
+  {
+    using Type = PhysicalDeviceExternalTensorInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceExternalTensorInfoARM>
   {
@@ -82462,6 +88286,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        deviceFaultVendorBinary = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFaultFeaturesEXT>
+  {
+    using Type = PhysicalDeviceFaultFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFaultFeaturesEXT>
   {
@@ -82563,6 +88395,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                 pNext    = {};
     PhysicalDeviceFeatures features = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFeatures2>
+  {
+    using Type = PhysicalDeviceFeatures2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFeatures2>
@@ -82753,6 +88593,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                          shaderRoundingModeRTZFloat64          = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFloatControlsProperties>
+  {
+    using Type = PhysicalDeviceFloatControlsProperties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFloatControlsProperties>
   {
@@ -82858,6 +88706,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        formatPack = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFormatPackFeaturesARM>
+  {
+    using Type = PhysicalDeviceFormatPackFeaturesARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFormatPackFeaturesARM>
   {
@@ -82962,6 +88818,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        fragmentDensityMapDeferred = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentDensityMap2FeaturesEXT>
+  {
+    using Type = PhysicalDeviceFragmentDensityMap2FeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentDensityMap2FeaturesEXT>
   {
@@ -83063,6 +88927,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      maxSubsampledArrayLayers                  = {};
     uint32_t      maxDescriptorSetSubsampledSamplers        = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentDensityMap2PropertiesEXT>
+  {
+    using Type = PhysicalDeviceFragmentDensityMap2PropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentDensityMap2PropertiesEXT>
@@ -83189,6 +89061,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        fragmentDensityMapNonSubsampledImages = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentDensityMapFeaturesEXT>
+  {
+    using Type = PhysicalDeviceFragmentDensityMapFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentDensityMapFeaturesEXT>
   {
@@ -83280,6 +89160,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                     = {};
     Bool32        fragmentDensityMapLayered = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentDensityMapLayeredFeaturesVALVE>
+  {
+    using Type = PhysicalDeviceFragmentDensityMapLayeredFeaturesVALVE;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentDensityMapLayeredFeaturesVALVE>
@@ -83373,6 +89261,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                       = {};
     uint32_t      maxFragmentDensityMapLayers = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentDensityMapLayeredPropertiesVALVE>
+  {
+    using Type = PhysicalDeviceFragmentDensityMapLayeredPropertiesVALVE;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentDensityMapLayeredPropertiesVALVE>
@@ -83480,6 +89376,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        fragmentDensityMapOffset = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentDensityMapOffsetFeaturesEXT>
+  {
+    using Type = PhysicalDeviceFragmentDensityMapOffsetFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentDensityMapOffsetFeaturesEXT>
   {
@@ -83573,6 +89477,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                            = {};
     Extent2D      fragmentDensityOffsetGranularity = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentDensityMapOffsetPropertiesEXT>
+  {
+    using Type = PhysicalDeviceFragmentDensityMapOffsetPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentDensityMapOffsetPropertiesEXT>
@@ -83673,6 +89585,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent2D      maxFragmentDensityTexelSize = {};
     Bool32        fragmentDensityInvocations  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentDensityMapPropertiesEXT>
+  {
+    using Type = PhysicalDeviceFragmentDensityMapPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentDensityMapPropertiesEXT>
@@ -83781,6 +89701,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        fragmentShaderBarycentric = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR>
+  {
+    using Type = PhysicalDeviceFragmentShaderBarycentricFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentShaderBarycentricFeaturesKHR>
   {
@@ -83875,6 +89803,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                                           = {};
     Bool32        triStripVertexOrderIndependentOfProvokingVertex = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentShaderBarycentricPropertiesKHR>
+  {
+    using Type = PhysicalDeviceFragmentShaderBarycentricPropertiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentShaderBarycentricPropertiesKHR>
@@ -84004,6 +89940,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        fragmentShaderShadingRateInterlock = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT>
+  {
+    using Type = PhysicalDeviceFragmentShaderInterlockFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentShaderInterlockFeaturesEXT>
   {
@@ -84132,6 +90076,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        noInvocationFragmentShadingRates = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentShadingRateEnumsFeaturesNV>
+  {
+    using Type = PhysicalDeviceFragmentShadingRateEnumsFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentShadingRateEnumsFeaturesNV>
   {
@@ -84224,6 +90176,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *              pNext                                 = {};
     SampleCountFlagBits maxFragmentShadingRateInvocationCount = SampleCountFlagBits::e1;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentShadingRateEnumsPropertiesNV>
+  {
+    using Type = PhysicalDeviceFragmentShadingRateEnumsPropertiesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentShadingRateEnumsPropertiesNV>
@@ -84351,6 +90311,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        attachmentFragmentShadingRate = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentShadingRateFeaturesKHR>
+  {
+    using Type = PhysicalDeviceFragmentShadingRateFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentShadingRateFeaturesKHR>
   {
@@ -84442,6 +90410,14 @@ namespace VULKAN_HPP_NAMESPACE
     SampleCountFlags sampleCounts = {};
     Extent2D         fragmentSize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentShadingRateKHR>
+  {
+    using Type = PhysicalDeviceFragmentShadingRateKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentShadingRateKHR>
@@ -84636,6 +90612,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32              fragmentShadingRateStrictMultiplyCombiner            = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFragmentShadingRatePropertiesKHR>
+  {
+    using Type = PhysicalDeviceFragmentShadingRatePropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFragmentShadingRatePropertiesKHR>
   {
@@ -84739,6 +90723,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        frameBoundary = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceFrameBoundaryFeaturesEXT>
+  {
+    using Type = PhysicalDeviceFrameBoundaryFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceFrameBoundaryFeaturesEXT>
   {
@@ -84841,6 +90833,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext               = {};
     Bool32        globalPriorityQuery = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceGlobalPriorityQueryFeatures>
+  {
+    using Type = PhysicalDeviceGlobalPriorityQueryFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceGlobalPriorityQueryFeatures>
@@ -84949,6 +90949,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        graphicsPipelineLibrary = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT>
+  {
+    using Type = PhysicalDeviceGraphicsPipelineLibraryFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceGraphicsPipelineLibraryFeaturesEXT>
   {
@@ -85044,6 +91052,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        graphicsPipelineLibraryFastLinking                        = {};
     Bool32        graphicsPipelineLibraryIndependentInterpolationDecoration = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceGraphicsPipelineLibraryPropertiesEXT>
+  {
+    using Type = PhysicalDeviceGraphicsPipelineLibraryPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceGraphicsPipelineLibraryPropertiesEXT>
@@ -85157,6 +91173,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                                                   subsetAllocation    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceGroupProperties>
+  {
+    using Type = PhysicalDeviceGroupProperties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceGroupProperties>
   {
@@ -85262,6 +91286,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        hdrVivid = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceHdrVividFeaturesHUAWEI>
+  {
+    using Type = PhysicalDeviceHdrVividFeaturesHUAWEI;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceHdrVividFeaturesHUAWEI>
   {
@@ -85364,6 +91396,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext         = {};
     Bool32        hostImageCopy = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceHostImageCopyFeatures>
+  {
+    using Type = PhysicalDeviceHostImageCopyFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceHostImageCopyFeatures>
@@ -85564,6 +91604,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                                identicalMemoryTypeRequirements = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceHostImageCopyProperties>
+  {
+    using Type = PhysicalDeviceHostImageCopyProperties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceHostImageCopyProperties>
   {
@@ -85668,6 +91716,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext          = {};
     Bool32        hostQueryReset = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceHostQueryResetFeatures>
+  {
+    using Type = PhysicalDeviceHostQueryResetFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceHostQueryResetFeatures>
@@ -85779,6 +91835,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                              deviceNodeMask  = {};
     Bool32                                deviceLUIDValid = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceIDProperties>
+  {
+    using Type = PhysicalDeviceIDProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceIdProperties>
@@ -85894,6 +91958,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        sampler2DViewOf3D = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImage2DViewOf3DFeaturesEXT>
+  {
+    using Type = PhysicalDeviceImage2DViewOf3DFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImage2DViewOf3DFeaturesEXT>
   {
@@ -85998,6 +92070,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        imageAlignmentControl = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImageAlignmentControlFeaturesMESA>
+  {
+    using Type = PhysicalDeviceImageAlignmentControlFeaturesMESA;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImageAlignmentControlFeaturesMESA>
   {
@@ -86089,6 +92169,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                       = {};
     uint32_t      supportedImageAlignmentMask = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImageAlignmentControlPropertiesMESA>
+  {
+    using Type = PhysicalDeviceImageAlignmentControlPropertiesMESA;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImageAlignmentControlPropertiesMESA>
@@ -86193,6 +92281,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                   = {};
     Bool32        imageCompressionControl = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImageCompressionControlFeaturesEXT>
+  {
+    using Type = PhysicalDeviceImageCompressionControlFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImageCompressionControlFeaturesEXT>
@@ -86302,6 +92398,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                            = {};
     Bool32        imageCompressionControlSwapchain = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImageCompressionControlSwapchainFeaturesEXT>
+  {
+    using Type = PhysicalDeviceImageCompressionControlSwapchainFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImageCompressionControlSwapchainFeaturesEXT>
@@ -86460,6 +92564,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t * pQueueFamilyIndices   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImageDrmFormatModifierInfoEXT>
+  {
+    using Type = PhysicalDeviceImageDrmFormatModifierInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImageDrmFormatModifierInfoEXT>
   {
@@ -86608,6 +92720,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageCreateFlags flags  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImageFormatInfo2>
+  {
+    using Type = PhysicalDeviceImageFormatInfo2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImageFormatInfo2>
   {
@@ -86713,6 +92833,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        textureBlockMatch2 = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImageProcessing2FeaturesQCOM>
+  {
+    using Type = PhysicalDeviceImageProcessing2FeaturesQCOM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImageProcessing2FeaturesQCOM>
   {
@@ -86801,6 +92929,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext               = {};
     Extent2D      maxBlockMatchWindow = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImageProcessing2PropertiesQCOM>
+  {
+    using Type = PhysicalDeviceImageProcessing2PropertiesQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImageProcessing2PropertiesQCOM>
@@ -86925,6 +93061,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        textureBlockMatch     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImageProcessingFeaturesQCOM>
+  {
+    using Type = PhysicalDeviceImageProcessingFeaturesQCOM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImageProcessingFeaturesQCOM>
   {
@@ -87026,6 +93170,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent2D      maxBlockMatchRegion      = {};
     Extent2D      maxBoxFilterBlockSize    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImageProcessingPropertiesQCOM>
+  {
+    using Type = PhysicalDeviceImageProcessingPropertiesQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImageProcessingPropertiesQCOM>
@@ -87129,6 +93281,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext             = {};
     Bool32        robustImageAccess = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImageRobustnessFeatures>
+  {
+    using Type = PhysicalDeviceImageRobustnessFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImageRobustnessFeatures>
@@ -87235,6 +93395,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        imageSlicedViewOf3D = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImageSlicedViewOf3DFeaturesEXT>
+  {
+    using Type = PhysicalDeviceImageSlicedViewOf3DFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImageSlicedViewOf3DFeaturesEXT>
   {
@@ -87339,6 +93507,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageViewType imageViewType = ImageViewType::e1D;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImageViewImageFormatInfoEXT>
+  {
+    using Type = PhysicalDeviceImageViewImageFormatInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImageViewImageFormatInfoEXT>
   {
@@ -87442,6 +93618,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        minLod = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImageViewMinLodFeaturesEXT>
+  {
+    using Type = PhysicalDeviceImageViewMinLodFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImageViewMinLodFeaturesEXT>
   {
@@ -87544,6 +93728,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                = {};
     Bool32        imagelessFramebuffer = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceImagelessFramebufferFeatures>
+  {
+    using Type = PhysicalDeviceImagelessFramebufferFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceImagelessFramebufferFeatures>
@@ -87649,6 +93841,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext          = {};
     Bool32        indexTypeUint8 = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceIndexTypeUint8Features>
+  {
+    using Type = PhysicalDeviceIndexTypeUint8Features;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceIndexTypeUint8Features>
@@ -87758,6 +93958,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                      = {};
     Bool32        inheritedViewportScissor2D = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceInheritedViewportScissorFeaturesNV>
+  {
+    using Type = PhysicalDeviceInheritedViewportScissorFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceInheritedViewportScissorFeaturesNV>
@@ -87874,6 +94082,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        descriptorBindingInlineUniformBlockUpdateAfterBind = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceInlineUniformBlockFeatures>
+  {
+    using Type = PhysicalDeviceInlineUniformBlockFeatures;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceInlineUniformBlockFeatures>
   {
@@ -87989,6 +94205,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      maxDescriptorSetUpdateAfterBindInlineUniformBlocks      = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceInlineUniformBlockProperties>
+  {
+    using Type = PhysicalDeviceInlineUniformBlockProperties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceInlineUniformBlockProperties>
   {
@@ -88093,6 +94317,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext          = {};
     Bool32        invocationMask = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceInvocationMaskFeaturesHUAWEI>
+  {
+    using Type = PhysicalDeviceInvocationMaskFeaturesHUAWEI;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceInvocationMaskFeaturesHUAWEI>
@@ -88199,6 +94431,14 @@ namespace VULKAN_HPP_NAMESPACE
     PhysicalDeviceLayeredApiKHR                            layeredAPI = PhysicalDeviceLayeredApiKHR::eVulkan;
     ArrayWrapper1D<char, VK_MAX_PHYSICAL_DEVICE_NAME_SIZE> deviceName = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceLayeredApiPropertiesKHR>
+  {
+    using Type = PhysicalDeviceLayeredApiPropertiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceLayeredApiPropertiesKHR>
@@ -88330,6 +94570,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                                layeredApiCount = {};
     PhysicalDeviceLayeredApiPropertiesKHR * pLayeredApis    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceLayeredApiPropertiesListKHR>
+  {
+    using Type = PhysicalDeviceLayeredApiPropertiesListKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceLayeredApiPropertiesListKHR>
@@ -89000,6 +95248,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize                  nonCoherentAtomSize                             = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceLimits>
+  {
+    using Type = PhysicalDeviceLimits;
+  };
+#endif
+
   // wrapper struct for struct VkPhysicalDeviceSparseProperties, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPhysicalDeviceSparseProperties.html
   struct PhysicalDeviceSparseProperties
@@ -89095,6 +95351,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32 residencyAlignedMipSize                  = {};
     Bool32 residencyNonResidentStrict               = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSparseProperties>
+  {
+    using Type = PhysicalDeviceSparseProperties;
+  };
+#endif
 
   // wrapper struct for struct VkPhysicalDeviceProperties, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkPhysicalDeviceProperties.html
   struct PhysicalDeviceProperties
@@ -89225,6 +95489,14 @@ namespace VULKAN_HPP_NAMESPACE
     PhysicalDeviceSparseProperties                         sparseProperties  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceProperties>
+  {
+    using Type = PhysicalDeviceProperties;
+  };
+#endif
+
   // wrapper struct for struct VkPhysicalDeviceProperties2, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkPhysicalDeviceProperties2.html
   struct PhysicalDeviceProperties2
   {
@@ -89306,6 +95578,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                   pNext      = {};
     PhysicalDeviceProperties properties = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceProperties2>
+  {
+    using Type = PhysicalDeviceProperties2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceProperties2>
@@ -89400,6 +95680,14 @@ namespace VULKAN_HPP_NAMESPACE
     PhysicalDeviceProperties2 properties = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceLayeredApiVulkanPropertiesKHR>
+  {
+    using Type = PhysicalDeviceLayeredApiVulkanPropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceLayeredApiVulkanPropertiesKHR>
   {
@@ -89489,6 +95777,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                         pNext         = {};
     LayeredDriverUnderlyingApiMSFT underlyingAPI = LayeredDriverUnderlyingApiMSFT::eNone;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceLayeredDriverPropertiesMSFT>
+  {
+    using Type = PhysicalDeviceLayeredDriverPropertiesMSFT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceLayeredDriverPropertiesMSFT>
@@ -89592,6 +95888,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext           = {};
     Bool32        legacyDithering = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceLegacyDitheringFeaturesEXT>
+  {
+    using Type = PhysicalDeviceLegacyDitheringFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceLegacyDitheringFeaturesEXT>
@@ -89697,6 +96001,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        legacyVertexAttributes = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceLegacyVertexAttributesFeaturesEXT>
+  {
+    using Type = PhysicalDeviceLegacyVertexAttributesFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceLegacyVertexAttributesFeaturesEXT>
   {
@@ -89788,6 +96100,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                      = {};
     Bool32        nativeUnalignedPerformance = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceLegacyVertexAttributesPropertiesEXT>
+  {
+    using Type = PhysicalDeviceLegacyVertexAttributesPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceLegacyVertexAttributesPropertiesEXT>
@@ -89941,6 +96261,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        stippledSmoothLines      = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceLineRasterizationFeatures>
+  {
+    using Type = PhysicalDeviceLineRasterizationFeatures;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceLineRasterizationFeatures>
   {
@@ -90032,6 +96360,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                     = {};
     uint32_t      lineSubPixelPrecisionBits = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceLineRasterizationProperties>
+  {
+    using Type = PhysicalDeviceLineRasterizationProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceLineRasterizationProperties>
@@ -90140,6 +96476,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        linearColorAttachment = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceLinearColorAttachmentFeaturesNV>
+  {
+    using Type = PhysicalDeviceLinearColorAttachmentFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceLinearColorAttachmentFeaturesNV>
   {
@@ -90233,6 +96577,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      maxPerSetDescriptors    = {};
     DeviceSize    maxMemoryAllocationSize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMaintenance3Properties>
+  {
+    using Type = PhysicalDeviceMaintenance3Properties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMaintenance3Properties>
@@ -90339,6 +96691,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        maintenance4 = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMaintenance4Features>
+  {
+    using Type = PhysicalDeviceMaintenance4Features;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMaintenance4Features>
   {
@@ -90429,6 +96789,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext         = {};
     DeviceSize    maxBufferSize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMaintenance4Properties>
+  {
+    using Type = PhysicalDeviceMaintenance4Properties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMaintenance4Properties>
@@ -90534,6 +96902,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext        = {};
     Bool32        maintenance5 = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMaintenance5Features>
+  {
+    using Type = PhysicalDeviceMaintenance5Features;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMaintenance5Features>
@@ -90655,6 +97031,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        nonStrictWideLinesUseParallelogram                  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMaintenance5Properties>
+  {
+    using Type = PhysicalDeviceMaintenance5Properties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMaintenance5Properties>
   {
@@ -90760,6 +97144,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        maintenance6 = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMaintenance6Features>
+  {
+    using Type = PhysicalDeviceMaintenance6Features;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMaintenance6Features>
   {
@@ -90859,6 +97251,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      maxCombinedImageSamplerDescriptorCount = {};
     Bool32        fragmentShadingRateClampCombinerInputs = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMaintenance6Properties>
+  {
+    using Type = PhysicalDeviceMaintenance6Properties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMaintenance6Properties>
@@ -90964,6 +97364,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext        = {};
     Bool32        maintenance7 = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMaintenance7FeaturesKHR>
+  {
+    using Type = PhysicalDeviceMaintenance7FeaturesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMaintenance7FeaturesKHR>
@@ -91103,6 +97511,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      maxDescriptorSetUpdateAfterBindTotalBuffersDynamic        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMaintenance7PropertiesKHR>
+  {
+    using Type = PhysicalDeviceMaintenance7PropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMaintenance7PropertiesKHR>
   {
@@ -91205,6 +97621,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext        = {};
     Bool32        maintenance8 = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMaintenance8FeaturesKHR>
+  {
+    using Type = PhysicalDeviceMaintenance8FeaturesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMaintenance8FeaturesKHR>
@@ -91309,6 +97733,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        maintenance9 = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMaintenance9FeaturesKHR>
+  {
+    using Type = PhysicalDeviceMaintenance9FeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMaintenance9FeaturesKHR>
   {
@@ -91403,6 +97835,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                         image2DViewOf3DSparse       = {};
     DefaultVertexAttributeValueKHR defaultVertexAttributeValue = DefaultVertexAttributeValueKHR::eZeroZeroZeroZero;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMaintenance9PropertiesKHR>
+  {
+    using Type = PhysicalDeviceMaintenance9PropertiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMaintenance9PropertiesKHR>
@@ -91527,6 +97967,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        memoryUnmapReserve   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMapMemoryPlacedFeaturesEXT>
+  {
+    using Type = PhysicalDeviceMapMemoryPlacedFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMapMemoryPlacedFeaturesEXT>
   {
@@ -91615,6 +98063,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                       = {};
     DeviceSize    minPlacedMemoryMapAlignment = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMapMemoryPlacedPropertiesEXT>
+  {
+    using Type = PhysicalDeviceMapMemoryPlacedPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMapMemoryPlacedPropertiesEXT>
@@ -91712,6 +98168,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<DeviceSize, VK_MAX_MEMORY_HEAPS> heapBudget = {};
     ArrayWrapper1D<DeviceSize, VK_MAX_MEMORY_HEAPS> heapUsage  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMemoryBudgetPropertiesEXT>
+  {
+    using Type = PhysicalDeviceMemoryBudgetPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMemoryBudgetPropertiesEXT>
@@ -91816,6 +98280,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        memoryDecompression = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMemoryDecompressionFeaturesNV>
+  {
+    using Type = PhysicalDeviceMemoryDecompressionFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMemoryDecompressionFeaturesNV>
   {
@@ -91910,6 +98382,14 @@ namespace VULKAN_HPP_NAMESPACE
     MemoryDecompressionMethodFlagsNV decompressionMethods          = {};
     uint64_t                         maxDecompressionIndirectCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMemoryDecompressionPropertiesNV>
+  {
+    using Type = PhysicalDeviceMemoryDecompressionPropertiesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMemoryDecompressionPropertiesNV>
@@ -92013,6 +98493,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext          = {};
     Bool32        memoryPriority = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMemoryPriorityFeaturesEXT>
+  {
+    using Type = PhysicalDeviceMemoryPriorityFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMemoryPriorityFeaturesEXT>
@@ -92125,6 +98613,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<MemoryHeap, VK_MAX_MEMORY_HEAPS> memoryHeaps     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMemoryProperties>
+  {
+    using Type = PhysicalDeviceMemoryProperties;
+  };
+#endif
+
   // wrapper struct for struct VkPhysicalDeviceMemoryProperties2, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPhysicalDeviceMemoryProperties2.html
   struct PhysicalDeviceMemoryProperties2
@@ -92208,6 +98704,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                         pNext            = {};
     PhysicalDeviceMemoryProperties memoryProperties = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMemoryProperties2>
+  {
+    using Type = PhysicalDeviceMemoryProperties2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMemoryProperties2>
@@ -92355,6 +98859,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        meshShaderQueries                      = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMeshShaderFeaturesEXT>
+  {
+    using Type = PhysicalDeviceMeshShaderFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMeshShaderFeaturesEXT>
   {
@@ -92465,6 +98977,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        taskShader = {};
     Bool32        meshShader = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMeshShaderFeaturesNV>
+  {
+    using Type = PhysicalDeviceMeshShaderFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMeshShaderFeaturesNV>
@@ -92712,6 +99232,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                      prefersCompactPrimitiveOutput         = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMeshShaderPropertiesEXT>
+  {
+    using Type = PhysicalDeviceMeshShaderPropertiesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMeshShaderPropertiesEXT>
   {
@@ -92874,6 +99402,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                    meshOutputPerPrimitiveGranularity = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMeshShaderPropertiesNV>
+  {
+    using Type = PhysicalDeviceMeshShaderPropertiesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMeshShaderPropertiesNV>
   {
@@ -92977,6 +99513,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        multiDraw = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMultiDrawFeaturesEXT>
+  {
+    using Type = PhysicalDeviceMultiDrawFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMultiDrawFeaturesEXT>
   {
@@ -93065,6 +99609,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext             = {};
     uint32_t      maxMultiDrawCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMultiDrawPropertiesEXT>
+  {
+    using Type = PhysicalDeviceMultiDrawPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMultiDrawPropertiesEXT>
@@ -93174,6 +99726,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                             = {};
     Bool32        multisampledRenderToSingleSampled = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT>
+  {
+    using Type = PhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT>
@@ -93298,6 +99858,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        multiviewTessellationShader = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMultiviewFeatures>
+  {
+    using Type = PhysicalDeviceMultiviewFeatures;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMultiviewFeatures>
   {
@@ -93391,6 +99959,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                        = {};
     Bool32        perViewPositionAllComponents = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMultiviewPerViewAttributesPropertiesNVX>
+  {
+    using Type = PhysicalDeviceMultiviewPerViewAttributesPropertiesNVX;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMultiviewPerViewAttributesPropertiesNVX>
@@ -93499,6 +100075,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        multiviewPerViewRenderAreas = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMultiviewPerViewRenderAreasFeaturesQCOM>
+  {
+    using Type = PhysicalDeviceMultiviewPerViewRenderAreasFeaturesQCOM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMultiviewPerViewRenderAreasFeaturesQCOM>
   {
@@ -93606,6 +100190,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        multiviewPerViewViewports = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM>
+  {
+    using Type = PhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM>
   {
@@ -93699,6 +100291,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      maxMultiviewViewCount     = {};
     uint32_t      maxMultiviewInstanceIndex = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMultiviewProperties>
+  {
+    using Type = PhysicalDeviceMultiviewProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMultiviewProperties>
@@ -93805,6 +100405,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                 = {};
     Bool32        mutableDescriptorType = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT>
+  {
+    using Type = PhysicalDeviceMutableDescriptorTypeFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceMutableDescriptorTypeFeaturesEXT>
@@ -93934,6 +100542,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        nestedCommandBufferSimultaneousUse = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceNestedCommandBufferFeaturesEXT>
+  {
+    using Type = PhysicalDeviceNestedCommandBufferFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceNestedCommandBufferFeaturesEXT>
   {
@@ -94024,6 +100640,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                        = {};
     uint32_t      maxCommandBufferNestingLevel = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceNestedCommandBufferPropertiesEXT>
+  {
+    using Type = PhysicalDeviceNestedCommandBufferPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceNestedCommandBufferPropertiesEXT>
@@ -94127,6 +100751,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext              = {};
     Bool32        nonSeamlessCubeMap = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceNonSeamlessCubeMapFeaturesEXT>
+  {
+    using Type = PhysicalDeviceNonSeamlessCubeMapFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceNonSeamlessCubeMapFeaturesEXT>
@@ -94251,6 +100883,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        micromapHostCommands  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceOpacityMicromapFeaturesEXT>
+  {
+    using Type = PhysicalDeviceOpacityMicromapFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceOpacityMicromapFeaturesEXT>
   {
@@ -94344,6 +100984,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      maxOpacity2StateSubdivisionLevel = {};
     uint32_t      maxOpacity4StateSubdivisionLevel = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceOpacityMicromapPropertiesEXT>
+  {
+    using Type = PhysicalDeviceOpacityMicromapPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceOpacityMicromapPropertiesEXT>
@@ -94447,6 +101095,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext       = {};
     Bool32        opticalFlow = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceOpticalFlowFeaturesNV>
+  {
+    using Type = PhysicalDeviceOpticalFlowFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceOpticalFlowFeaturesNV>
@@ -94597,6 +101253,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                   maxNumRegionsOfInterest    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceOpticalFlowPropertiesNV>
+  {
+    using Type = PhysicalDeviceOpticalFlowPropertiesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceOpticalFlowPropertiesNV>
   {
@@ -94694,6 +101358,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      pciDevice   = {};
     uint32_t      pciFunction = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePCIBusInfoPropertiesEXT>
+  {
+    using Type = PhysicalDevicePCIBusInfoPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePciBusInfoPropertiesEXT>
@@ -94801,6 +101473,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                     = {};
     Bool32        pageableDeviceLocalMemory = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT>
+  {
+    using Type = PhysicalDevicePageableDeviceLocalMemoryFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePageableDeviceLocalMemoryFeaturesEXT>
@@ -94910,6 +101590,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        partitionedAccelerationStructure = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePartitionedAccelerationStructureFeaturesNV>
+  {
+    using Type = PhysicalDevicePartitionedAccelerationStructureFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePartitionedAccelerationStructureFeaturesNV>
   {
@@ -95003,6 +101691,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext             = {};
     uint32_t      maxPartitionCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePartitionedAccelerationStructurePropertiesNV>
+  {
+    using Type = PhysicalDevicePartitionedAccelerationStructurePropertiesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePartitionedAccelerationStructurePropertiesNV>
@@ -95118,6 +101814,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        perStageDescriptorSet = {};
     Bool32        dynamicPipelineLayout = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePerStageDescriptorSetFeaturesNV>
+  {
+    using Type = PhysicalDevicePerStageDescriptorSetFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePerStageDescriptorSetFeaturesNV>
@@ -95235,6 +101939,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        performanceCounterMultipleQueryPools = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePerformanceQueryFeaturesKHR>
+  {
+    using Type = PhysicalDevicePerformanceQueryFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePerformanceQueryFeaturesKHR>
   {
@@ -95323,6 +102035,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                         = {};
     Bool32        allowCommandBufferQueryCopies = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePerformanceQueryPropertiesKHR>
+  {
+    using Type = PhysicalDevicePerformanceQueryPropertiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePerformanceQueryPropertiesKHR>
@@ -95426,6 +102146,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext            = {};
     Bool32        pipelineBinaries = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePipelineBinaryFeaturesKHR>
+  {
+    using Type = PhysicalDevicePipelineBinaryFeaturesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePipelineBinaryFeaturesKHR>
@@ -95540,6 +102268,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        pipelineBinaryCompressedData           = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePipelineBinaryPropertiesKHR>
+  {
+    using Type = PhysicalDevicePipelineBinaryPropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePipelineBinaryPropertiesKHR>
   {
@@ -95647,6 +102383,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        pipelineCacheIncrementalMode = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePipelineCacheIncrementalModeFeaturesSEC>
+  {
+    using Type = PhysicalDevicePipelineCacheIncrementalModeFeaturesSEC;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePipelineCacheIncrementalModeFeaturesSEC>
   {
@@ -95753,6 +102497,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                        = {};
     Bool32        pipelineCreationCacheControl = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePipelineCreationCacheControlFeatures>
+  {
+    using Type = PhysicalDevicePipelineCreationCacheControlFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePipelineCreationCacheControlFeatures>
@@ -95863,6 +102615,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        pipelineExecutableInfo = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR>
+  {
+    using Type = PhysicalDevicePipelineExecutablePropertiesFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePipelineExecutablePropertiesFeaturesKHR>
   {
@@ -95970,6 +102730,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        pipelineLibraryGroupHandles = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT>
+  {
+    using Type = PhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT>
   {
@@ -96073,6 +102841,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                   = {};
     Bool32        pipelineOpacityMicromap = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePipelineOpacityMicromapFeaturesARM>
+  {
+    using Type = PhysicalDevicePipelineOpacityMicromapFeaturesARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePipelineOpacityMicromapFeaturesARM>
@@ -96178,6 +102954,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        pipelinePropertiesIdentifier = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePipelinePropertiesFeaturesEXT>
+  {
+    using Type = PhysicalDevicePipelinePropertiesFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePipelinePropertiesFeaturesEXT>
   {
@@ -96281,6 +103065,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                   = {};
     Bool32        pipelineProtectedAccess = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePipelineProtectedAccessFeatures>
+  {
+    using Type = PhysicalDevicePipelineProtectedAccessFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePipelineProtectedAccessFeatures>
@@ -96386,6 +103178,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext              = {};
     Bool32        pipelineRobustness = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePipelineRobustnessFeatures>
+  {
+    using Type = PhysicalDevicePipelineRobustnessFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePipelineRobustnessFeatures>
@@ -96497,6 +103297,14 @@ namespace VULKAN_HPP_NAMESPACE
     PipelineRobustnessImageBehavior  defaultRobustnessImages         = PipelineRobustnessImageBehavior::eDeviceDefault;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePipelineRobustnessProperties>
+  {
+    using Type = PhysicalDevicePipelineRobustnessProperties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePipelineRobustnessProperties>
   {
@@ -96588,6 +103396,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                pNext                 = {};
     PointClippingBehavior pointClippingBehavior = PointClippingBehavior::eAllClipPlanes;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePointClippingProperties>
+  {
+    using Type = PhysicalDevicePointClippingProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePointClippingProperties>
@@ -96867,6 +103683,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        vertexAttributeAccessBeyondStride      = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePortabilitySubsetFeaturesKHR>
+  {
+    using Type = PhysicalDevicePortabilitySubsetFeaturesKHR;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePortabilitySubsetFeaturesKHR>
   {
@@ -96958,6 +103782,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                                = {};
     uint32_t      minVertexInputBindingStrideAlignment = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePortabilitySubsetPropertiesKHR>
+  {
+    using Type = PhysicalDevicePortabilitySubsetPropertiesKHR;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePortabilitySubsetPropertiesKHR>
@@ -97063,6 +103895,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        presentBarrier = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePresentBarrierFeaturesNV>
+  {
+    using Type = PhysicalDevicePresentBarrierFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePresentBarrierFeaturesNV>
   {
@@ -97165,6 +104005,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext      = {};
     Bool32        presentId2 = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePresentId2FeaturesKHR>
+  {
+    using Type = PhysicalDevicePresentId2FeaturesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePresentId2FeaturesKHR>
@@ -97269,6 +104117,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        presentId = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePresentIdFeaturesKHR>
+  {
+    using Type = PhysicalDevicePresentIdFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePresentIdFeaturesKHR>
   {
@@ -97372,6 +104228,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext           = {};
     Bool32        presentMetering = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePresentMeteringFeaturesNV>
+  {
+    using Type = PhysicalDevicePresentMeteringFeaturesNV;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePresentMeteringFeaturesNV>
@@ -97481,6 +104345,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        presentModeFifoLatestReady = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePresentModeFifoLatestReadyFeaturesKHR>
+  {
+    using Type = PhysicalDevicePresentModeFifoLatestReadyFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePresentModeFifoLatestReadyFeaturesKHR>
   {
@@ -97586,6 +104458,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        presentWait2 = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePresentWait2FeaturesKHR>
+  {
+    using Type = PhysicalDevicePresentWait2FeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePresentWait2FeaturesKHR>
   {
@@ -97688,6 +104568,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext       = {};
     Bool32        presentWait = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePresentWaitFeaturesKHR>
+  {
+    using Type = PhysicalDevicePresentWaitFeaturesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePresentWaitFeaturesKHR>
@@ -97806,6 +104694,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        primitiveTopologyListRestart      = {};
     Bool32        primitiveTopologyPatchListRestart = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT>
+  {
+    using Type = PhysicalDevicePrimitiveTopologyListRestartFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePrimitiveTopologyListRestartFeaturesEXT>
@@ -97936,6 +104832,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        primitivesGeneratedQueryWithNonZeroStreams    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT>
+  {
+    using Type = PhysicalDevicePrimitivesGeneratedQueryFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePrimitivesGeneratedQueryFeaturesEXT>
   {
@@ -98038,6 +104942,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext       = {};
     Bool32        privateData = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePrivateDataFeatures>
+  {
+    using Type = PhysicalDevicePrivateDataFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePrivateDataFeatures>
@@ -98144,6 +105056,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        protectedMemory = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceProtectedMemoryFeatures>
+  {
+    using Type = PhysicalDeviceProtectedMemoryFeatures;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceProtectedMemoryFeatures>
   {
@@ -98232,6 +105152,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext            = {};
     Bool32        protectedNoFault = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceProtectedMemoryProperties>
+  {
+    using Type = PhysicalDeviceProtectedMemoryProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceProtectedMemoryProperties>
@@ -98348,6 +105276,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        transformFeedbackPreservesProvokingVertex = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceProvokingVertexFeaturesEXT>
+  {
+    using Type = PhysicalDeviceProvokingVertexFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceProvokingVertexFeaturesEXT>
   {
@@ -98442,6 +105378,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        transformFeedbackPreservesTriangleFanProvokingVertex = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceProvokingVertexPropertiesEXT>
+  {
+    using Type = PhysicalDeviceProvokingVertexPropertiesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceProvokingVertexPropertiesEXT>
   {
@@ -98530,6 +105474,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext              = {};
     uint32_t      maxPushDescriptors = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDevicePushDescriptorProperties>
+  {
+    using Type = PhysicalDevicePushDescriptorProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDevicePushDescriptorProperties>
@@ -98653,6 +105605,14 @@ namespace VULKAN_HPP_NAMESPACE
     PhysicalDeviceDataGraphProcessingEngineTypeARM engineType       = PhysicalDeviceDataGraphProcessingEngineTypeARM::eDefault;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceQueueFamilyDataGraphProcessingEngineInfoARM>
+  {
+    using Type = PhysicalDeviceQueueFamilyDataGraphProcessingEngineInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceQueueFamilyDataGraphProcessingEngineInfoARM>
   {
@@ -98756,6 +105716,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                             = {};
     Bool32        formatRgba10x6WithoutYCbCrSampler = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRGBA10X6FormatsFeaturesEXT>
+  {
+    using Type = PhysicalDeviceRGBA10X6FormatsFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRgba10X6FormatsFeaturesEXT>
@@ -98889,6 +105857,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        rasterizationOrderStencilAttachmentAccess = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT>
+  {
+    using Type = PhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT>
   {
@@ -98994,6 +105970,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderRawAccessChains = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRawAccessChainsFeaturesNV>
+  {
+    using Type = PhysicalDeviceRawAccessChainsFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRawAccessChainsFeaturesNV>
   {
@@ -99096,6 +106080,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext    = {};
     Bool32        rayQuery = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRayQueryFeaturesKHR>
+  {
+    using Type = PhysicalDeviceRayQueryFeaturesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRayQueryFeaturesKHR>
@@ -99204,6 +106196,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        rayTracingInvocationReorder = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRayTracingInvocationReorderFeaturesNV>
+  {
+    using Type = PhysicalDeviceRayTracingInvocationReorderFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRayTracingInvocationReorderFeaturesNV>
   {
@@ -99296,6 +106296,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                            pNext                                     = {};
     RayTracingInvocationReorderModeNV rayTracingInvocationReorderReorderingHint = RayTracingInvocationReorderModeNV::eNone;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRayTracingInvocationReorderPropertiesNV>
+  {
+    using Type = PhysicalDeviceRayTracingInvocationReorderPropertiesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRayTracingInvocationReorderPropertiesNV>
@@ -99410,6 +106418,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        spheres            = {};
     Bool32        linearSweptSpheres = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRayTracingLinearSweptSpheresFeaturesNV>
+  {
+    using Type = PhysicalDeviceRayTracingLinearSweptSpheresFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRayTracingLinearSweptSpheresFeaturesNV>
@@ -99527,6 +106543,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        rayTracingPipelineTraceRaysIndirect2 = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR>
+  {
+    using Type = PhysicalDeviceRayTracingMaintenance1FeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRayTracingMaintenance1FeaturesKHR>
   {
@@ -99641,6 +106665,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        rayTracingMotionBlur                          = {};
     Bool32        rayTracingMotionBlurPipelineTraceRaysIndirect = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRayTracingMotionBlurFeaturesNV>
+  {
+    using Type = PhysicalDeviceRayTracingMotionBlurFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRayTracingMotionBlurFeaturesNV>
@@ -99797,6 +106829,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        rayTraversalPrimitiveCulling                          = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRayTracingPipelineFeaturesKHR>
+  {
+    using Type = PhysicalDeviceRayTracingPipelineFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRayTracingPipelineFeaturesKHR>
   {
@@ -99932,6 +106972,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      maxRayHitAttributeSize             = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRayTracingPipelinePropertiesKHR>
+  {
+    using Type = PhysicalDeviceRayTracingPipelinePropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRayTracingPipelinePropertiesKHR>
   {
@@ -100035,6 +107083,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                   = {};
     Bool32        rayTracingPositionFetch = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRayTracingPositionFetchFeaturesKHR>
+  {
+    using Type = PhysicalDeviceRayTracingPositionFetchFeaturesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRayTracingPositionFetchFeaturesKHR>
@@ -100170,6 +107226,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      maxDescriptorSetAccelerationStructures = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRayTracingPropertiesNV>
+  {
+    using Type = PhysicalDeviceRayTracingPropertiesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRayTracingPropertiesNV>
   {
@@ -100272,6 +107336,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                = {};
     Bool32        rayTracingValidation = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRayTracingValidationFeaturesNV>
+  {
+    using Type = PhysicalDeviceRayTracingValidationFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRayTracingValidationFeaturesNV>
@@ -100379,6 +107451,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        relaxedLineRasterization = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRelaxedLineRasterizationFeaturesIMG>
+  {
+    using Type = PhysicalDeviceRelaxedLineRasterizationFeaturesIMG;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRelaxedLineRasterizationFeaturesIMG>
   {
@@ -100482,6 +107562,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        renderPassStriped = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRenderPassStripedFeaturesARM>
+  {
+    using Type = PhysicalDeviceRenderPassStripedFeaturesARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRenderPassStripedFeaturesARM>
   {
@@ -100575,6 +107663,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent2D      renderPassStripeGranularity = {};
     uint32_t      maxRenderPassStripes        = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRenderPassStripedPropertiesARM>
+  {
+    using Type = PhysicalDeviceRenderPassStripedPropertiesARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRenderPassStripedPropertiesARM>
@@ -100682,6 +107778,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                      = {};
     Bool32        representativeFragmentTest = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV>
+  {
+    using Type = PhysicalDeviceRepresentativeFragmentTestFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRepresentativeFragmentTestFeaturesNV>
@@ -100806,6 +107910,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        nullDescriptor      = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRobustness2FeaturesKHR>
+  {
+    using Type = PhysicalDeviceRobustness2FeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRobustness2FeaturesKHR>
   {
@@ -100901,6 +108013,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    robustStorageBufferAccessSizeAlignment = {};
     DeviceSize    robustUniformBufferAccessSizeAlignment = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceRobustness2PropertiesKHR>
+  {
+    using Type = PhysicalDeviceRobustness2PropertiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceRobustness2PropertiesKHR>
@@ -101021,6 +108141,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                   variableSampleLocations       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSampleLocationsPropertiesEXT>
+  {
+    using Type = PhysicalDeviceSampleLocationsPropertiesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSampleLocationsPropertiesEXT>
   {
@@ -101114,6 +108242,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        filterMinmaxSingleComponentFormats = {};
     Bool32        filterMinmaxImageComponentMapping  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSamplerFilterMinmaxProperties>
+  {
+    using Type = PhysicalDeviceSamplerFilterMinmaxProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSamplerFilterMinmaxProperties>
@@ -101220,6 +108356,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        samplerYcbcrConversion = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSamplerYcbcrConversionFeatures>
+  {
+    using Type = PhysicalDeviceSamplerYcbcrConversionFeatures;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSamplerYcbcrConversionFeatures>
   {
@@ -101324,6 +108468,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext             = {};
     Bool32        scalarBlockLayout = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceScalarBlockLayoutFeatures>
+  {
+    using Type = PhysicalDeviceScalarBlockLayoutFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceScalarBlockLayoutFeatures>
@@ -101430,6 +108582,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        schedulingControls = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSchedulingControlsFeaturesARM>
+  {
+    using Type = PhysicalDeviceSchedulingControlsFeaturesARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSchedulingControlsFeaturesARM>
   {
@@ -101520,6 +108680,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                                   pNext                   = {};
     PhysicalDeviceSchedulingControlsFlagsARM schedulingControlsFlags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSchedulingControlsPropertiesARM>
+  {
+    using Type = PhysicalDeviceSchedulingControlsPropertiesARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSchedulingControlsPropertiesARM>
@@ -101627,6 +108795,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                       = {};
     Bool32        separateDepthStencilLayouts = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures>
+  {
+    using Type = PhysicalDeviceSeparateDepthStencilLayoutsFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSeparateDepthStencilLayoutsFeatures>
@@ -101736,6 +108912,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                      = {};
     Bool32        shaderFloat16VectorAtomics = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderAtomicFloat16VectorFeaturesNV>
+  {
+    using Type = PhysicalDeviceShaderAtomicFloat16VectorFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderAtomicFloat16VectorFeaturesNV>
@@ -101989,6 +109173,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        sparseImageFloat32AtomicMinMax  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT>
+  {
+    using Type = PhysicalDeviceShaderAtomicFloat2FeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderAtomicFloat2FeaturesEXT>
   {
@@ -102231,6 +109423,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        sparseImageFloat32AtomicAdd  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderAtomicFloatFeaturesEXT>
+  {
+    using Type = PhysicalDeviceShaderAtomicFloatFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderAtomicFloatFeaturesEXT>
   {
@@ -102344,6 +109544,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderBufferInt64Atomics = {};
     Bool32        shaderSharedInt64Atomics = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderAtomicInt64Features>
+  {
+    using Type = PhysicalDeviceShaderAtomicInt64Features;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderAtomicInt64Features>
@@ -102471,6 +109679,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderBFloat16CooperativeMatrix = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderBfloat16FeaturesKHR>
+  {
+    using Type = PhysicalDeviceShaderBfloat16FeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderBfloat16FeaturesKHR>
   {
@@ -102584,6 +109800,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderDeviceClock   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderClockFeaturesKHR>
+  {
+    using Type = PhysicalDeviceShaderClockFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderClockFeaturesKHR>
   {
@@ -102687,6 +109911,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderCoreBuiltins = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderCoreBuiltinsFeaturesARM>
+  {
+    using Type = PhysicalDeviceShaderCoreBuiltinsFeaturesARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderCoreBuiltinsFeaturesARM>
   {
@@ -102785,6 +110017,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      shaderWarpsPerCore = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderCoreBuiltinsPropertiesARM>
+  {
+    using Type = PhysicalDeviceShaderCoreBuiltinsPropertiesARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderCoreBuiltinsPropertiesARM>
   {
@@ -102878,6 +110118,14 @@ namespace VULKAN_HPP_NAMESPACE
     ShaderCorePropertiesFlagsAMD shaderCoreFeatures     = {};
     uint32_t                     activeComputeUnitCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderCoreProperties2AMD>
+  {
+    using Type = PhysicalDeviceShaderCoreProperties2AMD;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderCoreProperties2AMD>
@@ -103045,6 +110293,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      vgprAllocationGranularity  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderCorePropertiesAMD>
+  {
+    using Type = PhysicalDeviceShaderCorePropertiesAMD;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderCorePropertiesAMD>
   {
@@ -103140,6 +110396,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      texelRate = {};
     uint32_t      fmaRate   = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderCorePropertiesARM>
+  {
+    using Type = PhysicalDeviceShaderCorePropertiesARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderCorePropertiesARM>
@@ -103248,6 +110512,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderDemoteToHelperInvocation = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderDemoteToHelperInvocationFeatures>
+  {
+    using Type = PhysicalDeviceShaderDemoteToHelperInvocationFeatures;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderDemoteToHelperInvocationFeatures>
   {
@@ -103352,6 +110624,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                = {};
     Bool32        shaderDrawParameters = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderDrawParametersFeatures>
+  {
+    using Type = PhysicalDeviceShaderDrawParametersFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderDrawParametersFeatures>
@@ -103462,6 +110742,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                           = {};
     Bool32        shaderEarlyAndLateFragmentTests = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderEarlyAndLateFragmentTestsFeaturesAMD>
+  {
+    using Type = PhysicalDeviceShaderEarlyAndLateFragmentTestsFeaturesAMD;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderEarlyAndLateFragmentTestsFeaturesAMD>
@@ -103575,6 +110863,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderEnqueue     = {};
     Bool32        shaderMeshEnqueue = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderEnqueueFeaturesAMDX>
+  {
+    using Type = PhysicalDeviceShaderEnqueueFeaturesAMDX;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderEnqueueFeaturesAMDX>
@@ -103708,6 +111004,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                    maxExecutionGraphWorkgroups            = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderEnqueuePropertiesAMDX>
+  {
+    using Type = PhysicalDeviceShaderEnqueuePropertiesAMDX;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderEnqueuePropertiesAMDX>
   {
@@ -103811,6 +111115,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext              = {};
     Bool32        shaderExpectAssume = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderExpectAssumeFeatures>
+  {
+    using Type = PhysicalDeviceShaderExpectAssumeFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderExpectAssumeFeatures>
@@ -103925,6 +111237,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderFloat16 = {};
     Bool32        shaderInt8    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderFloat16Int8Features>
+  {
+    using Type = PhysicalDeviceShaderFloat16Int8Features;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderFloat16Int8Features>
@@ -104044,6 +111364,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderFloat8CooperativeMatrix = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderFloat8FeaturesEXT>
+  {
+    using Type = PhysicalDeviceShaderFloat8FeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderFloat8FeaturesEXT>
   {
@@ -104146,6 +111474,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                = {};
     Bool32        shaderFloatControls2 = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderFloatControls2Features>
+  {
+    using Type = PhysicalDeviceShaderFloatControls2Features;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderFloatControls2Features>
@@ -104264,6 +111600,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        sparseImageInt64Atomics = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT>
+  {
+    using Type = PhysicalDeviceShaderImageAtomicInt64FeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderImageAtomicInt64FeaturesEXT>
   {
@@ -104366,6 +111710,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext          = {};
     Bool32        imageFootprint = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderImageFootprintFeaturesNV>
+  {
+    using Type = PhysicalDeviceShaderImageFootprintFeaturesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderImageFootprintFeaturesNV>
@@ -104470,6 +111822,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                   = {};
     Bool32        shaderIntegerDotProduct = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderIntegerDotProductFeatures>
+  {
+    using Type = PhysicalDeviceShaderIntegerDotProductFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderIntegerDotProductFeatures>
@@ -104751,6 +112111,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        integerDotProductAccumulatingSaturating64BitMixedSignednessAccelerated        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderIntegerDotProductProperties>
+  {
+    using Type = PhysicalDeviceShaderIntegerDotProductProperties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderIntegerDotProductProperties>
   {
@@ -104859,6 +112227,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderIntegerFunctions2 = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderIntegerFunctions2FeaturesINTEL>
+  {
+    using Type = PhysicalDeviceShaderIntegerFunctions2FeaturesINTEL;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderIntegerFunctions2FeaturesINTEL>
   {
@@ -104966,6 +112342,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderMaximalReconvergence = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR>
+  {
+    using Type = PhysicalDeviceShaderMaximalReconvergenceFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderMaximalReconvergenceFeaturesKHR>
   {
@@ -105070,6 +112454,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderModuleIdentifier = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderModuleIdentifierFeaturesEXT>
+  {
+    using Type = PhysicalDeviceShaderModuleIdentifierFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderModuleIdentifierFeaturesEXT>
   {
@@ -105162,6 +112554,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                                pNext                               = {};
     ArrayWrapper1D<uint8_t, VK_UUID_SIZE> shaderModuleIdentifierAlgorithmUUID = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderModuleIdentifierPropertiesEXT>
+  {
+    using Type = PhysicalDeviceShaderModuleIdentifierPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderModuleIdentifierPropertiesEXT>
@@ -105266,6 +112666,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderObject = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderObjectFeaturesEXT>
+  {
+    using Type = PhysicalDeviceShaderObjectFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderObjectFeaturesEXT>
   {
@@ -105359,6 +112767,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<uint8_t, VK_UUID_SIZE> shaderBinaryUUID    = {};
     uint32_t                              shaderBinaryVersion = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderObjectPropertiesEXT>
+  {
+    using Type = PhysicalDeviceShaderObjectPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderObjectPropertiesEXT>
@@ -105462,6 +112878,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext             = {};
     Bool32        shaderQuadControl = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderQuadControlFeaturesKHR>
+  {
+    using Type = PhysicalDeviceShaderQuadControlFeaturesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderQuadControlFeaturesKHR>
@@ -105572,6 +112996,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderRelaxedExtendedInstruction = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR>
+  {
+    using Type = PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR>
   {
@@ -105679,6 +113111,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderReplicatedComposites = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderReplicatedCompositesFeaturesEXT>
+  {
+    using Type = PhysicalDeviceShaderReplicatedCompositesFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderReplicatedCompositesFeaturesEXT>
   {
@@ -105782,6 +113222,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderSMBuiltins = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderSMBuiltinsFeaturesNV>
+  {
+    using Type = PhysicalDeviceShaderSMBuiltinsFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderSmBuiltinsFeaturesNV>
   {
@@ -105873,6 +113321,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      shaderSMCount    = {};
     uint32_t      shaderWarpsPerSM = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderSMBuiltinsPropertiesNV>
+  {
+    using Type = PhysicalDeviceShaderSMBuiltinsPropertiesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderSmBuiltinsPropertiesNV>
@@ -105980,6 +113436,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                       = {};
     Bool32        shaderSubgroupExtendedTypes = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures>
+  {
+    using Type = PhysicalDeviceShaderSubgroupExtendedTypesFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderSubgroupExtendedTypesFeatures>
@@ -106098,6 +113562,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderSubgroupRotateClustered = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderSubgroupRotateFeatures>
+  {
+    using Type = PhysicalDeviceShaderSubgroupRotateFeatures;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderSubgroupRotateFeatures>
   {
@@ -106209,6 +113681,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderSubgroupUniformControlFlow = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR>
+  {
+    using Type = PhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR>
   {
@@ -106313,6 +113793,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                     = {};
     Bool32        shaderTerminateInvocation = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderTerminateInvocationFeatures>
+  {
+    using Type = PhysicalDeviceShaderTerminateInvocationFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderTerminateInvocationFeatures>
@@ -106443,6 +113931,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderTileImageStencilReadAccess = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderTileImageFeaturesEXT>
+  {
+    using Type = PhysicalDeviceShaderTileImageFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderTileImageFeaturesEXT>
   {
@@ -106541,6 +114037,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderTileImageReadSampleFromPixelRateInvocation = {};
     Bool32        shaderTileImageReadFromHelperInvocation          = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderTileImagePropertiesEXT>
+  {
+    using Type = PhysicalDeviceShaderTileImagePropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderTileImagePropertiesEXT>
@@ -106645,6 +114149,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                 = {};
     Bool32        shaderUntypedPointers = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShaderUntypedPointersFeaturesKHR>
+  {
+    using Type = PhysicalDeviceShaderUntypedPointersFeaturesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShaderUntypedPointersFeaturesKHR>
@@ -106761,6 +114273,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shadingRateCoarseSampleOrder = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShadingRateImageFeaturesNV>
+  {
+    using Type = PhysicalDeviceShadingRateImageFeaturesNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShadingRateImageFeaturesNV>
   {
@@ -106857,6 +114377,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      shadingRatePaletteSize      = {};
     uint32_t      shadingRateMaxCoarseSamples = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceShadingRateImagePropertiesNV>
+  {
+    using Type = PhysicalDeviceShadingRateImagePropertiesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceShadingRateImagePropertiesNV>
@@ -107006,6 +114534,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageTiling         tiling  = ImageTiling::eOptimal;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSparseImageFormatInfo2>
+  {
+    using Type = PhysicalDeviceSparseImageFormatInfo2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSparseImageFormatInfo2>
   {
@@ -107108,6 +114644,14 @@ namespace VULKAN_HPP_NAMESPACE
     SubgroupFeatureFlags supportedOperations       = {};
     Bool32               quadOperationsInAllStages = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSubgroupProperties>
+  {
+    using Type = PhysicalDeviceSubgroupProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSubgroupProperties>
@@ -107223,6 +114767,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        computeFullSubgroups = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSubgroupSizeControlFeatures>
+  {
+    using Type = PhysicalDeviceSubgroupSizeControlFeatures;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSubgroupSizeControlFeatures>
   {
@@ -107325,6 +114877,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t         maxComputeWorkgroupSubgroups = {};
     ShaderStageFlags requiredSubgroupSizeStages   = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSubgroupSizeControlProperties>
+  {
+    using Type = PhysicalDeviceSubgroupSizeControlProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSubgroupSizeControlProperties>
@@ -107432,6 +114992,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        subpassMergeFeedback = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSubpassMergeFeedbackFeaturesEXT>
+  {
+    using Type = PhysicalDeviceSubpassMergeFeedbackFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSubpassMergeFeedbackFeaturesEXT>
   {
@@ -107535,6 +115103,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        subpassShading = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSubpassShadingFeaturesHUAWEI>
+  {
+    using Type = PhysicalDeviceSubpassShadingFeaturesHUAWEI;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSubpassShadingFeaturesHUAWEI>
   {
@@ -107624,6 +115200,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                                     = {};
     uint32_t      maxSubpassShadingWorkgroupSizeAspectRatio = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSubpassShadingPropertiesHUAWEI>
+  {
+    using Type = PhysicalDeviceSubpassShadingPropertiesHUAWEI;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSubpassShadingPropertiesHUAWEI>
@@ -107727,6 +115311,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext   = {};
     SurfaceKHR    surface = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSurfaceInfo2KHR>
+  {
+    using Type = PhysicalDeviceSurfaceInfo2KHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSurfaceInfo2KHR>
@@ -107832,6 +115424,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        swapchainMaintenance1 = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR>
+  {
+    using Type = PhysicalDeviceSwapchainMaintenance1FeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSwapchainMaintenance1FeaturesKHR>
   {
@@ -107936,6 +115536,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext            = {};
     Bool32        synchronization2 = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceSynchronization2Features>
+  {
+    using Type = PhysicalDeviceSynchronization2Features;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceSynchronization2Features>
@@ -108102,6 +115710,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        tensors                                       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceTensorFeaturesARM>
+  {
+    using Type = PhysicalDeviceTensorFeaturesARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceTensorFeaturesARM>
   {
@@ -108266,6 +115882,14 @@ namespace VULKAN_HPP_NAMESPACE
     ShaderStageFlags shaderTensorSupportedStages                        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceTensorPropertiesARM>
+  {
+    using Type = PhysicalDeviceTensorPropertiesARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceTensorPropertiesARM>
   {
@@ -108369,6 +115993,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                = {};
     Bool32        texelBufferAlignment = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT>
+  {
+    using Type = PhysicalDeviceTexelBufferAlignmentFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceTexelBufferAlignmentFeaturesEXT>
@@ -108478,6 +116110,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        uniformTexelBufferOffsetSingleTexelAlignment = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceTexelBufferAlignmentProperties>
+  {
+    using Type = PhysicalDeviceTexelBufferAlignmentProperties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceTexelBufferAlignmentProperties>
   {
@@ -108585,6 +116225,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        textureCompressionASTC_HDR = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceTextureCompressionASTCHDRFeatures>
+  {
+    using Type = PhysicalDeviceTextureCompressionASTCHDRFeatures;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceTextureCompressionAstcHdrFeatures>
   {
@@ -108689,6 +116337,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext          = {};
     Bool32        tileMemoryHeap = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceTileMemoryHeapFeaturesQCOM>
+  {
+    using Type = PhysicalDeviceTileMemoryHeapFeaturesQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceTileMemoryHeapFeaturesQCOM>
@@ -108804,6 +116460,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        tileBufferTransfers = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceTileMemoryHeapPropertiesQCOM>
+  {
+    using Type = PhysicalDeviceTileMemoryHeapPropertiesQCOM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceTileMemoryHeapPropertiesQCOM>
   {
@@ -108906,6 +116570,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext          = {};
     Bool32        tileProperties = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceTilePropertiesFeaturesQCOM>
+  {
+    using Type = PhysicalDeviceTilePropertiesFeaturesQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceTilePropertiesFeaturesQCOM>
@@ -109168,6 +116840,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        tileShadingImageProcessing    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceTileShadingFeaturesQCOM>
+  {
+    using Type = PhysicalDeviceTileShadingFeaturesQCOM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceTileShadingFeaturesQCOM>
   {
@@ -109267,6 +116947,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent2D      tileGranularity    = {};
     Extent2D      maxTileShadingRate = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceTileShadingPropertiesQCOM>
+  {
+    using Type = PhysicalDeviceTileShadingPropertiesQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceTileShadingPropertiesQCOM>
@@ -109371,6 +117059,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        timelineSemaphore = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceTimelineSemaphoreFeatures>
+  {
+    using Type = PhysicalDeviceTimelineSemaphoreFeatures;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceTimelineSemaphoreFeatures>
   {
@@ -109462,6 +117158,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                               = {};
     uint64_t      maxTimelineSemaphoreValueDifference = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceTimelineSemaphoreProperties>
+  {
+    using Type = PhysicalDeviceTimelineSemaphoreProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceTimelineSemaphoreProperties>
@@ -109588,6 +117292,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<char, VK_MAX_EXTENSION_NAME_SIZE> layer       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceToolProperties>
+  {
+    using Type = PhysicalDeviceToolProperties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceToolProperties>
   {
@@ -109701,6 +117413,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        transformFeedback = {};
     Bool32        geometryStreams   = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceTransformFeedbackFeaturesEXT>
+  {
+    using Type = PhysicalDeviceTransformFeedbackFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceTransformFeedbackFeaturesEXT>
@@ -109850,6 +117570,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        transformFeedbackDraw                      = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceTransformFeedbackPropertiesEXT>
+  {
+    using Type = PhysicalDeviceTransformFeedbackPropertiesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceTransformFeedbackPropertiesEXT>
   {
@@ -109964,6 +117692,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        unifiedImageLayoutsVideo = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR>
+  {
+    using Type = PhysicalDeviceUnifiedImageLayoutsFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceUnifiedImageLayoutsFeaturesKHR>
   {
@@ -110070,6 +117806,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                       = {};
     Bool32        uniformBufferStandardLayout = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceUniformBufferStandardLayoutFeatures>
+  {
+    using Type = PhysicalDeviceUniformBufferStandardLayoutFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceUniformBufferStandardLayoutFeatures>
@@ -110187,6 +117931,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        variablePointersStorageBuffer = {};
     Bool32        variablePointers              = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVariablePointersFeatures>
+  {
+    using Type = PhysicalDeviceVariablePointersFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVariablePointersFeatures>
@@ -110308,6 +118060,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        vertexAttributeInstanceRateZeroDivisor = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVertexAttributeDivisorFeatures>
+  {
+    using Type = PhysicalDeviceVertexAttributeDivisorFeatures;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVertexAttributeDivisorFeatures>
   {
@@ -110406,6 +118166,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        supportsNonZeroFirstInstance = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVertexAttributeDivisorProperties>
+  {
+    using Type = PhysicalDeviceVertexAttributeDivisorProperties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVertexAttributeDivisorProperties>
   {
@@ -110498,6 +118266,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                  = {};
     uint32_t      maxVertexAttribDivisor = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT>
+  {
+    using Type = PhysicalDeviceVertexAttributeDivisorPropertiesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVertexAttributeDivisorPropertiesEXT>
@@ -110606,6 +118382,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        vertexAttributeRobustness = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVertexAttributeRobustnessFeaturesEXT>
+  {
+    using Type = PhysicalDeviceVertexAttributeRobustnessFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVertexAttributeRobustnessFeaturesEXT>
   {
@@ -110710,6 +118494,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        vertexInputDynamicState = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT>
+  {
+    using Type = PhysicalDeviceVertexInputDynamicStateFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVertexInputDynamicStateFeaturesEXT>
   {
@@ -110812,6 +118604,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext          = {};
     Bool32        videoDecodeVP9 = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVideoDecodeVP9FeaturesKHR>
+  {
+    using Type = PhysicalDeviceVideoDecodeVP9FeaturesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVideoDecodeVp9FeaturesKHR>
@@ -110916,6 +118716,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        videoEncodeAV1 = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVideoEncodeAV1FeaturesKHR>
+  {
+    using Type = PhysicalDeviceVideoEncodeAV1FeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVideoEncodeAv1FeaturesKHR>
   {
@@ -111019,6 +118827,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                   = {};
     Bool32        videoEncodeIntraRefresh = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR>
+  {
+    using Type = PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR>
@@ -111156,6 +118972,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoComponentBitDepthFlagsKHR chromaBitDepth      = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoProfileInfoKHR>
+  {
+    using Type = VideoProfileInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoProfileInfoKHR>
   {
@@ -111269,6 +119093,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                    qualityLevel  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVideoEncodeQualityLevelInfoKHR>
+  {
+    using Type = PhysicalDeviceVideoEncodeQualityLevelInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVideoEncodeQualityLevelInfoKHR>
   {
@@ -111376,10 +119208,133 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        videoEncodeQuantizationMap = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVideoEncodeQuantizationMapFeaturesKHR>
+  {
+    using Type = PhysicalDeviceVideoEncodeQuantizationMapFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVideoEncodeQuantizationMapFeaturesKHR>
   {
     using Type = PhysicalDeviceVideoEncodeQuantizationMapFeaturesKHR;
+  };
+
+  // wrapper struct for struct VkPhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE, see
+  // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE.html
+  struct PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE
+  {
+    using NativeType = VkPhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE;
+
+#if !defined( VULKAN_HPP_NO_CONSTRUCTORS ) && !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE( Bool32 videoEncodeRgbConversion_ = {},
+                                                                              void * pNext_                    = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , videoEncodeRgbConversion{ videoEncodeRgbConversion_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR
+      PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE( PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE( VkPhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE( *reinterpret_cast<PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE const *>( &rhs ) )
+    {
+    }
+
+    PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE &
+      operator=( PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_CONSTRUCTORS*/
+
+    PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE & operator=( VkPhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_SETTERS ) && !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE &
+      setVideoEncodeRgbConversion( Bool32 videoEncodeRgbConversion_ ) VULKAN_HPP_NOEXCEPT
+    {
+      videoEncodeRgbConversion = videoEncodeRgbConversion_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_SETTERS*/
+
+    operator VkPhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE *>( this );
+    }
+
+    operator VkPhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE *>( this );
+    }
+
+    operator VkPhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE const *() const VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<const VkPhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE *>( this );
+    }
+
+    operator VkPhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE *() VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<VkPhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+    std::tuple<StructureType const &, void * const &, Bool32 const &> reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, videoEncodeRgbConversion );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE const & ) const = default;
+#else
+    bool operator==( PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( videoEncodeRgbConversion == rhs.videoEncodeRgbConversion );
+#  endif
+    }
+
+    bool operator!=( PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    StructureType sType                    = StructureType::ePhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE;
+    void *        pNext                    = {};
+    Bool32        videoEncodeRgbConversion = {};
+  };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE>
+  {
+    using Type = PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE;
+  };
+#endif
+
+  template <>
+  struct CppType<StructureType, StructureType::ePhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE>
+  {
+    using Type = PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE;
   };
 
   // wrapper struct for struct VkPhysicalDeviceVideoFormatInfoKHR, see
@@ -111478,6 +119433,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *    pNext      = {};
     ImageUsageFlags imageUsage = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVideoFormatInfoKHR>
+  {
+    using Type = PhysicalDeviceVideoFormatInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVideoFormatInfoKHR>
@@ -111582,6 +119545,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        videoMaintenance1 = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVideoMaintenance1FeaturesKHR>
+  {
+    using Type = PhysicalDeviceVideoMaintenance1FeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVideoMaintenance1FeaturesKHR>
   {
@@ -111684,6 +119655,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext             = {};
     Bool32        videoMaintenance2 = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVideoMaintenance2FeaturesKHR>
+  {
+    using Type = PhysicalDeviceVideoMaintenance2FeaturesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVideoMaintenance2FeaturesKHR>
@@ -111922,6 +119901,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderDrawParameters               = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVulkan11Features>
+  {
+    using Type = PhysicalDeviceVulkan11Features;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVulkan11Features>
   {
@@ -112093,6 +120080,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                              maxPerSetDescriptors              = {};
     DeviceSize                            maxMemoryAllocationSize           = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVulkan11Properties>
+  {
+    using Type = PhysicalDeviceVulkan11Properties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVulkan11Properties>
@@ -112763,6 +120758,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        subgroupBroadcastDynamicId                         = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVulkan12Features>
+  {
+    using Type = PhysicalDeviceVulkan12Features;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVulkan12Features>
   {
@@ -113262,6 +121265,14 @@ namespace VULKAN_HPP_NAMESPACE
     SampleCountFlags                              framebufferIntegerColorSampleCounts                  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVulkan12Properties>
+  {
+    using Type = PhysicalDeviceVulkan12Properties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVulkan12Properties>
   {
@@ -113534,6 +121545,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        shaderIntegerDotProduct                            = {};
     Bool32        maintenance4                                       = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVulkan13Features>
+  {
+    using Type = PhysicalDeviceVulkan13Features;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVulkan13Features>
@@ -113898,6 +121917,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize       maxBufferSize                                                                 = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVulkan13Properties>
+  {
+    using Type = PhysicalDeviceVulkan13Properties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVulkan13Properties>
   {
@@ -114238,6 +122265,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        pushDescriptor                         = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVulkan14Features>
+  {
+    using Type = PhysicalDeviceVulkan14Features;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVulkan14Features>
   {
@@ -114472,6 +122507,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                                identicalMemoryTypeRequirements                     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVulkan14Properties>
+  {
+    using Type = PhysicalDeviceVulkan14Properties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVulkan14Properties>
   {
@@ -114597,6 +122640,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        vulkanMemoryModelDeviceScope                  = {};
     Bool32        vulkanMemoryModelAvailabilityVisibilityChains = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceVulkanMemoryModelFeatures>
+  {
+    using Type = PhysicalDeviceVulkanMemoryModelFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceVulkanMemoryModelFeatures>
@@ -114746,6 +122797,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        workgroupMemoryExplicitLayout16BitAccess       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR>
+  {
+    using Type = PhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR>
   {
@@ -114850,6 +122909,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        ycbcr2plane444Formats = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceYcbcr2Plane444FormatsFeaturesEXT>
+  {
+    using Type = PhysicalDeviceYcbcr2Plane444FormatsFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceYcbcr2Plane444FormatsFeaturesEXT>
   {
@@ -114953,6 +123020,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        ycbcrDegamma = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceYcbcrDegammaFeaturesQCOM>
+  {
+    using Type = PhysicalDeviceYcbcrDegammaFeaturesQCOM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceYcbcrDegammaFeaturesQCOM>
   {
@@ -115055,6 +123130,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext            = {};
     Bool32        ycbcrImageArrays = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceYcbcrImageArraysFeaturesEXT>
+  {
+    using Type = PhysicalDeviceYcbcrImageArraysFeaturesEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceYcbcrImageArraysFeaturesEXT>
@@ -115163,6 +123246,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        zeroInitializeDeviceMemory = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceZeroInitializeDeviceMemoryFeaturesEXT>
+  {
+    using Type = PhysicalDeviceZeroInitializeDeviceMemoryFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceZeroInitializeDeviceMemoryFeaturesEXT>
   {
@@ -115269,6 +123360,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                               = {};
     Bool32        shaderZeroInitializeWorkgroupMemory = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPhysicalDeviceZeroInitializeWorkgroupMemoryFeatures>
+  {
+    using Type = PhysicalDeviceZeroInitializeWorkgroupMemoryFeatures;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePhysicalDeviceZeroInitializeWorkgroupMemoryFeatures>
@@ -115385,6 +123484,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<uint8_t, VK_MAX_PIPELINE_BINARY_KEY_SIZE_KHR> key     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineBinaryKeyKHR>
+  {
+    using Type = PipelineBinaryKeyKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineBinaryKeyKHR>
   {
@@ -115499,6 +123606,14 @@ namespace VULKAN_HPP_NAMESPACE
     size_t dataSize = {};
     void * pData    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineBinaryDataKHR>
+  {
+    using Type = PipelineBinaryDataKHR;
+  };
+#endif
 
   // wrapper struct for struct VkPipelineBinaryKeysAndDataKHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkPipelineBinaryKeysAndDataKHR.html
   struct PipelineBinaryKeysAndDataKHR
@@ -115639,6 +123754,14 @@ namespace VULKAN_HPP_NAMESPACE
     const PipelineBinaryDataKHR * pPipelineBinaryData = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineBinaryKeysAndDataKHR>
+  {
+    using Type = PipelineBinaryKeysAndDataKHR;
+  };
+#endif
+
   // wrapper struct for struct VkPipelineCreateInfoKHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkPipelineCreateInfoKHR.html
   struct PipelineCreateInfoKHR
   {
@@ -115723,6 +123846,14 @@ namespace VULKAN_HPP_NAMESPACE
     StructureType sType = StructureType::ePipelineCreateInfoKHR;
     void *        pNext = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineCreateInfoKHR>
+  {
+    using Type = PipelineCreateInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineCreateInfoKHR>
@@ -115848,6 +123979,14 @@ namespace VULKAN_HPP_NAMESPACE
     const PipelineCreateInfoKHR *        pPipelineCreateInfo = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineBinaryCreateInfoKHR>
+  {
+    using Type = PipelineBinaryCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineBinaryCreateInfoKHR>
   {
@@ -115949,6 +124088,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *            pNext          = {};
     PipelineBinaryKHR pipelineBinary = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineBinaryDataInfoKHR>
+  {
+    using Type = PipelineBinaryDataInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineBinaryDataInfoKHR>
@@ -116079,6 +124226,14 @@ namespace VULKAN_HPP_NAMESPACE
     PipelineBinaryKHR * pPipelineBinaries   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineBinaryHandlesInfoKHR>
+  {
+    using Type = PipelineBinaryHandlesInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineBinaryHandlesInfoKHR>
   {
@@ -116205,6 +124360,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                  binaryCount       = {};
     const PipelineBinaryKHR * pPipelineBinaries = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineBinaryInfoKHR>
+  {
+    using Type = PipelineBinaryInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineBinaryInfoKHR>
@@ -116347,6 +124510,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *             pInitialData    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineCacheCreateInfo>
+  {
+    using Type = PipelineCacheCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineCacheCreateInfo>
   {
@@ -116476,6 +124647,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<uint8_t, VK_UUID_SIZE> pipelineCacheUUID = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineCacheHeaderVersionOne>
+  {
+    using Type = PipelineCacheHeaderVersionOne;
+  };
+#endif
+
   // wrapper struct for struct VkPipelineColorBlendAdvancedStateCreateInfoEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPipelineColorBlendAdvancedStateCreateInfoEXT.html
   struct PipelineColorBlendAdvancedStateCreateInfoEXT
@@ -116592,6 +124771,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32          dstPremultiplied = {};
     BlendOverlapEXT blendOverlap     = BlendOverlapEXT::eUncorrelated;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineColorBlendAdvancedStateCreateInfoEXT>
+  {
+    using Type = PipelineColorBlendAdvancedStateCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineColorBlendAdvancedStateCreateInfoEXT>
@@ -116722,6 +124909,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Bool32 * pColorWriteEnables = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineColorWriteCreateInfoEXT>
+  {
+    using Type = PipelineColorWriteCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineColorWriteCreateInfoEXT>
   {
@@ -116826,6 +125021,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                    pNext                = {};
     PipelineCompilerControlFlagsAMD compilerControlFlags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineCompilerControlCreateInfoAMD>
+  {
+    using Type = PipelineCompilerControlCreateInfoAMD;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineCompilerControlCreateInfoAMD>
@@ -117006,6 +125209,14 @@ namespace VULKAN_HPP_NAMESPACE
     const float *                                pCoverageModulationTable      = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineCoverageModulationStateCreateInfoNV>
+  {
+    using Type = PipelineCoverageModulationStateCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineCoverageModulationStateCreateInfoNV>
   {
@@ -117120,6 +125331,14 @@ namespace VULKAN_HPP_NAMESPACE
     PipelineCoverageReductionStateCreateFlagsNV flags                 = {};
     CoverageReductionModeNV                     coverageReductionMode = CoverageReductionModeNV::eMerge;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineCoverageReductionStateCreateInfoNV>
+  {
+    using Type = PipelineCoverageReductionStateCreateInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineCoverageReductionStateCreateInfoNV>
@@ -117245,6 +125464,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                                  coverageToColorLocation = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineCoverageToColorStateCreateInfoNV>
+  {
+    using Type = PipelineCoverageToColorStateCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineCoverageToColorStateCreateInfoNV>
   {
@@ -117348,6 +125575,14 @@ namespace VULKAN_HPP_NAMESPACE
     PipelineCreateFlags2 flags = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineCreateFlags2CreateInfo>
+  {
+    using Type = PipelineCreateFlags2CreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineCreateFlags2CreateInfo>
   {
@@ -117434,6 +125669,13 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t                      duration = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineCreationFeedback>
+  {
+    using Type = PipelineCreationFeedback;
+  };
+#endif
   using PipelineCreationFeedbackEXT = PipelineCreationFeedback;
 
   // wrapper struct for struct VkPipelineCreationFeedbackCreateInfo, see
@@ -117579,6 +125821,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                   pipelineStageCreationFeedbackCount = {};
     PipelineCreationFeedback * pPipelineStageCreationFeedbacks    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineCreationFeedbackCreateInfo>
+  {
+    using Type = PipelineCreationFeedbackCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineCreationFeedbackCreateInfo>
@@ -117744,6 +125994,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Rect2D *                              pDiscardRectangles    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineDiscardRectangleStateCreateInfoEXT>
+  {
+    using Type = PipelineDiscardRectangleStateCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineDiscardRectangleStateCreateInfoEXT>
   {
@@ -117853,6 +126111,14 @@ namespace VULKAN_HPP_NAMESPACE
     Pipeline      pipeline        = {};
     uint32_t      executableIndex = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineExecutableInfoKHR>
+  {
+    using Type = PipelineExecutableInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineExecutableInfoKHR>
@@ -117979,6 +126245,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                                        pData       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineExecutableInternalRepresentationKHR>
+  {
+    using Type = PipelineExecutableInternalRepresentationKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineExecutableInternalRepresentationKHR>
   {
@@ -118097,6 +126371,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                                      subgroupSize = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineExecutablePropertiesKHR>
+  {
+    using Type = PipelineExecutablePropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineExecutablePropertiesKHR>
   {
@@ -118165,6 +126447,14 @@ namespace VULKAN_HPP_NAMESPACE
     double   f64;
 #endif /*VULKAN_HPP_HAS_UNRESTRICTED_UNIONS*/
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineExecutableStatisticValueKHR>
+  {
+    using Type = PipelineExecutableStatisticValueKHR;
+  };
+#endif
 
   // wrapper struct for struct VkPipelineExecutableStatisticKHR, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPipelineExecutableStatisticKHR.html
@@ -118246,6 +126536,14 @@ namespace VULKAN_HPP_NAMESPACE
     PipelineExecutableStatisticFormatKHR          format      = PipelineExecutableStatisticFormatKHR::eBool32;
     PipelineExecutableStatisticValueKHR           value       = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineExecutableStatisticKHR>
+  {
+    using Type = PipelineExecutableStatisticKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineExecutableStatisticKHR>
@@ -118352,6 +126650,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext                       = {};
     uint32_t      maxFragmentDensityMapLayers = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineFragmentDensityMapLayeredCreateInfoVALVE>
+  {
+    using Type = PipelineFragmentDensityMapLayeredCreateInfoVALVE;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineFragmentDensityMapLayeredCreateInfoVALVE>
@@ -118486,6 +126792,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<FragmentShadingRateCombinerOpKHR, 2> combinerOps     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineFragmentShadingRateEnumStateCreateInfoNV>
+  {
+    using Type = PipelineFragmentShadingRateEnumStateCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineFragmentShadingRateEnumStateCreateInfoNV>
   {
@@ -118604,6 +126918,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<FragmentShadingRateCombinerOpKHR, 2> combinerOps  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineFragmentShadingRateStateCreateInfoKHR>
+  {
+    using Type = PipelineFragmentShadingRateStateCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineFragmentShadingRateStateCreateInfoKHR>
   {
@@ -118717,6 +127039,14 @@ namespace VULKAN_HPP_NAMESPACE
     Pipeline          pipeline          = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineIndirectDeviceAddressInfoNV>
+  {
+    using Type = PipelineIndirectDeviceAddressInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineIndirectDeviceAddressInfoNV>
   {
@@ -118815,6 +127145,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext    = {};
     Pipeline      pipeline = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineInfoKHR>
+  {
+    using Type = PipelineInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineInfoKHR>
@@ -118999,6 +127337,14 @@ namespace VULKAN_HPP_NAMESPACE
     const PushConstantRange *   pPushConstantRanges    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineLayoutCreateInfo>
+  {
+    using Type = PipelineLayoutCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineLayoutCreateInfo>
   {
@@ -119088,6 +127434,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                                pNext              = {};
     ArrayWrapper1D<uint8_t, VK_UUID_SIZE> pipelineIdentifier = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelinePropertiesIdentifierEXT>
+  {
+    using Type = PipelinePropertiesIdentifierEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelinePropertiesIdentifierEXT>
@@ -119224,6 +127578,14 @@ namespace VULKAN_HPP_NAMESPACE
     float                                                extraPrimitiveOverestimationSize = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineRasterizationConservativeStateCreateInfoEXT>
+  {
+    using Type = PipelineRasterizationConservativeStateCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineRasterizationConservativeStateCreateInfoEXT>
   {
@@ -119339,6 +127701,14 @@ namespace VULKAN_HPP_NAMESPACE
     PipelineRasterizationDepthClipStateCreateFlagsEXT flags           = {};
     Bool32                                            depthClipEnable = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineRasterizationDepthClipStateCreateInfoEXT>
+  {
+    using Type = PipelineRasterizationDepthClipStateCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineRasterizationDepthClipStateCreateInfoEXT>
@@ -119475,6 +127845,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint16_t              lineStipplePattern    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineRasterizationLineStateCreateInfo>
+  {
+    using Type = PipelineRasterizationLineStateCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineRasterizationLineStateCreateInfo>
   {
@@ -119587,6 +127965,14 @@ namespace VULKAN_HPP_NAMESPACE
     ProvokingVertexModeEXT provokingVertexMode = ProvokingVertexModeEXT::eFirstVertex;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineRasterizationProvokingVertexStateCreateInfoEXT>
+  {
+    using Type = PipelineRasterizationProvokingVertexStateCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineRasterizationProvokingVertexStateCreateInfoEXT>
   {
@@ -119692,6 +128078,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *          pNext              = {};
     RasterizationOrderAMD rasterizationOrder = RasterizationOrderAMD::eStrict;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineRasterizationStateRasterizationOrderAMD>
+  {
+    using Type = PipelineRasterizationStateRasterizationOrderAMD;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineRasterizationStateRasterizationOrderAMD>
@@ -119808,6 +128202,14 @@ namespace VULKAN_HPP_NAMESPACE
     PipelineRasterizationStateStreamCreateFlagsEXT flags               = {};
     uint32_t                                       rasterizationStream = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineRasterizationStateStreamCreateInfoEXT>
+  {
+    using Type = PipelineRasterizationStateStreamCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineRasterizationStateStreamCreateInfoEXT>
@@ -119976,6 +128378,14 @@ namespace VULKAN_HPP_NAMESPACE
     Format         stencilAttachmentFormat = Format::eUndefined;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineRenderingCreateInfo>
+  {
+    using Type = PipelineRenderingCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineRenderingCreateInfo>
   {
@@ -120084,6 +128494,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext                            = {};
     Bool32        representativeFragmentTestEnable = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineRepresentativeFragmentTestStateCreateInfoNV>
+  {
+    using Type = PipelineRepresentativeFragmentTestStateCreateInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineRepresentativeFragmentTestStateCreateInfoNV>
@@ -120222,6 +128640,14 @@ namespace VULKAN_HPP_NAMESPACE
     PipelineRobustnessImageBehavior  images         = PipelineRobustnessImageBehavior::eDeviceDefault;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineRobustnessCreateInfo>
+  {
+    using Type = PipelineRobustnessCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineRobustnessCreateInfo>
   {
@@ -120338,6 +128764,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                 sampleLocationsEnable = {};
     SampleLocationsInfoEXT sampleLocationsInfo   = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineSampleLocationsStateCreateInfoEXT>
+  {
+    using Type = PipelineSampleLocationsStateCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineSampleLocationsStateCreateInfoEXT>
@@ -120469,6 +128903,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint8_t * pIdentifier    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineShaderStageModuleIdentifierCreateInfoEXT>
+  {
+    using Type = PipelineShaderStageModuleIdentifierCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineShaderStageModuleIdentifierCreateInfoEXT>
   {
@@ -120591,6 +129033,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      index = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineShaderStageNodeCreateInfoAMDX>
+  {
+    using Type = PipelineShaderStageNodeCreateInfoAMDX;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineShaderStageNodeCreateInfoAMDX>
   {
@@ -120608,7 +129058,8 @@ namespace VULKAN_HPP_NAMESPACE
     static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePipelineShaderStageRequiredSubgroupSizeCreateInfo;
 
 #if !defined( VULKAN_HPP_NO_CONSTRUCTORS ) && !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
-    VULKAN_HPP_CONSTEXPR PipelineShaderStageRequiredSubgroupSizeCreateInfo( uint32_t requiredSubgroupSize_ = {}, void * pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR PipelineShaderStageRequiredSubgroupSizeCreateInfo( uint32_t     requiredSubgroupSize_ = {},
+                                                                            const void * pNext_                = nullptr ) VULKAN_HPP_NOEXCEPT
       : pNext{ pNext_ }
       , requiredSubgroupSize{ requiredSubgroupSize_ }
     {
@@ -120632,6 +129083,20 @@ namespace VULKAN_HPP_NAMESPACE
       return *this;
     }
 
+#if !defined( VULKAN_HPP_NO_SETTERS ) && !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 PipelineShaderStageRequiredSubgroupSizeCreateInfo & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PipelineShaderStageRequiredSubgroupSizeCreateInfo & setRequiredSubgroupSize( uint32_t requiredSubgroupSize_ ) VULKAN_HPP_NOEXCEPT
+    {
+      requiredSubgroupSize = requiredSubgroupSize_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_SETTERS*/
+
     operator VkPipelineShaderStageRequiredSubgroupSizeCreateInfo const &() const VULKAN_HPP_NOEXCEPT
     {
       return *reinterpret_cast<const VkPipelineShaderStageRequiredSubgroupSizeCreateInfo *>( this );
@@ -120653,7 +129118,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
 #if defined( VULKAN_HPP_USE_REFLECT )
-    std::tuple<StructureType const &, void * const &, uint32_t const &> reflect() const VULKAN_HPP_NOEXCEPT
+    std::tuple<StructureType const &, const void * const &, uint32_t const &> reflect() const VULKAN_HPP_NOEXCEPT
     {
       return std::tie( sType, pNext, requiredSubgroupSize );
     }
@@ -120679,9 +129144,17 @@ namespace VULKAN_HPP_NAMESPACE
 
   public:
     StructureType sType                = StructureType::ePipelineShaderStageRequiredSubgroupSizeCreateInfo;
-    void *        pNext                = {};
+    const void *  pNext                = {};
     uint32_t      requiredSubgroupSize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineShaderStageRequiredSubgroupSizeCreateInfo>
+  {
+    using Type = PipelineShaderStageRequiredSubgroupSizeCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineShaderStageRequiredSubgroupSizeCreateInfo>
@@ -120791,6 +129264,14 @@ namespace VULKAN_HPP_NAMESPACE
     TessellationDomainOrigin domainOrigin = TessellationDomainOrigin::eUpperLeft;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineTessellationDomainOriginStateCreateInfo>
+  {
+    using Type = PipelineTessellationDomainOriginStateCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineTessellationDomainOriginStateCreateInfo>
   {
@@ -120892,6 +129373,13 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t divisor = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVertexInputBindingDivisorDescription>
+  {
+    using Type = VertexInputBindingDivisorDescription;
+  };
+#endif
   using VertexInputBindingDivisorDescriptionEXT = VertexInputBindingDivisorDescription;
   using VertexInputBindingDivisorDescriptionKHR = VertexInputBindingDivisorDescription;
 
@@ -121024,6 +129512,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                                     vertexBindingDivisorCount = {};
     const VertexInputBindingDivisorDescription * pVertexBindingDivisors    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineVertexInputDivisorStateCreateInfo>
+  {
+    using Type = PipelineVertexInputDivisorStateCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineVertexInputDivisorStateCreateInfo>
@@ -121179,6 +129675,14 @@ namespace VULKAN_HPP_NAMESPACE
     const CoarseSampleOrderCustomNV * pCustomSampleOrders    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineViewportCoarseSampleOrderStateCreateInfoNV>
+  {
+    using Type = PipelineViewportCoarseSampleOrderStateCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineViewportCoarseSampleOrderStateCreateInfoNV>
   {
@@ -121294,6 +129798,14 @@ namespace VULKAN_HPP_NAMESPACE
     const DepthClampRangeEXT * pDepthClampRange = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineViewportDepthClampControlCreateInfoEXT>
+  {
+    using Type = PipelineViewportDepthClampControlCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineViewportDepthClampControlCreateInfoEXT>
   {
@@ -121397,6 +129909,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext            = {};
     Bool32        negativeOneToOne = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineViewportDepthClipControlCreateInfoEXT>
+  {
+    using Type = PipelineViewportDepthClipControlCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePipelineViewportDepthClipControlCreateInfoEXT>
@@ -121531,6 +130051,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Rect2D * pExclusiveScissors    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineViewportExclusiveScissorStateCreateInfoNV>
+  {
+    using Type = PipelineViewportExclusiveScissorStateCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineViewportExclusiveScissorStateCreateInfoNV>
   {
@@ -121648,6 +130176,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                          shadingRatePaletteEntryCount = {};
     const ShadingRatePaletteEntryNV * pShadingRatePaletteEntries   = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkShadingRatePaletteNV>
+  {
+    using Type = ShadingRatePaletteNV;
+  };
+#endif
 
   // wrapper struct for struct VkPipelineViewportShadingRateImageStateCreateInfoNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPipelineViewportShadingRateImageStateCreateInfoNV.html
@@ -121792,6 +130328,14 @@ namespace VULKAN_HPP_NAMESPACE
     const ShadingRatePaletteNV * pShadingRatePalettes   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineViewportShadingRateImageStateCreateInfoNV>
+  {
+    using Type = PipelineViewportShadingRateImageStateCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineViewportShadingRateImageStateCreateInfoNV>
   {
@@ -121907,6 +130451,14 @@ namespace VULKAN_HPP_NAMESPACE
     ViewportCoordinateSwizzleNV z = ViewportCoordinateSwizzleNV::ePositiveX;
     ViewportCoordinateSwizzleNV w = ViewportCoordinateSwizzleNV::ePositiveX;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkViewportSwizzleNV>
+  {
+    using Type = ViewportSwizzleNV;
+  };
+#endif
 
   // wrapper struct for struct VkPipelineViewportSwizzleStateCreateInfoNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPipelineViewportSwizzleStateCreateInfoNV.html
@@ -122046,6 +130598,14 @@ namespace VULKAN_HPP_NAMESPACE
     const ViewportSwizzleNV *                 pViewportSwizzles = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineViewportSwizzleStateCreateInfoNV>
+  {
+    using Type = PipelineViewportSwizzleStateCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineViewportSwizzleStateCreateInfoNV>
   {
@@ -122140,6 +130700,14 @@ namespace VULKAN_HPP_NAMESPACE
     float xcoeff = {};
     float ycoeff = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkViewportWScalingNV>
+  {
+    using Type = ViewportWScalingNV;
+  };
+#endif
 
   // wrapper struct for struct VkPipelineViewportWScalingStateCreateInfoNV, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkPipelineViewportWScalingStateCreateInfoNV.html
@@ -122282,6 +130850,14 @@ namespace VULKAN_HPP_NAMESPACE
     const ViewportWScalingNV * pViewportWScalings     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPipelineViewportWScalingStateCreateInfoNV>
+  {
+    using Type = PipelineViewportWScalingStateCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePipelineViewportWScalingStateCreateInfoNV>
   {
@@ -122390,6 +130966,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext      = {};
     GgpFrameToken frameToken = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPresentFrameTokenGGP>
+  {
+    using Type = PresentFrameTokenGGP;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::ePresentFrameTokenGGP>
@@ -122515,6 +131099,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint64_t * pPresentIds    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPresentId2KHR>
+  {
+    using Type = PresentId2KHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePresentId2KHR>
   {
@@ -122637,6 +131229,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t         swapchainCount = {};
     const uint64_t * pPresentIds    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPresentIdKHR>
+  {
+    using Type = PresentIdKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePresentIdKHR>
@@ -122864,6 +131464,14 @@ namespace VULKAN_HPP_NAMESPACE
     Result *             pResults           = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPresentInfoKHR>
+  {
+    using Type = PresentInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePresentInfoKHR>
   {
@@ -122969,6 +131577,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t layer  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRectLayerKHR>
+  {
+    using Type = RectLayerKHR;
+  };
+#endif
+
   // wrapper struct for struct VkPresentRegionKHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkPresentRegionKHR.html
   struct PresentRegionKHR
   {
@@ -123073,6 +131689,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t             rectangleCount = {};
     const RectLayerKHR * pRectangles    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPresentRegionKHR>
+  {
+    using Type = PresentRegionKHR;
+  };
+#endif
 
   // wrapper struct for struct VkPresentRegionsKHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkPresentRegionsKHR.html
   struct PresentRegionsKHR
@@ -123192,6 +131816,14 @@ namespace VULKAN_HPP_NAMESPACE
     const PresentRegionKHR * pRegions       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPresentRegionsKHR>
+  {
+    using Type = PresentRegionsKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePresentRegionsKHR>
   {
@@ -123286,6 +131918,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t presentID          = {};
     uint64_t desiredPresentTime = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPresentTimeGOOGLE>
+  {
+    using Type = PresentTimeGOOGLE;
+  };
+#endif
 
   // wrapper struct for struct VkPresentTimesInfoGOOGLE, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkPresentTimesInfoGOOGLE.html
   struct PresentTimesInfoGOOGLE
@@ -123408,6 +132048,14 @@ namespace VULKAN_HPP_NAMESPACE
     const PresentTimeGOOGLE * pTimes         = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPresentTimesInfoGOOGLE>
+  {
+    using Type = PresentTimesInfoGOOGLE;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePresentTimesInfoGOOGLE>
   {
@@ -123517,6 +132165,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint64_t      timeout   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPresentWait2InfoKHR>
+  {
+    using Type = PresentWait2InfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePresentWait2InfoKHR>
   {
@@ -123618,6 +132274,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *               pNext = {};
     PrivateDataSlotCreateFlags flags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPrivateDataSlotCreateInfo>
+  {
+    using Type = PrivateDataSlotCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePrivateDataSlotCreateInfo>
@@ -123721,6 +132385,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext           = {};
     Bool32        protectedSubmit = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkProtectedSubmitInfo>
+  {
+    using Type = ProtectedSubmitInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eProtectedSubmitInfo>
@@ -123889,6 +132561,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t         size       = {};
     const void *     pValues    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPushConstantsInfo>
+  {
+    using Type = PushConstantsInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::ePushConstantsInfo>
@@ -124127,6 +132807,14 @@ namespace VULKAN_HPP_NAMESPACE
     const BufferView *           pTexelBufferView = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkWriteDescriptorSet>
+  {
+    using Type = WriteDescriptorSet;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eWriteDescriptorSet>
   {
@@ -124299,6 +132987,14 @@ namespace VULKAN_HPP_NAMESPACE
     const WriteDescriptorSet * pDescriptorWrites    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPushDescriptorSetInfo>
+  {
+    using Type = PushDescriptorSetInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePushDescriptorSetInfo>
   {
@@ -124435,6 +133131,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *             pData                    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkPushDescriptorSetWithTemplateInfo>
+  {
+    using Type = PushDescriptorSetWithTemplateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::ePushDescriptorSetWithTemplateInfo>
   {
@@ -124538,6 +133242,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext                  = {};
     void *        pQueriedLowLatencyData = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueryLowLatencySupportNV>
+  {
+    using Type = QueryLowLatencySupportNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eQueryLowLatencySupportNV>
@@ -124670,6 +133382,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                    queryCount         = {};
     QueryPipelineStatisticFlags pipelineStatistics = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueryPoolCreateInfo>
+  {
+    using Type = QueryPoolCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eQueryPoolCreateInfo>
@@ -124815,6 +133535,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t * pCounterIndices   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueryPoolPerformanceCreateInfoKHR>
+  {
+    using Type = QueryPoolPerformanceCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eQueryPoolPerformanceCreateInfoKHR>
   {
@@ -124920,6 +133648,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *               pNext                       = {};
     QueryPoolSamplingModeINTEL performanceCountersSampling = QueryPoolSamplingModeINTEL::eManual;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueryPoolPerformanceQueryCreateInfoINTEL>
+  {
+    using Type = QueryPoolPerformanceQueryCreateInfoINTEL;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eQueryPoolPerformanceQueryCreateInfoINTEL>
@@ -125028,6 +133764,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoEncodeFeedbackFlagsKHR encodeFeedbackFlags = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueryPoolVideoEncodeFeedbackCreateInfoKHR>
+  {
+    using Type = QueryPoolVideoEncodeFeedbackCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eQueryPoolVideoEncodeFeedbackCreateInfoKHR>
   {
@@ -125118,6 +133862,14 @@ namespace VULKAN_HPP_NAMESPACE
     PipelineStageFlags2 checkpointExecutionStageMask = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueueFamilyCheckpointProperties2NV>
+  {
+    using Type = QueueFamilyCheckpointProperties2NV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eQueueFamilyCheckpointProperties2NV>
   {
@@ -125206,6 +133958,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *             pNext                        = {};
     PipelineStageFlags checkpointExecutionStageMask = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueueFamilyCheckpointPropertiesNV>
+  {
+    using Type = QueueFamilyCheckpointPropertiesNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eQueueFamilyCheckpointPropertiesNV>
@@ -125326,6 +134086,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalMemoryHandleTypeFlags    foreignMemoryHandleTypes    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueueFamilyDataGraphProcessingEnginePropertiesARM>
+  {
+    using Type = QueueFamilyDataGraphProcessingEnginePropertiesARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eQueueFamilyDataGraphProcessingEnginePropertiesARM>
   {
@@ -125441,6 +134209,14 @@ namespace VULKAN_HPP_NAMESPACE
     PhysicalDeviceDataGraphProcessingEngineARM engine    = {};
     PhysicalDeviceDataGraphOperationSupportARM operation = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueueFamilyDataGraphPropertiesARM>
+  {
+    using Type = QueueFamilyDataGraphPropertiesARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eQueueFamilyDataGraphPropertiesARM>
@@ -125564,6 +134340,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<QueueGlobalPriority, VK_MAX_GLOBAL_PRIORITY_SIZE> priorities    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueueFamilyGlobalPriorityProperties>
+  {
+    using Type = QueueFamilyGlobalPriorityProperties;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eQueueFamilyGlobalPriorityProperties>
   {
@@ -125657,6 +134441,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      optimalImageTransferToQueueFamilies = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueueFamilyOwnershipTransferPropertiesKHR>
+  {
+    using Type = QueueFamilyOwnershipTransferPropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eQueueFamilyOwnershipTransferPropertiesKHR>
   {
@@ -125749,6 +134541,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent3D   minImageTransferGranularity = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueueFamilyProperties>
+  {
+    using Type = QueueFamilyProperties;
+  };
+#endif
+
   // wrapper struct for struct VkQueueFamilyProperties2, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkQueueFamilyProperties2.html
   struct QueueFamilyProperties2
   {
@@ -125830,6 +134630,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                pNext                 = {};
     QueueFamilyProperties queueFamilyProperties = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueueFamilyProperties2>
+  {
+    using Type = QueueFamilyProperties2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eQueueFamilyProperties2>
@@ -125922,6 +134730,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        queryResultStatusSupport = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueueFamilyQueryResultStatusPropertiesKHR>
+  {
+    using Type = QueueFamilyQueryResultStatusPropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eQueueFamilyQueryResultStatusPropertiesKHR>
   {
@@ -126010,6 +134826,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                      pNext                = {};
     VideoCodecOperationFlagsKHR videoCodecOperations = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkQueueFamilyVideoPropertiesKHR>
+  {
+    using Type = QueueFamilyVideoPropertiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eQueueFamilyVideoPropertiesKHR>
@@ -126119,6 +134943,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                             = {};
     Bool32        allowClusterAccelerationStructure = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRayTracingPipelineClusterAccelerationStructureCreateInfoNV>
+  {
+    using Type = RayTracingPipelineClusterAccelerationStructureCreateInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRayTracingPipelineClusterAccelerationStructureCreateInfoNV>
@@ -126280,6 +135112,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                 pShaderGroupCaptureReplayHandle = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRayTracingShaderGroupCreateInfoKHR>
+  {
+    using Type = RayTracingShaderGroupCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eRayTracingShaderGroupCreateInfoKHR>
   {
@@ -126394,6 +135234,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      maxPipelineRayPayloadSize      = {};
     uint32_t      maxPipelineRayHitAttributeSize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRayTracingPipelineInterfaceCreateInfoKHR>
+  {
+    using Type = RayTracingPipelineInterfaceCreateInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRayTracingPipelineInterfaceCreateInfoKHR>
@@ -126676,6 +135524,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t                                          basePipelineIndex            = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRayTracingPipelineCreateInfoKHR>
+  {
+    using Type = RayTracingPipelineCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eRayTracingPipelineCreateInfoKHR>
   {
@@ -126823,6 +135679,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                     anyHitShader       = ShaderUnusedNV;
     uint32_t                     intersectionShader = ShaderUnusedNV;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRayTracingShaderGroupCreateInfoNV>
+  {
+    using Type = RayTracingShaderGroupCreateInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRayTracingShaderGroupCreateInfoNV>
@@ -127054,6 +135918,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t                                   basePipelineIndex  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRayTracingPipelineCreateInfoNV>
+  {
+    using Type = RayTracingPipelineCreateInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eRayTracingPipelineCreateInfoNV>
   {
@@ -127132,6 +136004,14 @@ namespace VULKAN_HPP_NAMESPACE
   public:
     uint64_t refreshDuration = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRefreshCycleDurationGOOGLE>
+  {
+    using Type = RefreshCycleDurationGOOGLE;
+  };
+#endif
 
   // wrapper struct for struct VkReleaseCapturedPipelineDataInfoKHR, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkReleaseCapturedPipelineDataInfoKHR.html
@@ -127229,6 +136109,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext    = {};
     Pipeline      pipeline = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkReleaseCapturedPipelineDataInfoKHR>
+  {
+    using Type = ReleaseCapturedPipelineDataInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eReleaseCapturedPipelineDataInfoKHR>
@@ -127370,6 +136258,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t * pImageIndices   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkReleaseSwapchainImagesInfoKHR>
+  {
+    using Type = ReleaseSwapchainImagesInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eReleaseSwapchainImagesInfoKHR>
   {
@@ -127499,6 +136395,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t          attachmentCount = {};
     const ImageView * pAttachments    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassAttachmentBeginInfo>
+  {
+    using Type = RenderPassAttachmentBeginInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRenderPassAttachmentBeginInfo>
@@ -127667,6 +136571,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t           clearValueCount = {};
     const ClearValue * pClearValues    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassBeginInfo>
+  {
+    using Type = RenderPassBeginInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRenderPassBeginInfo>
@@ -127927,6 +136839,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t *            pPreserveAttachments    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubpassDescription>
+  {
+    using Type = SubpassDescription;
+  };
+#endif
+
   // wrapper struct for struct VkSubpassDependency, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkSubpassDependency.html
   struct SubpassDependency
   {
@@ -128070,6 +136990,14 @@ namespace VULKAN_HPP_NAMESPACE
     AccessFlags        dstAccessMask   = {};
     DependencyFlags    dependencyFlags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubpassDependency>
+  {
+    using Type = SubpassDependency;
+  };
+#endif
 
   // wrapper struct for struct VkRenderPassCreateInfo, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkRenderPassCreateInfo.html
   struct RenderPassCreateInfo
@@ -128277,6 +137205,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                      dependencyCount = {};
     const SubpassDependency *     pDependencies   = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassCreateInfo>
+  {
+    using Type = RenderPassCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRenderPassCreateInfo>
@@ -128571,6 +137507,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t *             pPreserveAttachments    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubpassDescription2>
+  {
+    using Type = SubpassDescription2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSubpassDescription2>
   {
@@ -128747,6 +137691,14 @@ namespace VULKAN_HPP_NAMESPACE
     DependencyFlags    dependencyFlags = {};
     int32_t            viewOffset      = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubpassDependency2>
+  {
+    using Type = SubpassDependency2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSubpassDependency2>
@@ -129006,6 +137958,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t *               pCorrelatedViewMasks    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassCreateInfo2>
+  {
+    using Type = RenderPassCreateInfo2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eRenderPassCreateInfo2>
   {
@@ -129110,6 +138070,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        disallowMerging = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassCreationControlEXT>
+  {
+    using Type = RenderPassCreationControlEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eRenderPassCreationControlEXT>
   {
@@ -129192,6 +138160,14 @@ namespace VULKAN_HPP_NAMESPACE
   public:
     uint32_t postMergeSubpassCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassCreationFeedbackInfoEXT>
+  {
+    using Type = RenderPassCreationFeedbackInfoEXT;
+  };
+#endif
 
   // wrapper struct for struct VkRenderPassCreationFeedbackCreateInfoEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkRenderPassCreationFeedbackCreateInfoEXT.html
@@ -129291,6 +138267,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                        pNext               = {};
     RenderPassCreationFeedbackInfoEXT * pRenderPassFeedback = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassCreationFeedbackCreateInfoEXT>
+  {
+    using Type = RenderPassCreationFeedbackCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRenderPassCreationFeedbackCreateInfoEXT>
@@ -129396,6 +138380,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *        pNext                        = {};
     AttachmentReference fragmentDensityMapAttachment = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassFragmentDensityMapCreateInfoEXT>
+  {
+    using Type = RenderPassFragmentDensityMapCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRenderPassFragmentDensityMapCreateInfoEXT>
@@ -129532,6 +138524,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Offset2D * pFragmentDensityOffsets    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassFragmentDensityMapOffsetEndInfoEXT>
+  {
+    using Type = RenderPassFragmentDensityMapOffsetEndInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eRenderPassFragmentDensityMapOffsetEndInfoEXT>
   {
@@ -129667,6 +138667,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                               aspectReferenceCount = {};
     const InputAttachmentAspectReference * pAspectReferences    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassInputAttachmentAspectCreateInfo>
+  {
+    using Type = RenderPassInputAttachmentAspectCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRenderPassInputAttachmentAspectCreateInfo>
@@ -129872,6 +138880,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t * pCorrelationMasks    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassMultiviewCreateInfo>
+  {
+    using Type = RenderPassMultiviewCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eRenderPassMultiviewCreateInfo>
   {
@@ -129971,6 +138987,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t               subpassIndex        = {};
     SampleLocationsInfoEXT sampleLocationsInfo = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubpassSampleLocationsEXT>
+  {
+    using Type = SubpassSampleLocationsEXT;
+  };
+#endif
 
   // wrapper struct for struct VkRenderPassSampleLocationsBeginInfoEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkRenderPassSampleLocationsBeginInfoEXT.html
@@ -130143,6 +139167,14 @@ namespace VULKAN_HPP_NAMESPACE
     const SubpassSampleLocationsEXT *    pPostSubpassSampleLocations           = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassSampleLocationsBeginInfoEXT>
+  {
+    using Type = RenderPassSampleLocationsBeginInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eRenderPassSampleLocationsBeginInfoEXT>
   {
@@ -130244,6 +139276,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext      = {};
     Rect2D        stripeArea = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassStripeInfoARM>
+  {
+    using Type = RenderPassStripeInfoARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRenderPassStripeInfoARM>
@@ -130372,6 +139412,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                        stripeInfoCount = {};
     const RenderPassStripeInfoARM * pStripeInfos    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassStripeBeginInfoARM>
+  {
+    using Type = RenderPassStripeBeginInfoARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRenderPassStripeBeginInfoARM>
@@ -130503,6 +139551,14 @@ namespace VULKAN_HPP_NAMESPACE
     PipelineStageFlags2 stageMask   = {};
     uint32_t            deviceIndex = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSemaphoreSubmitInfo>
+  {
+    using Type = SemaphoreSubmitInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSemaphoreSubmitInfo>
@@ -130639,6 +139695,14 @@ namespace VULKAN_HPP_NAMESPACE
     const SemaphoreSubmitInfo * pStripeSemaphoreInfos    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassStripeSubmitInfoARM>
+  {
+    using Type = RenderPassStripeSubmitInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eRenderPassStripeSubmitInfoARM>
   {
@@ -130733,6 +139797,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<char, VK_MAX_DESCRIPTION_SIZE> description        = {};
     uint32_t                                      postMergeIndex     = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassSubpassFeedbackInfoEXT>
+  {
+    using Type = RenderPassSubpassFeedbackInfoEXT;
+  };
+#endif
 
   // wrapper struct for struct VkRenderPassSubpassFeedbackCreateInfoEXT, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkRenderPassSubpassFeedbackCreateInfoEXT.html
@@ -130832,6 +139904,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                       pNext            = {};
     RenderPassSubpassFeedbackInfoEXT * pSubpassFeedback = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassSubpassFeedbackCreateInfoEXT>
+  {
+    using Type = RenderPassSubpassFeedbackCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRenderPassSubpassFeedbackCreateInfoEXT>
@@ -130946,6 +140026,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent2D                       tileApronSize = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassTileShadingCreateInfoQCOM>
+  {
+    using Type = RenderPassTileShadingCreateInfoQCOM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eRenderPassTileShadingCreateInfoQCOM>
   {
@@ -131049,6 +140137,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                pNext     = {};
     SurfaceTransformFlagBitsKHR transform = SurfaceTransformFlagBitsKHR::eIdentity;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderPassTransformBeginInfoQCOM>
+  {
+    using Type = RenderPassTransformBeginInfoQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRenderPassTransformBeginInfoQCOM>
@@ -131214,6 +140310,14 @@ namespace VULKAN_HPP_NAMESPACE
     Format         stencilAttachmentFormat = Format::eUndefined;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderingAreaInfo>
+  {
+    using Type = RenderingAreaInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eRenderingAreaInfo>
   {
@@ -131374,6 +140478,14 @@ namespace VULKAN_HPP_NAMESPACE
     ClearValue          clearValue         = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderingAttachmentInfo>
+  {
+    using Type = RenderingAttachmentInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eRenderingAttachmentInfo>
   {
@@ -131509,6 +140621,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t * pColorAttachmentLocations = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderingAttachmentLocationInfo>
+  {
+    using Type = RenderingAttachmentLocationInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eRenderingAttachmentLocationInfo>
   {
@@ -131600,6 +140720,14 @@ namespace VULKAN_HPP_NAMESPACE
     StructureType sType = StructureType::eRenderingEndInfoEXT;
     const void *  pNext = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderingEndInfoEXT>
+  {
+    using Type = RenderingEndInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRenderingEndInfoEXT>
@@ -131713,6 +140841,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageView     imageView   = {};
     ImageLayout   imageLayout = ImageLayout::eUndefined;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderingFragmentDensityMapAttachmentInfoEXT>
+  {
+    using Type = RenderingFragmentDensityMapAttachmentInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRenderingFragmentDensityMapAttachmentInfoEXT>
@@ -131838,6 +140974,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageLayout   imageLayout                    = ImageLayout::eUndefined;
     Extent2D      shadingRateAttachmentTexelSize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderingFragmentShadingRateAttachmentInfoKHR>
+  {
+    using Type = RenderingFragmentShadingRateAttachmentInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRenderingFragmentShadingRateAttachmentInfoKHR>
@@ -132045,6 +141189,14 @@ namespace VULKAN_HPP_NAMESPACE
     const RenderingAttachmentInfo * pStencilAttachment   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderingInfo>
+  {
+    using Type = RenderingInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eRenderingInfo>
   {
@@ -132207,6 +141359,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t * pDepthInputAttachmentIndex   = {};
     const uint32_t * pStencilInputAttachmentIndex = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkRenderingInputAttachmentIndexInfo>
+  {
+    using Type = RenderingInputAttachmentIndexInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eRenderingInputAttachmentIndexInfo>
@@ -132391,6 +141551,14 @@ namespace VULKAN_HPP_NAMESPACE
     const ImageResolve2 * pRegions       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkResolveImageInfo2>
+  {
+    using Type = ResolveImageInfo2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eResolveImageInfo2>
   {
@@ -132507,6 +141675,14 @@ namespace VULKAN_HPP_NAMESPACE
     BlockMatchWindowCompareModeQCOM windowCompareMode = BlockMatchWindowCompareModeQCOM::eMin;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSamplerBlockMatchWindowCreateInfoQCOM>
+  {
+    using Type = SamplerBlockMatchWindowCreateInfoQCOM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSamplerBlockMatchWindowCreateInfoQCOM>
   {
@@ -132620,6 +141796,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32           srgb       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSamplerBorderColorComponentMappingCreateInfoEXT>
+  {
+    using Type = SamplerBorderColorComponentMappingCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSamplerBorderColorComponentMappingCreateInfoEXT>
   {
@@ -132722,6 +141906,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext   = {};
     Sampler       sampler = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSamplerCaptureDescriptorDataInfoEXT>
+  {
+    using Type = SamplerCaptureDescriptorDataInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSamplerCaptureDescriptorDataInfoEXT>
@@ -132997,6 +142189,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32             unnormalizedCoordinates = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSamplerCreateInfo>
+  {
+    using Type = SamplerCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSamplerCreateInfo>
   {
@@ -133101,6 +142301,14 @@ namespace VULKAN_HPP_NAMESPACE
     CubicFilterWeightsQCOM cubicWeights = CubicFilterWeightsQCOM::eCatmullRom;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSamplerCubicWeightsCreateInfoQCOM>
+  {
+    using Type = SamplerCubicWeightsCreateInfoQCOM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSamplerCubicWeightsCreateInfoQCOM>
   {
@@ -133195,6 +142403,14 @@ namespace VULKAN_HPP_NAMESPACE
     ClearColorValue customBorderColor = {};
     Format          format            = Format::eUndefined;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSamplerCustomBorderColorCreateInfoEXT>
+  {
+    using Type = SamplerCustomBorderColorCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSamplerCustomBorderColorCreateInfoEXT>
@@ -133299,6 +142515,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *         pNext         = {};
     SamplerReductionMode reductionMode = SamplerReductionMode::eWeightedAverage;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSamplerReductionModeCreateInfo>
+  {
+    using Type = SamplerReductionModeCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSamplerReductionModeCreateInfo>
@@ -133482,6 +142706,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                      forceExplicitReconstruction = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSamplerYcbcrConversionCreateInfo>
+  {
+    using Type = SamplerYcbcrConversionCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSamplerYcbcrConversionCreateInfo>
   {
@@ -133573,6 +142805,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                               = {};
     uint32_t      combinedImageSamplerDescriptorCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSamplerYcbcrConversionImageFormatProperties>
+  {
+    using Type = SamplerYcbcrConversionImageFormatProperties;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSamplerYcbcrConversionImageFormatProperties>
@@ -133677,6 +142917,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *           pNext      = {};
     SamplerYcbcrConversion conversion = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSamplerYcbcrConversionInfo>
+  {
+    using Type = SamplerYcbcrConversionInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSamplerYcbcrConversionInfo>
@@ -133793,6 +143041,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        enableYDegamma    = {};
     Bool32        enableCbCrDegamma = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSamplerYcbcrConversionYcbcrDegammaCreateInfoQCOM>
+  {
+    using Type = SamplerYcbcrConversionYcbcrDegammaCreateInfoQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSamplerYcbcrConversionYcbcrDegammaCreateInfoQCOM>
@@ -133934,6 +143190,14 @@ namespace VULKAN_HPP_NAMESPACE
     ChromaLocation              suggestedYChromaOffset           = ChromaLocation::eCositedEven;
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkScreenBufferFormatPropertiesQNX>
+  {
+    using Type = ScreenBufferFormatPropertiesQNX;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eScreenBufferFormatPropertiesQNX>
   {
@@ -134026,6 +143290,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    allocationSize = {};
     uint32_t      memoryTypeBits = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkScreenBufferPropertiesQNX>
+  {
+    using Type = ScreenBufferPropertiesQNX;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eScreenBufferPropertiesQNX>
@@ -134152,6 +143424,14 @@ namespace VULKAN_HPP_NAMESPACE
     struct _screen_window *     window  = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkScreenSurfaceCreateInfoQNX>
+  {
+    using Type = ScreenSurfaceCreateInfoQNX;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eScreenSurfaceCreateInfoQNX>
   {
@@ -134253,6 +143533,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *         pNext = {};
     SemaphoreCreateFlags flags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSemaphoreCreateInfo>
+  {
+    using Type = SemaphoreCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSemaphoreCreateInfo>
@@ -134365,6 +143653,14 @@ namespace VULKAN_HPP_NAMESPACE
     Semaphore                           semaphore  = {};
     ExternalSemaphoreHandleTypeFlagBits handleType = ExternalSemaphoreHandleTypeFlagBits::eOpaqueFd;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSemaphoreGetFdInfoKHR>
+  {
+    using Type = SemaphoreGetFdInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSemaphoreGetFdInfoKHR>
@@ -134479,6 +143775,14 @@ namespace VULKAN_HPP_NAMESPACE
     Semaphore                           semaphore  = {};
     ExternalSemaphoreHandleTypeFlagBits handleType = ExternalSemaphoreHandleTypeFlagBits::eOpaqueFd;
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSemaphoreGetWin32HandleInfoKHR>
+  {
+    using Type = SemaphoreGetWin32HandleInfoKHR;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eSemaphoreGetWin32HandleInfoKHR>
@@ -134595,6 +143899,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExternalSemaphoreHandleTypeFlagBits handleType = ExternalSemaphoreHandleTypeFlagBits::eOpaqueFd;
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSemaphoreGetZirconHandleInfoFUCHSIA>
+  {
+    using Type = SemaphoreGetZirconHandleInfoFUCHSIA;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eSemaphoreGetZirconHandleInfoFUCHSIA>
   {
@@ -134704,6 +144016,14 @@ namespace VULKAN_HPP_NAMESPACE
     Semaphore     semaphore = {};
     uint64_t      value     = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSemaphoreSignalInfo>
+  {
+    using Type = SemaphoreSignalInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSemaphoreSignalInfo>
@@ -134818,6 +144138,14 @@ namespace VULKAN_HPP_NAMESPACE
     SemaphoreType semaphoreType = SemaphoreType::eBinary;
     uint64_t      initialValue  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSemaphoreTypeCreateInfo>
+  {
+    using Type = SemaphoreTypeCreateInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSemaphoreTypeCreateInfo>
@@ -134989,6 +144317,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Semaphore *  pSemaphores    = {};
     const uint64_t *   pValues        = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSemaphoreWaitInfo>
+  {
+    using Type = SemaphoreWaitInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSemaphoreWaitInfo>
@@ -135195,6 +144531,14 @@ namespace VULKAN_HPP_NAMESPACE
     const DeviceSize * pOffsets       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSetDescriptorBufferOffsetsInfoEXT>
+  {
+    using Type = SetDescriptorBufferOffsetsInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSetDescriptorBufferOffsetsInfoEXT>
   {
@@ -135307,6 +144651,14 @@ namespace VULKAN_HPP_NAMESPACE
     LatencyMarkerNV marker    = LatencyMarkerNV::eSimulationStart;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSetLatencyMarkerInfoNV>
+  {
+    using Type = SetLatencyMarkerInfoNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSetLatencyMarkerInfoNV>
   {
@@ -135417,6 +144769,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      presentConfigFeedback = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSetPresentConfigNV>
+  {
+    using Type = SetPresentConfigNV;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eSetPresentConfigNV>
   {
@@ -135505,6 +144865,14 @@ namespace VULKAN_HPP_NAMESPACE
   public:
     uint32_t data = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSetStateFlagsIndirectCommandNV>
+  {
+    using Type = SetStateFlagsIndirectCommandNV;
+  };
+#endif
 
   // wrapper struct for struct VkShaderCreateInfoEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkShaderCreateInfoEXT.html
   struct ShaderCreateInfoEXT
@@ -135818,6 +145186,14 @@ namespace VULKAN_HPP_NAMESPACE
     const SpecializationInfo *  pSpecializationInfo    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkShaderCreateInfoEXT>
+  {
+    using Type = ShaderCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eShaderCreateInfoEXT>
   {
@@ -135956,6 +145332,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t *        pCode    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkShaderModuleCreateInfo>
+  {
+    using Type = ShaderModuleCreateInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eShaderModuleCreateInfo>
   {
@@ -136061,6 +145445,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<uint8_t, VK_MAX_SHADER_MODULE_IDENTIFIER_SIZE_EXT> identifier     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkShaderModuleIdentifierEXT>
+  {
+    using Type = ShaderModuleIdentifierEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eShaderModuleIdentifierEXT>
   {
@@ -136164,6 +145556,14 @@ namespace VULKAN_HPP_NAMESPACE
     ValidationCacheEXT validationCache = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkShaderModuleValidationCacheCreateInfoEXT>
+  {
+    using Type = ShaderModuleValidationCacheCreateInfoEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eShaderModuleValidationCacheCreateInfoEXT>
   {
@@ -136258,6 +145658,14 @@ namespace VULKAN_HPP_NAMESPACE
     size_t   ldsUsageSizeInBytes      = {};
     size_t   scratchMemUsageInBytes   = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkShaderResourceUsageAMD>
+  {
+    using Type = ShaderResourceUsageAMD;
+  };
+#endif
 
   // wrapper struct for struct VkShaderStatisticsInfoAMD, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkShaderStatisticsInfoAMD.html
   struct ShaderStatisticsInfoAMD
@@ -136362,6 +145770,14 @@ namespace VULKAN_HPP_NAMESPACE
     ArrayWrapper1D<uint32_t, 3> computeWorkGroupSize = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkShaderStatisticsInfoAMD>
+  {
+    using Type = ShaderStatisticsInfoAMD;
+  };
+#endif
+
   // wrapper struct for struct VkSharedPresentSurfaceCapabilitiesKHR, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkSharedPresentSurfaceCapabilitiesKHR.html
   struct SharedPresentSurfaceCapabilitiesKHR
@@ -136445,6 +145861,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *          pNext                            = {};
     ImageUsageFlags sharedPresentSupportedUsageFlags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSharedPresentSurfaceCapabilitiesKHR>
+  {
+    using Type = SharedPresentSurfaceCapabilitiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSharedPresentSurfaceCapabilitiesKHR>
@@ -136533,6 +145957,14 @@ namespace VULKAN_HPP_NAMESPACE
     SparseImageFormatFlags flags            = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSparseImageFormatProperties>
+  {
+    using Type = SparseImageFormatProperties;
+  };
+#endif
+
   // wrapper struct for struct VkSparseImageFormatProperties2, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkSparseImageFormatProperties2.html
   struct SparseImageFormatProperties2
   {
@@ -136614,6 +146046,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                      pNext      = {};
     SparseImageFormatProperties properties = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSparseImageFormatProperties2>
+  {
+    using Type = SparseImageFormatProperties2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSparseImageFormatProperties2>
@@ -136715,6 +146155,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize                  imageMipTailStride   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSparseImageMemoryRequirements>
+  {
+    using Type = SparseImageMemoryRequirements;
+  };
+#endif
+
   // wrapper struct for struct VkSparseImageMemoryRequirements2, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkSparseImageMemoryRequirements2.html
   struct SparseImageMemoryRequirements2
@@ -136797,6 +146245,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                        pNext              = {};
     SparseImageMemoryRequirements memoryRequirements = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSparseImageMemoryRequirements2>
+  {
+    using Type = SparseImageMemoryRequirements2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSparseImageMemoryRequirements2>
@@ -136923,6 +146379,14 @@ namespace VULKAN_HPP_NAMESPACE
     StreamDescriptorSurfaceCreateFlagsGGP flags            = {};
     GgpStreamDescriptor                   streamDescriptor = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkStreamDescriptorSurfaceCreateInfoGGP>
+  {
+    using Type = StreamDescriptorSurfaceCreateInfoGGP;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eStreamDescriptorSurfaceCreateInfoGGP>
@@ -137154,6 +146618,14 @@ namespace VULKAN_HPP_NAMESPACE
     const Semaphore *          pSignalSemaphores    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubmitInfo>
+  {
+    using Type = SubmitInfo;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSubmitInfo>
   {
@@ -137373,6 +146845,14 @@ namespace VULKAN_HPP_NAMESPACE
     const SemaphoreSubmitInfo *     pSignalSemaphoreInfos    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubmitInfo2>
+  {
+    using Type = SubmitInfo2;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSubmitInfo2>
   {
@@ -137473,6 +146953,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *    pNext    = {};
     SubpassContents contents = SubpassContents::eInline;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubpassBeginInfo>
+  {
+    using Type = SubpassBeginInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSubpassBeginInfo>
@@ -137601,6 +147089,14 @@ namespace VULKAN_HPP_NAMESPACE
     const AttachmentReference2 * pDepthStencilResolveAttachment = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubpassDescriptionDepthStencilResolve>
+  {
+    using Type = SubpassDescriptionDepthStencilResolve;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSubpassDescriptionDepthStencilResolve>
   {
@@ -137690,6 +147186,14 @@ namespace VULKAN_HPP_NAMESPACE
     StructureType sType = StructureType::eSubpassEndInfo;
     const void *  pNext = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubpassEndInfo>
+  {
+    using Type = SubpassEndInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSubpassEndInfo>
@@ -137781,6 +147285,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext   = {};
     Bool32        optimal = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubpassResolvePerformanceQueryEXT>
+  {
+    using Type = SubpassResolvePerformanceQueryEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSubpassResolvePerformanceQueryEXT>
@@ -137894,6 +147406,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      subpass    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubpassShadingPipelineCreateInfoHUAWEI>
+  {
+    using Type = SubpassShadingPipelineCreateInfoHUAWEI;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSubpassShadingPipelineCreateInfoHUAWEI>
   {
@@ -137982,6 +147502,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    size  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubresourceHostMemcpySize>
+  {
+    using Type = SubresourceHostMemcpySize;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSubresourceHostMemcpySize>
   {
@@ -138068,6 +147596,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *            pNext             = {};
     SubresourceLayout subresourceLayout = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSubresourceLayout2>
+  {
+    using Type = SubresourceLayout2;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSubresourceLayout2>
@@ -138220,6 +147756,14 @@ namespace VULKAN_HPP_NAMESPACE
     SurfaceCounterFlagsEXT      supportedSurfaceCounters = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfaceCapabilities2EXT>
+  {
+    using Type = SurfaceCapabilities2EXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSurfaceCapabilities2EXT>
   {
@@ -138351,6 +147895,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageUsageFlags             supportedUsageFlags     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfaceCapabilitiesKHR>
+  {
+    using Type = SurfaceCapabilitiesKHR;
+  };
+#endif
+
   // wrapper struct for struct VkSurfaceCapabilities2KHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkSurfaceCapabilities2KHR.html
   struct SurfaceCapabilities2KHR
   {
@@ -138432,6 +147984,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                 pNext               = {};
     SurfaceCapabilitiesKHR surfaceCapabilities = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfaceCapabilities2KHR>
+  {
+    using Type = SurfaceCapabilities2KHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSurfaceCapabilities2KHR>
@@ -138523,6 +148083,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        fullScreenExclusiveSupported = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfaceCapabilitiesFullScreenExclusiveEXT>
+  {
+    using Type = SurfaceCapabilitiesFullScreenExclusiveEXT;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eSurfaceCapabilitiesFullScreenExclusiveEXT>
   {
@@ -138612,6 +148180,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                   = {};
     Bool32        presentBarrierSupported = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfaceCapabilitiesPresentBarrierNV>
+  {
+    using Type = SurfaceCapabilitiesPresentBarrierNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSurfaceCapabilitiesPresentBarrierNV>
@@ -138716,6 +148292,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        presentId2Supported = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfaceCapabilitiesPresentId2KHR>
+  {
+    using Type = SurfaceCapabilitiesPresentId2KHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSurfaceCapabilitiesPresentId2KHR>
   {
@@ -138818,6 +148402,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                 = {};
     Bool32        presentWait2Supported = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfaceCapabilitiesPresentWait2KHR>
+  {
+    using Type = SurfaceCapabilitiesPresentWait2KHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSurfaceCapabilitiesPresentWait2KHR>
@@ -138931,6 +148523,14 @@ namespace VULKAN_HPP_NAMESPACE
     OHNativeWindow *       window = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfaceCreateInfoOHOS>
+  {
+    using Type = SurfaceCreateInfoOHOS;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eSurfaceCreateInfoOHOS>
   {
@@ -139013,6 +148613,14 @@ namespace VULKAN_HPP_NAMESPACE
     ColorSpaceKHR colorSpace = ColorSpaceKHR::eSrgbNonlinear;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfaceFormatKHR>
+  {
+    using Type = SurfaceFormatKHR;
+  };
+#endif
+
   // wrapper struct for struct VkSurfaceFormat2KHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkSurfaceFormat2KHR.html
   struct SurfaceFormat2KHR
   {
@@ -139091,6 +148699,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *           pNext         = {};
     SurfaceFormatKHR surfaceFormat = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfaceFormat2KHR>
+  {
+    using Type = SurfaceFormat2KHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSurfaceFormat2KHR>
@@ -139197,6 +148813,14 @@ namespace VULKAN_HPP_NAMESPACE
     FullScreenExclusiveEXT fullScreenExclusive = FullScreenExclusiveEXT::eDefault;
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfaceFullScreenExclusiveInfoEXT>
+  {
+    using Type = SurfaceFullScreenExclusiveInfoEXT;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eSurfaceFullScreenExclusiveInfoEXT>
   {
@@ -139301,6 +148925,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext    = {};
     HMONITOR      hmonitor = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfaceFullScreenExclusiveWin32InfoEXT>
+  {
+    using Type = SurfaceFullScreenExclusiveWin32InfoEXT;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eSurfaceFullScreenExclusiveWin32InfoEXT>
@@ -139431,6 +149063,14 @@ namespace VULKAN_HPP_NAMESPACE
     PresentModeKHR * pPresentModes    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfacePresentModeCompatibilityKHR>
+  {
+    using Type = SurfacePresentModeCompatibilityKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSurfacePresentModeCompatibilityKHR>
   {
@@ -139534,6 +149174,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *         pNext       = {};
     PresentModeKHR presentMode = PresentModeKHR::eImmediate;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfacePresentModeKHR>
+  {
+    using Type = SurfacePresentModeKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSurfacePresentModeKHR>
@@ -139689,6 +149337,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent2D               maxScaledImageExtent     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfacePresentScalingCapabilitiesKHR>
+  {
+    using Type = SurfacePresentScalingCapabilitiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSurfacePresentScalingCapabilitiesKHR>
   {
@@ -139779,6 +149435,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext             = {};
     Bool32        supportsProtected = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSurfaceProtectedCapabilitiesKHR>
+  {
+    using Type = SurfaceProtectedCapabilitiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSurfaceProtectedCapabilitiesKHR>
@@ -139882,6 +149546,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *           pNext           = {};
     SurfaceCounterFlagsEXT surfaceCounters = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSwapchainCounterCreateInfoEXT>
+  {
+    using Type = SwapchainCounterCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSwapchainCounterCreateInfoEXT>
@@ -140208,6 +149880,14 @@ namespace VULKAN_HPP_NAMESPACE
     SwapchainKHR                oldSwapchain          = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSwapchainCreateInfoKHR>
+  {
+    using Type = SwapchainCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSwapchainCreateInfoKHR>
   {
@@ -140311,6 +149991,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        localDimmingEnable = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSwapchainDisplayNativeHdrCreateInfoAMD>
+  {
+    using Type = SwapchainDisplayNativeHdrCreateInfoAMD;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSwapchainDisplayNativeHdrCreateInfoAMD>
   {
@@ -140412,6 +150100,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext             = {};
     Bool32        latencyModeEnable = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSwapchainLatencyCreateInfoNV>
+  {
+    using Type = SwapchainLatencyCreateInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSwapchainLatencyCreateInfoNV>
@@ -140515,6 +150211,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                = {};
     Bool32        presentBarrierEnable = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSwapchainPresentBarrierCreateInfoNV>
+  {
+    using Type = SwapchainPresentBarrierCreateInfoNV;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSwapchainPresentBarrierCreateInfoNV>
@@ -140642,6 +150346,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      swapchainCount = {};
     const Fence * pFences        = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSwapchainPresentFenceInfoKHR>
+  {
+    using Type = SwapchainPresentFenceInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSwapchainPresentFenceInfoKHR>
@@ -140772,6 +150484,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t               swapchainCount = {};
     const PresentModeKHR * pPresentModes  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSwapchainPresentModeInfoKHR>
+  {
+    using Type = SwapchainPresentModeInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eSwapchainPresentModeInfoKHR>
@@ -140904,6 +150624,14 @@ namespace VULKAN_HPP_NAMESPACE
     const PresentModeKHR * pPresentModes    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSwapchainPresentModesCreateInfoKHR>
+  {
+    using Type = SwapchainPresentModesCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSwapchainPresentModesCreateInfoKHR>
   {
@@ -141030,6 +150758,14 @@ namespace VULKAN_HPP_NAMESPACE
     PresentGravityFlagsKHR presentGravityY = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkSwapchainPresentScalingCreateInfoKHR>
+  {
+    using Type = SwapchainPresentScalingCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eSwapchainPresentScalingCreateInfoKHR>
   {
@@ -141134,6 +150870,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext  = {};
     TensorARM     tensor = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTensorCaptureDescriptorDataInfoARM>
+  {
+    using Type = TensorCaptureDescriptorDataInfoARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eTensorCaptureDescriptorDataInfoARM>
@@ -141303,6 +151047,14 @@ namespace VULKAN_HPP_NAMESPACE
     TensorARM           tensor              = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTensorMemoryBarrierARM>
+  {
+    using Type = TensorMemoryBarrierARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eTensorMemoryBarrierARM>
   {
@@ -141416,6 +151168,14 @@ namespace VULKAN_HPP_NAMESPACE
     const TensorMemoryBarrierARM * pTensorMemoryBarriers    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTensorDependencyInfoARM>
+  {
+    using Type = TensorDependencyInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eTensorDependencyInfoARM>
   {
@@ -141508,6 +151268,14 @@ namespace VULKAN_HPP_NAMESPACE
     FormatFeatureFlags2 optimalTilingTensorFeatures = {};
     FormatFeatureFlags2 linearTilingTensorFeatures  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTensorFormatPropertiesARM>
+  {
+    using Type = TensorFormatPropertiesARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eTensorFormatPropertiesARM>
@@ -141612,6 +151380,14 @@ namespace VULKAN_HPP_NAMESPACE
     TensorARM     tensor = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTensorMemoryRequirementsInfoARM>
+  {
+    using Type = TensorMemoryRequirementsInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eTensorMemoryRequirementsInfoARM>
   {
@@ -141714,6 +151490,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext      = {};
     TensorViewARM tensorView = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTensorViewCaptureDescriptorDataInfoARM>
+  {
+    using Type = TensorViewCaptureDescriptorDataInfoARM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eTensorViewCaptureDescriptorDataInfoARM>
@@ -141837,6 +151621,14 @@ namespace VULKAN_HPP_NAMESPACE
     Format                   format = Format::eUndefined;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTensorViewCreateInfoARM>
+  {
+    using Type = TensorViewCreateInfoARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eTensorViewCreateInfoARM>
   {
@@ -141925,6 +151717,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                           = {};
     Bool32        supportsTextureGatherLODBiasAMD = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTextureLODGatherFormatPropertiesAMD>
+  {
+    using Type = TextureLODGatherFormatPropertiesAMD;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eTextureLodGatherFormatPropertiesAMD>
@@ -142027,6 +151827,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext  = {};
     DeviceMemory  memory = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTileMemoryBindInfoQCOM>
+  {
+    using Type = TileMemoryBindInfoQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eTileMemoryBindInfoQCOM>
@@ -142138,6 +151946,14 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceSize    alignment = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTileMemoryRequirementsQCOM>
+  {
+    using Type = TileMemoryRequirementsQCOM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eTileMemoryRequirementsQCOM>
   {
@@ -142239,6 +152055,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext = {};
     DeviceSize    size  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTileMemorySizeInfoQCOM>
+  {
+    using Type = TileMemorySizeInfoQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eTileMemorySizeInfoQCOM>
@@ -142355,6 +152179,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent2D      apronSize = {};
     Offset2D      origin    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTilePropertiesQCOM>
+  {
+    using Type = TilePropertiesQCOM;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eTilePropertiesQCOM>
@@ -142519,6 +152351,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t         signalSemaphoreValueCount = {};
     const uint64_t * pSignalSemaphoreValues    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTimelineSemaphoreSubmitInfo>
+  {
+    using Type = TimelineSemaphoreSubmitInfo;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eTimelineSemaphoreSubmitInfo>
@@ -142765,6 +152605,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      depth                             = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTraceRaysIndirectCommand2KHR>
+  {
+    using Type = TraceRaysIndirectCommand2KHR;
+  };
+#endif
+
   // wrapper struct for struct VkTraceRaysIndirectCommandKHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkTraceRaysIndirectCommandKHR.html
   struct TraceRaysIndirectCommandKHR
   {
@@ -142869,6 +152717,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t height = {};
     uint32_t depth  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkTraceRaysIndirectCommandKHR>
+  {
+    using Type = TraceRaysIndirectCommandKHR;
+  };
+#endif
 
   // wrapper struct for struct VkValidationCacheCreateInfoEXT, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkValidationCacheCreateInfoEXT.html
   struct ValidationCacheCreateInfoEXT
@@ -143004,6 +152860,14 @@ namespace VULKAN_HPP_NAMESPACE
     size_t                        initialDataSize = {};
     const void *                  pInitialData    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkValidationCacheCreateInfoEXT>
+  {
+    using Type = ValidationCacheCreateInfoEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eValidationCacheCreateInfoEXT>
@@ -143178,6 +153042,14 @@ namespace VULKAN_HPP_NAMESPACE
     const ValidationFeatureDisableEXT * pDisabledValidationFeatures    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkValidationFeaturesEXT>
+  {
+    using Type = ValidationFeaturesEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eValidationFeaturesEXT>
   {
@@ -143305,6 +153177,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                   disabledValidationCheckCount = {};
     const ValidationCheckEXT * pDisabledValidationChecks    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkValidationFlagsEXT>
+  {
+    using Type = ValidationFlagsEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eValidationFlagsEXT>
@@ -143434,6 +153314,14 @@ namespace VULKAN_HPP_NAMESPACE
     Format        format   = Format::eUndefined;
     uint32_t      offset   = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVertexInputAttributeDescription2EXT>
+  {
+    using Type = VertexInputAttributeDescription2EXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVertexInputAttributeDescription2EXT>
@@ -143568,6 +153456,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t        divisor   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVertexInputBindingDescription2EXT>
+  {
+    using Type = VertexInputBindingDescription2EXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVertexInputBindingDescription2EXT>
   {
@@ -143678,6 +153574,14 @@ namespace VULKAN_HPP_NAMESPACE
     ViSurfaceCreateFlagsNN flags  = {};
     void *                 window = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkViSurfaceCreateInfoNN>
+  {
+    using Type = ViSurfaceCreateInfoNN;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eViSurfaceCreateInfoNN>
@@ -143812,6 +153716,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageView     imageViewBinding = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoPictureResourceInfoKHR>
+  {
+    using Type = VideoPictureResourceInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoPictureResourceInfoKHR>
   {
@@ -143923,6 +153835,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t                             slotIndex        = {};
     const VideoPictureResourceInfoKHR * pPictureResource = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoReferenceSlotInfoKHR>
+  {
+    using Type = VideoReferenceSlotInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoReferenceSlotInfoKHR>
@@ -144097,6 +154017,14 @@ namespace VULKAN_HPP_NAMESPACE
     const VideoReferenceSlotInfoKHR * pReferenceSlots        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoBeginCodingInfoKHR>
+  {
+    using Type = VideoBeginCodingInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoBeginCodingInfoKHR>
   {
@@ -144235,6 +154163,14 @@ namespace VULKAN_HPP_NAMESPACE
     ExtensionProperties     stdHeaderVersion                  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoCapabilitiesKHR>
+  {
+    using Type = VideoCapabilitiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoCapabilitiesKHR>
   {
@@ -144337,6 +154273,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoCodingControlFlagsKHR flags = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoCodingControlInfoKHR>
+  {
+    using Type = VideoCodingControlInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoCodingControlInfoKHR>
   {
@@ -144431,6 +154375,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *           pNext    = {};
     StdVideoAV1Level maxLevel = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeAV1CapabilitiesKHR>
+  {
+    using Type = VideoDecodeAV1CapabilitiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeAv1CapabilitiesKHR>
@@ -144534,6 +154486,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                           pNext             = {};
     const StdVideoDecodeAV1ReferenceInfo * pStdReferenceInfo = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeAV1DpbSlotInfoKHR>
+  {
+    using Type = VideoDecodeAV1DpbSlotInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeAv1DpbSlotInfoKHR>
@@ -144639,6 +154599,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                      pNext              = {};
     const StdVideoAV1SequenceHeader * pStdSequenceHeader = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeAV1InlineSessionParametersInfoKHR>
+  {
+    using Type = VideoDecodeAV1InlineSessionParametersInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeAv1InlineSessionParametersInfoKHR>
@@ -144844,6 +154812,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t *                                                   pTileSizes               = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeAV1PictureInfoKHR>
+  {
+    using Type = VideoDecodeAV1PictureInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeAv1PictureInfoKHR>
   {
@@ -144964,6 +154940,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32             filmGrainSupport = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeAV1ProfileInfoKHR>
+  {
+    using Type = VideoDecodeAV1ProfileInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeAv1ProfileInfoKHR>
   {
@@ -145069,6 +155053,14 @@ namespace VULKAN_HPP_NAMESPACE
     const StdVideoAV1SequenceHeader * pStdSequenceHeader = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeAV1SessionParametersCreateInfoKHR>
+  {
+    using Type = VideoDecodeAV1SessionParametersCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeAv1SessionParametersCreateInfoKHR>
   {
@@ -145156,6 +155148,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                        pNext = {};
     VideoDecodeCapabilityFlagsKHR flags = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeCapabilitiesKHR>
+  {
+    using Type = VideoDecodeCapabilitiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeCapabilitiesKHR>
@@ -145258,6 +155258,14 @@ namespace VULKAN_HPP_NAMESPACE
     StdVideoH264LevelIdc maxLevelIdc            = {};
     Offset2D             fieldOffsetGranularity = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeH264CapabilitiesKHR>
+  {
+    using Type = VideoDecodeH264CapabilitiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeH264CapabilitiesKHR>
@@ -145363,6 +155371,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                            pNext             = {};
     const StdVideoDecodeH264ReferenceInfo * pStdReferenceInfo = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeH264DpbSlotInfoKHR>
+  {
+    using Type = VideoDecodeH264DpbSlotInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeH264DpbSlotInfoKHR>
@@ -145478,6 +155494,14 @@ namespace VULKAN_HPP_NAMESPACE
     const StdVideoH264SequenceParameterSet * pStdSPS = {};
     const StdVideoH264PictureParameterSet *  pStdPPS = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeH264InlineSessionParametersInfoKHR>
+  {
+    using Type = VideoDecodeH264InlineSessionParametersInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeH264InlineSessionParametersInfoKHR>
@@ -145621,6 +155645,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t *                      pSliceOffsets   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeH264PictureInfoKHR>
+  {
+    using Type = VideoDecodeH264PictureInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeH264PictureInfoKHR>
   {
@@ -145744,6 +155776,14 @@ namespace VULKAN_HPP_NAMESPACE
     StdVideoH264ProfileIdc                  stdProfileIdc = {};
     VideoDecodeH264PictureLayoutFlagBitsKHR pictureLayout = VideoDecodeH264PictureLayoutFlagBitsKHR::eProgressive;
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeH264ProfileInfoKHR>
+  {
+    using Type = VideoDecodeH264ProfileInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeH264ProfileInfoKHR>
@@ -145916,6 +155956,14 @@ namespace VULKAN_HPP_NAMESPACE
     const StdVideoH264PictureParameterSet *  pStdPPSs    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeH264SessionParametersAddInfoKHR>
+  {
+    using Type = VideoDecodeH264SessionParametersAddInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeH264SessionParametersAddInfoKHR>
   {
@@ -146042,6 +156090,14 @@ namespace VULKAN_HPP_NAMESPACE
     const VideoDecodeH264SessionParametersAddInfoKHR * pParametersAddInfo = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeH264SessionParametersCreateInfoKHR>
+  {
+    using Type = VideoDecodeH264SessionParametersCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeH264SessionParametersCreateInfoKHR>
   {
@@ -146136,6 +156192,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *               pNext       = {};
     StdVideoH265LevelIdc maxLevelIdc = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeH265CapabilitiesKHR>
+  {
+    using Type = VideoDecodeH265CapabilitiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeH265CapabilitiesKHR>
@@ -146241,6 +156305,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                            pNext             = {};
     const StdVideoDecodeH265ReferenceInfo * pStdReferenceInfo = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeH265DpbSlotInfoKHR>
+  {
+    using Type = VideoDecodeH265DpbSlotInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeH265DpbSlotInfoKHR>
@@ -146369,6 +156441,14 @@ namespace VULKAN_HPP_NAMESPACE
     const StdVideoH265SequenceParameterSet * pStdSPS = {};
     const StdVideoH265PictureParameterSet *  pStdPPS = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeH265InlineSessionParametersInfoKHR>
+  {
+    using Type = VideoDecodeH265InlineSessionParametersInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeH265InlineSessionParametersInfoKHR>
@@ -146515,6 +156595,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint32_t *                      pSliceSegmentOffsets = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeH265PictureInfoKHR>
+  {
+    using Type = VideoDecodeH265PictureInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeH265PictureInfoKHR>
   {
@@ -146623,6 +156711,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *           pNext         = {};
     StdVideoH265ProfileIdc stdProfileIdc = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeH265ProfileInfoKHR>
+  {
+    using Type = VideoDecodeH265ProfileInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeH265ProfileInfoKHR>
@@ -146827,6 +156923,14 @@ namespace VULKAN_HPP_NAMESPACE
     const StdVideoH265PictureParameterSet *  pStdPPSs    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeH265SessionParametersAddInfoKHR>
+  {
+    using Type = VideoDecodeH265SessionParametersAddInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeH265SessionParametersAddInfoKHR>
   {
@@ -146966,6 +157070,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                                           maxStdPPSCount     = {};
     const VideoDecodeH265SessionParametersAddInfoKHR * pParametersAddInfo = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeH265SessionParametersCreateInfoKHR>
+  {
+    using Type = VideoDecodeH265SessionParametersCreateInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeH265SessionParametersCreateInfoKHR>
@@ -147175,6 +157287,14 @@ namespace VULKAN_HPP_NAMESPACE
     const VideoReferenceSlotInfoKHR * pReferenceSlots     = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeInfoKHR>
+  {
+    using Type = VideoDecodeInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeInfoKHR>
   {
@@ -147277,6 +157397,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoDecodeUsageFlagsKHR videoUsageHints = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeUsageInfoKHR>
+  {
+    using Type = VideoDecodeUsageInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeUsageInfoKHR>
   {
@@ -147371,6 +157499,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *           pNext    = {};
     StdVideoVP9Level maxLevel = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeVP9CapabilitiesKHR>
+  {
+    using Type = VideoDecodeVP9CapabilitiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeVp9CapabilitiesKHR>
@@ -147521,6 +157657,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                                                           tilesOffset              = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeVP9PictureInfoKHR>
+  {
+    using Type = VideoDecodeVP9PictureInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeVp9PictureInfoKHR>
   {
@@ -147628,6 +157772,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *       pNext      = {};
     StdVideoVP9Profile stdProfile = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoDecodeVP9ProfileInfoKHR>
+  {
+    using Type = VideoDecodeVP9ProfileInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoDecodeVp9ProfileInfoKHR>
@@ -147906,6 +158058,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoEncodeAV1StdFlagsKHR            stdSyntaxFlags                                = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeAV1CapabilitiesKHR>
+  {
+    using Type = VideoEncodeAV1CapabilitiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeAv1CapabilitiesKHR>
   {
@@ -148008,6 +158168,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                           pNext             = {};
     const StdVideoEncodeAV1ReferenceInfo * pStdReferenceInfo = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeAV1DpbSlotInfoKHR>
+  {
+    using Type = VideoEncodeAV1DpbSlotInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeAv1DpbSlotInfoKHR>
@@ -148116,6 +158284,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t predictiveFrameSize   = {};
     uint32_t bipredictiveFrameSize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeAV1FrameSizeKHR>
+  {
+    using Type = VideoEncodeAV1FrameSizeKHR;
+  };
+#endif
 
   // wrapper struct for struct VkVideoEncodeAV1GopRemainingFrameInfoKHR, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkVideoEncodeAV1GopRemainingFrameInfoKHR.html
@@ -148244,6 +158420,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      gopRemainingPredictive   = {};
     uint32_t      gopRemainingBipredictive = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeAV1GopRemainingFrameInfoKHR>
+  {
+    using Type = VideoEncodeAV1GopRemainingFrameInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeAv1GopRemainingFrameInfoKHR>
@@ -148423,6 +158607,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                                                             generateObuExtensionHeader = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeAV1PictureInfoKHR>
+  {
+    using Type = VideoEncodeAV1PictureInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeAv1PictureInfoKHR>
   {
@@ -148531,6 +158723,14 @@ namespace VULKAN_HPP_NAMESPACE
     StdVideoAV1Profile stdProfile = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeAV1ProfileInfoKHR>
+  {
+    using Type = VideoEncodeAV1ProfileInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeAv1ProfileInfoKHR>
   {
@@ -148637,6 +158837,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t predictiveQIndex   = {};
     uint32_t bipredictiveQIndex = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeAV1QIndexKHR>
+  {
+    using Type = VideoEncodeAV1QIndexKHR;
+  };
+#endif
 
   // wrapper struct for struct VkVideoEncodeAV1QualityLevelPropertiesKHR, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkVideoEncodeAV1QualityLevelPropertiesKHR.html
@@ -148809,6 +159017,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                          preferredBidirectionalCompoundReferenceNameMask        = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeAV1QualityLevelPropertiesKHR>
+  {
+    using Type = VideoEncodeAV1QualityLevelPropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeAv1QualityLevelPropertiesKHR>
   {
@@ -148900,6 +159116,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t       minQIndexDelta = {};
     int32_t       maxQIndexDelta = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeAV1QuantizationMapCapabilitiesKHR>
+  {
+    using Type = VideoEncodeAV1QuantizationMapCapabilitiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeAv1QuantizationMapCapabilitiesKHR>
@@ -149050,6 +159274,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                          consecutiveBipredictiveFrameCount = {};
     uint32_t                          temporalLayerCount                = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeAV1RateControlInfoKHR>
+  {
+    using Type = VideoEncodeAV1RateControlInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeAv1RateControlInfoKHR>
@@ -149210,6 +159442,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoEncodeAV1FrameSizeKHR maxFrameSize    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeAV1RateControlLayerInfoKHR>
+  {
+    using Type = VideoEncodeAV1RateControlLayerInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeAv1RateControlLayerInfoKHR>
   {
@@ -149330,6 +159570,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32           useMaxLevel = {};
     StdVideoAV1Level maxLevel    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeAV1SessionCreateInfoKHR>
+  {
+    using Type = VideoEncodeAV1SessionCreateInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeAv1SessionCreateInfoKHR>
@@ -149497,6 +159745,14 @@ namespace VULKAN_HPP_NAMESPACE
     const StdVideoEncodeAV1OperatingPointInfo * pStdOperatingPoints    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeAV1SessionParametersCreateInfoKHR>
+  {
+    using Type = VideoEncodeAV1SessionParametersCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeAv1SessionParametersCreateInfoKHR>
   {
@@ -149622,6 +159878,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent2D                           encodeInputPictureGranularity = {};
     VideoEncodeFeedbackFlagsKHR        supportedEncodeFeedbackFlags  = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeCapabilitiesKHR>
+  {
+    using Type = VideoEncodeCapabilitiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeCapabilitiesKHR>
@@ -149814,6 +160078,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoEncodeH264StdFlagsKHR        stdSyntaxFlags                   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264CapabilitiesKHR>
+  {
+    using Type = VideoEncodeH264CapabilitiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264CapabilitiesKHR>
   {
@@ -149918,6 +160190,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                            pNext             = {};
     const StdVideoEncodeH264ReferenceInfo * pStdReferenceInfo = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264DpbSlotInfoKHR>
+  {
+    using Type = VideoEncodeH264DpbSlotInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264DpbSlotInfoKHR>
@@ -150024,6 +160304,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t framePSize = {};
     uint32_t frameBSize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264FrameSizeKHR>
+  {
+    using Type = VideoEncodeH264FrameSizeKHR;
+  };
+#endif
 
   // wrapper struct for struct VkVideoEncodeH264GopRemainingFrameInfoKHR, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkVideoEncodeH264GopRemainingFrameInfoKHR.html
@@ -150152,6 +160440,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      gopRemainingB         = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264GopRemainingFrameInfoKHR>
+  {
+    using Type = VideoEncodeH264GopRemainingFrameInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264GopRemainingFrameInfoKHR>
   {
@@ -150264,6 +160560,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t                               constantQp      = {};
     const StdVideoEncodeH264SliceHeader * pStdSliceHeader = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264NaluSliceInfoKHR>
+  {
+    using Type = VideoEncodeH264NaluSliceInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264NaluSliceInfoKHR>
@@ -150428,6 +160732,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                                  generatePrefixNalu  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264PictureInfoKHR>
+  {
+    using Type = VideoEncodeH264PictureInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264PictureInfoKHR>
   {
@@ -150537,6 +160849,14 @@ namespace VULKAN_HPP_NAMESPACE
     StdVideoH264ProfileIdc stdProfileIdc = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264ProfileInfoKHR>
+  {
+    using Type = VideoEncodeH264ProfileInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264ProfileInfoKHR>
   {
@@ -150642,6 +160962,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t qpP = {};
     int32_t qpB = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264QpKHR>
+  {
+    using Type = VideoEncodeH264QpKHR;
+  };
+#endif
 
   // wrapper struct for struct VkVideoEncodeH264QualityLevelPropertiesKHR, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkVideoEncodeH264QualityLevelPropertiesKHR.html
@@ -150777,6 +161105,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                             preferredStdEntropyCodingModeFlag = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264QualityLevelPropertiesKHR>
+  {
+    using Type = VideoEncodeH264QualityLevelPropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264QualityLevelPropertiesKHR>
   {
@@ -150869,6 +161205,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t       minQpDelta = {};
     int32_t       maxQpDelta = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264QuantizationMapCapabilitiesKHR>
+  {
+    using Type = VideoEncodeH264QuantizationMapCapabilitiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264QuantizationMapCapabilitiesKHR>
@@ -151017,6 +161361,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                           consecutiveBFrameCount = {};
     uint32_t                           temporalLayerCount     = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264RateControlInfoKHR>
+  {
+    using Type = VideoEncodeH264RateControlInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264RateControlInfoKHR>
@@ -151176,6 +161528,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoEncodeH264FrameSizeKHR maxFrameSize    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264RateControlLayerInfoKHR>
+  {
+    using Type = VideoEncodeH264RateControlLayerInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264RateControlLayerInfoKHR>
   {
@@ -151297,6 +161657,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32               useMaxLevelIdc = {};
     StdVideoH264LevelIdc maxLevelIdc    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264SessionCreateInfoKHR>
+  {
+    using Type = VideoEncodeH264SessionCreateInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264SessionCreateInfoKHR>
@@ -151469,6 +161837,14 @@ namespace VULKAN_HPP_NAMESPACE
     const StdVideoH264PictureParameterSet *  pStdPPSs    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264SessionParametersAddInfoKHR>
+  {
+    using Type = VideoEncodeH264SessionParametersAddInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264SessionParametersAddInfoKHR>
   {
@@ -151595,6 +161971,14 @@ namespace VULKAN_HPP_NAMESPACE
     const VideoEncodeH264SessionParametersAddInfoKHR * pParametersAddInfo = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264SessionParametersCreateInfoKHR>
+  {
+    using Type = VideoEncodeH264SessionParametersCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264SessionParametersCreateInfoKHR>
   {
@@ -151689,6 +162073,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        hasStdSPSOverrides = {};
     Bool32        hasStdPPSOverrides = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264SessionParametersFeedbackInfoKHR>
+  {
+    using Type = VideoEncodeH264SessionParametersFeedbackInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264SessionParametersFeedbackInfoKHR>
@@ -151819,6 +162211,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      stdSPSId    = {};
     uint32_t      stdPPSId    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH264SessionParametersGetInfoKHR>
+  {
+    using Type = VideoEncodeH264SessionParametersGetInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH264SessionParametersGetInfoKHR>
@@ -152033,6 +162433,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoEncodeH265StdFlagsKHR                stdSyntaxFlags                      = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265CapabilitiesKHR>
+  {
+    using Type = VideoEncodeH265CapabilitiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265CapabilitiesKHR>
   {
@@ -152137,6 +162545,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *                            pNext             = {};
     const StdVideoEncodeH265ReferenceInfo * pStdReferenceInfo = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265DpbSlotInfoKHR>
+  {
+    using Type = VideoEncodeH265DpbSlotInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265DpbSlotInfoKHR>
@@ -152243,6 +162659,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t framePSize = {};
     uint32_t frameBSize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265FrameSizeKHR>
+  {
+    using Type = VideoEncodeH265FrameSizeKHR;
+  };
+#endif
 
   // wrapper struct for struct VkVideoEncodeH265GopRemainingFrameInfoKHR, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkVideoEncodeH265GopRemainingFrameInfoKHR.html
@@ -152371,6 +162795,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      gopRemainingB         = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265GopRemainingFrameInfoKHR>
+  {
+    using Type = VideoEncodeH265GopRemainingFrameInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265GopRemainingFrameInfoKHR>
   {
@@ -152485,6 +162917,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t                                      constantQp             = {};
     const StdVideoEncodeH265SliceSegmentHeader * pStdSliceSegmentHeader = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265NaluSliceSegmentInfoKHR>
+  {
+    using Type = VideoEncodeH265NaluSliceSegmentInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265NaluSliceSegmentInfoKHR>
@@ -152637,6 +163077,14 @@ namespace VULKAN_HPP_NAMESPACE
     const StdVideoEncodeH265PictureInfo *          pStdPictureInfo            = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265PictureInfoKHR>
+  {
+    using Type = VideoEncodeH265PictureInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265PictureInfoKHR>
   {
@@ -152746,6 +163194,14 @@ namespace VULKAN_HPP_NAMESPACE
     StdVideoH265ProfileIdc stdProfileIdc = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265ProfileInfoKHR>
+  {
+    using Type = VideoEncodeH265ProfileInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265ProfileInfoKHR>
   {
@@ -152851,6 +163307,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t qpP = {};
     int32_t qpB = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265QpKHR>
+  {
+    using Type = VideoEncodeH265QpKHR;
+  };
+#endif
 
   // wrapper struct for struct VkVideoEncodeH265QualityLevelPropertiesKHR, see
   // https://registry.khronos.org/vulkan/specs/latest/man/html/VkVideoEncodeH265QualityLevelPropertiesKHR.html
@@ -152980,6 +163444,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                           preferredMaxL1ReferenceCount    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265QualityLevelPropertiesKHR>
+  {
+    using Type = VideoEncodeH265QualityLevelPropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265QualityLevelPropertiesKHR>
   {
@@ -153072,6 +163544,14 @@ namespace VULKAN_HPP_NAMESPACE
     int32_t       minQpDelta = {};
     int32_t       maxQpDelta = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265QuantizationMapCapabilitiesKHR>
+  {
+    using Type = VideoEncodeH265QuantizationMapCapabilitiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265QuantizationMapCapabilitiesKHR>
@@ -153220,6 +163700,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                           consecutiveBFrameCount = {};
     uint32_t                           subLayerCount          = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265RateControlInfoKHR>
+  {
+    using Type = VideoEncodeH265RateControlInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265RateControlInfoKHR>
@@ -153379,6 +163867,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoEncodeH265FrameSizeKHR maxFrameSize    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265RateControlLayerInfoKHR>
+  {
+    using Type = VideoEncodeH265RateControlLayerInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265RateControlLayerInfoKHR>
   {
@@ -153500,6 +163996,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32               useMaxLevelIdc = {};
     StdVideoH265LevelIdc maxLevelIdc    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265SessionCreateInfoKHR>
+  {
+    using Type = VideoEncodeH265SessionCreateInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265SessionCreateInfoKHR>
@@ -153704,6 +164208,14 @@ namespace VULKAN_HPP_NAMESPACE
     const StdVideoH265PictureParameterSet *  pStdPPSs    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265SessionParametersAddInfoKHR>
+  {
+    using Type = VideoEncodeH265SessionParametersAddInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265SessionParametersAddInfoKHR>
   {
@@ -153844,6 +164356,14 @@ namespace VULKAN_HPP_NAMESPACE
     const VideoEncodeH265SessionParametersAddInfoKHR * pParametersAddInfo = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265SessionParametersCreateInfoKHR>
+  {
+    using Type = VideoEncodeH265SessionParametersCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265SessionParametersCreateInfoKHR>
   {
@@ -153941,6 +164461,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32        hasStdSPSOverrides = {};
     Bool32        hasStdPPSOverrides = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265SessionParametersFeedbackInfoKHR>
+  {
+    using Type = VideoEncodeH265SessionParametersFeedbackInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265SessionParametersFeedbackInfoKHR>
@@ -154093,6 +164621,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      stdSPSId    = {};
     uint32_t      stdPPSId    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeH265SessionParametersGetInfoKHR>
+  {
+    using Type = VideoEncodeH265SessionParametersGetInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeH265SessionParametersGetInfoKHR>
@@ -154323,6 +164859,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                          precedingExternallyEncodedBytes = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeInfoKHR>
+  {
+    using Type = VideoEncodeInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeInfoKHR>
   {
@@ -154442,6 +164986,14 @@ namespace VULKAN_HPP_NAMESPACE
     Bool32                              nonRectangularIntraRefreshRegions       = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeIntraRefreshCapabilitiesKHR>
+  {
+    using Type = VideoEncodeIntraRefreshCapabilitiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeIntraRefreshCapabilitiesKHR>
   {
@@ -154556,10 +165108,129 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      intraRefreshIndex         = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeIntraRefreshInfoKHR>
+  {
+    using Type = VideoEncodeIntraRefreshInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeIntraRefreshInfoKHR>
   {
     using Type = VideoEncodeIntraRefreshInfoKHR;
+  };
+
+  // wrapper struct for struct VkVideoEncodeProfileRgbConversionInfoVALVE, see
+  // https://registry.khronos.org/vulkan/specs/latest/man/html/VkVideoEncodeProfileRgbConversionInfoVALVE.html
+  struct VideoEncodeProfileRgbConversionInfoVALVE
+  {
+    using NativeType = VkVideoEncodeProfileRgbConversionInfoVALVE;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eVideoEncodeProfileRgbConversionInfoVALVE;
+
+#if !defined( VULKAN_HPP_NO_CONSTRUCTORS ) && !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR VideoEncodeProfileRgbConversionInfoVALVE( Bool32 performEncodeRgbConversion_ = {}, const void * pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , performEncodeRgbConversion{ performEncodeRgbConversion_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR VideoEncodeProfileRgbConversionInfoVALVE( VideoEncodeProfileRgbConversionInfoVALVE const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    VideoEncodeProfileRgbConversionInfoVALVE( VkVideoEncodeProfileRgbConversionInfoVALVE const & rhs ) VULKAN_HPP_NOEXCEPT
+      : VideoEncodeProfileRgbConversionInfoVALVE( *reinterpret_cast<VideoEncodeProfileRgbConversionInfoVALVE const *>( &rhs ) )
+    {
+    }
+
+    VideoEncodeProfileRgbConversionInfoVALVE & operator=( VideoEncodeProfileRgbConversionInfoVALVE const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_CONSTRUCTORS*/
+
+    VideoEncodeProfileRgbConversionInfoVALVE & operator=( VkVideoEncodeProfileRgbConversionInfoVALVE const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VideoEncodeProfileRgbConversionInfoVALVE const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_SETTERS ) && !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 VideoEncodeProfileRgbConversionInfoVALVE & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 VideoEncodeProfileRgbConversionInfoVALVE & setPerformEncodeRgbConversion( Bool32 performEncodeRgbConversion_ ) VULKAN_HPP_NOEXCEPT
+    {
+      performEncodeRgbConversion = performEncodeRgbConversion_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_SETTERS*/
+
+    operator VkVideoEncodeProfileRgbConversionInfoVALVE const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkVideoEncodeProfileRgbConversionInfoVALVE *>( this );
+    }
+
+    operator VkVideoEncodeProfileRgbConversionInfoVALVE &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkVideoEncodeProfileRgbConversionInfoVALVE *>( this );
+    }
+
+    operator VkVideoEncodeProfileRgbConversionInfoVALVE const *() const VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<const VkVideoEncodeProfileRgbConversionInfoVALVE *>( this );
+    }
+
+    operator VkVideoEncodeProfileRgbConversionInfoVALVE *() VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<VkVideoEncodeProfileRgbConversionInfoVALVE *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+    std::tuple<StructureType const &, const void * const &, Bool32 const &> reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, performEncodeRgbConversion );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( VideoEncodeProfileRgbConversionInfoVALVE const & ) const = default;
+#else
+    bool operator==( VideoEncodeProfileRgbConversionInfoVALVE const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( performEncodeRgbConversion == rhs.performEncodeRgbConversion );
+#  endif
+    }
+
+    bool operator!=( VideoEncodeProfileRgbConversionInfoVALVE const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    StructureType sType                      = StructureType::eVideoEncodeProfileRgbConversionInfoVALVE;
+    const void *  pNext                      = {};
+    Bool32        performEncodeRgbConversion = {};
+  };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeProfileRgbConversionInfoVALVE>
+  {
+    using Type = VideoEncodeProfileRgbConversionInfoVALVE;
+  };
+#endif
+
+  template <>
+  struct CppType<StructureType, StructureType::eVideoEncodeProfileRgbConversionInfoVALVE>
+  {
+    using Type = VideoEncodeProfileRgbConversionInfoVALVE;
   };
 
   // wrapper struct for struct VkVideoEncodeQualityLevelInfoKHR, see
@@ -154659,6 +165330,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      qualityLevel = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeQualityLevelInfoKHR>
+  {
+    using Type = VideoEncodeQualityLevelInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeQualityLevelInfoKHR>
   {
@@ -154754,6 +165433,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                              preferredRateControlLayerCount = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeQualityLevelPropertiesKHR>
+  {
+    using Type = VideoEncodeQualityLevelPropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeQualityLevelPropertiesKHR>
   {
@@ -154842,6 +165529,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                    = {};
     Extent2D      maxQuantizationMapExtent = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeQuantizationMapCapabilitiesKHR>
+  {
+    using Type = VideoEncodeQuantizationMapCapabilitiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeQuantizationMapCapabilitiesKHR>
@@ -154957,6 +165652,14 @@ namespace VULKAN_HPP_NAMESPACE
     Extent2D      quantizationMapExtent = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeQuantizationMapInfoKHR>
+  {
+    using Type = VideoEncodeQuantizationMapInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeQuantizationMapInfoKHR>
   {
@@ -155064,6 +165767,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext                    = {};
     Extent2D      quantizationMapTexelSize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeQuantizationMapSessionParametersCreateInfoKHR>
+  {
+    using Type = VideoEncodeQuantizationMapSessionParametersCreateInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeQuantizationMapSessionParametersCreateInfoKHR>
@@ -155197,6 +165908,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      frameRateNumerator   = {};
     uint32_t      frameRateDenominator = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeRateControlLayerInfoKHR>
+  {
+    using Type = VideoEncodeRateControlLayerInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeRateControlLayerInfoKHR>
@@ -155385,10 +166104,132 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t                                   initialVirtualBufferSizeInMs = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeRateControlInfoKHR>
+  {
+    using Type = VideoEncodeRateControlInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeRateControlInfoKHR>
   {
     using Type = VideoEncodeRateControlInfoKHR;
+  };
+
+  // wrapper struct for struct VkVideoEncodeRgbConversionCapabilitiesVALVE, see
+  // https://registry.khronos.org/vulkan/specs/latest/man/html/VkVideoEncodeRgbConversionCapabilitiesVALVE.html
+  struct VideoEncodeRgbConversionCapabilitiesVALVE
+  {
+    using NativeType = VkVideoEncodeRgbConversionCapabilitiesVALVE;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eVideoEncodeRgbConversionCapabilitiesVALVE;
+
+#if !defined( VULKAN_HPP_NO_CONSTRUCTORS ) && !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR VideoEncodeRgbConversionCapabilitiesVALVE( VideoEncodeRgbModelConversionFlagsVALVE  rgbModels_      = {},
+                                                                    VideoEncodeRgbRangeCompressionFlagsVALVE rgbRanges_      = {},
+                                                                    VideoEncodeRgbChromaOffsetFlagsVALVE     xChromaOffsets_ = {},
+                                                                    VideoEncodeRgbChromaOffsetFlagsVALVE     yChromaOffsets_ = {},
+                                                                    void *                                   pNext_          = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , rgbModels{ rgbModels_ }
+      , rgbRanges{ rgbRanges_ }
+      , xChromaOffsets{ xChromaOffsets_ }
+      , yChromaOffsets{ yChromaOffsets_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR VideoEncodeRgbConversionCapabilitiesVALVE( VideoEncodeRgbConversionCapabilitiesVALVE const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    VideoEncodeRgbConversionCapabilitiesVALVE( VkVideoEncodeRgbConversionCapabilitiesVALVE const & rhs ) VULKAN_HPP_NOEXCEPT
+      : VideoEncodeRgbConversionCapabilitiesVALVE( *reinterpret_cast<VideoEncodeRgbConversionCapabilitiesVALVE const *>( &rhs ) )
+    {
+    }
+
+    VideoEncodeRgbConversionCapabilitiesVALVE & operator=( VideoEncodeRgbConversionCapabilitiesVALVE const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_CONSTRUCTORS*/
+
+    VideoEncodeRgbConversionCapabilitiesVALVE & operator=( VkVideoEncodeRgbConversionCapabilitiesVALVE const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VideoEncodeRgbConversionCapabilitiesVALVE const *>( &rhs );
+      return *this;
+    }
+
+    operator VkVideoEncodeRgbConversionCapabilitiesVALVE const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkVideoEncodeRgbConversionCapabilitiesVALVE *>( this );
+    }
+
+    operator VkVideoEncodeRgbConversionCapabilitiesVALVE &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkVideoEncodeRgbConversionCapabilitiesVALVE *>( this );
+    }
+
+    operator VkVideoEncodeRgbConversionCapabilitiesVALVE const *() const VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<const VkVideoEncodeRgbConversionCapabilitiesVALVE *>( this );
+    }
+
+    operator VkVideoEncodeRgbConversionCapabilitiesVALVE *() VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<VkVideoEncodeRgbConversionCapabilitiesVALVE *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+    std::tuple<StructureType const &,
+               void * const &,
+               VideoEncodeRgbModelConversionFlagsVALVE const &,
+               VideoEncodeRgbRangeCompressionFlagsVALVE const &,
+               VideoEncodeRgbChromaOffsetFlagsVALVE const &,
+               VideoEncodeRgbChromaOffsetFlagsVALVE const &>
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, rgbModels, rgbRanges, xChromaOffsets, yChromaOffsets );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( VideoEncodeRgbConversionCapabilitiesVALVE const & ) const = default;
+#else
+    bool operator==( VideoEncodeRgbConversionCapabilitiesVALVE const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( rgbModels == rhs.rgbModels ) && ( rgbRanges == rhs.rgbRanges ) &&
+             ( xChromaOffsets == rhs.xChromaOffsets ) && ( yChromaOffsets == rhs.yChromaOffsets );
+#  endif
+    }
+
+    bool operator!=( VideoEncodeRgbConversionCapabilitiesVALVE const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    StructureType                            sType          = StructureType::eVideoEncodeRgbConversionCapabilitiesVALVE;
+    void *                                   pNext          = {};
+    VideoEncodeRgbModelConversionFlagsVALVE  rgbModels      = {};
+    VideoEncodeRgbRangeCompressionFlagsVALVE rgbRanges      = {};
+    VideoEncodeRgbChromaOffsetFlagsVALVE     xChromaOffsets = {};
+    VideoEncodeRgbChromaOffsetFlagsVALVE     yChromaOffsets = {};
+  };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeRgbConversionCapabilitiesVALVE>
+  {
+    using Type = VideoEncodeRgbConversionCapabilitiesVALVE;
+  };
+#endif
+
+  template <>
+  struct CppType<StructureType, StructureType::eVideoEncodeRgbConversionCapabilitiesVALVE>
+  {
+    using Type = VideoEncodeRgbConversionCapabilitiesVALVE;
   };
 
   // wrapper struct for struct VkVideoEncodeSessionIntraRefreshCreateInfoKHR, see
@@ -155491,6 +166332,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoEncodeIntraRefreshModeFlagBitsKHR intraRefreshMode = VideoEncodeIntraRefreshModeFlagBitsKHR::eNone;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeSessionIntraRefreshCreateInfoKHR>
+  {
+    using Type = VideoEncodeSessionIntraRefreshCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeSessionIntraRefreshCreateInfoKHR>
   {
@@ -155579,6 +166428,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext        = {};
     Bool32        hasOverrides = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeSessionParametersFeedbackInfoKHR>
+  {
+    using Type = VideoEncodeSessionParametersFeedbackInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeSessionParametersFeedbackInfoKHR>
@@ -155685,10 +166542,170 @@ namespace VULKAN_HPP_NAMESPACE
     VideoSessionParametersKHR videoSessionParameters = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeSessionParametersGetInfoKHR>
+  {
+    using Type = VideoEncodeSessionParametersGetInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeSessionParametersGetInfoKHR>
   {
     using Type = VideoEncodeSessionParametersGetInfoKHR;
+  };
+
+  // wrapper struct for struct VkVideoEncodeSessionRgbConversionCreateInfoVALVE, see
+  // https://registry.khronos.org/vulkan/specs/latest/man/html/VkVideoEncodeSessionRgbConversionCreateInfoVALVE.html
+  struct VideoEncodeSessionRgbConversionCreateInfoVALVE
+  {
+    using NativeType = VkVideoEncodeSessionRgbConversionCreateInfoVALVE;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eVideoEncodeSessionRgbConversionCreateInfoVALVE;
+
+#if !defined( VULKAN_HPP_NO_CONSTRUCTORS ) && !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR VideoEncodeSessionRgbConversionCreateInfoVALVE(
+      VideoEncodeRgbModelConversionFlagBitsVALVE  rgbModel_      = VideoEncodeRgbModelConversionFlagBitsVALVE::eRgbIdentity,
+      VideoEncodeRgbRangeCompressionFlagBitsVALVE rgbRange_      = VideoEncodeRgbRangeCompressionFlagBitsVALVE::eFullRange,
+      VideoEncodeRgbChromaOffsetFlagBitsVALVE     xChromaOffset_ = VideoEncodeRgbChromaOffsetFlagBitsVALVE::eCositedEven,
+      VideoEncodeRgbChromaOffsetFlagBitsVALVE     yChromaOffset_ = VideoEncodeRgbChromaOffsetFlagBitsVALVE::eCositedEven,
+      const void *                                pNext_         = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , rgbModel{ rgbModel_ }
+      , rgbRange{ rgbRange_ }
+      , xChromaOffset{ xChromaOffset_ }
+      , yChromaOffset{ yChromaOffset_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR
+      VideoEncodeSessionRgbConversionCreateInfoVALVE( VideoEncodeSessionRgbConversionCreateInfoVALVE const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    VideoEncodeSessionRgbConversionCreateInfoVALVE( VkVideoEncodeSessionRgbConversionCreateInfoVALVE const & rhs ) VULKAN_HPP_NOEXCEPT
+      : VideoEncodeSessionRgbConversionCreateInfoVALVE( *reinterpret_cast<VideoEncodeSessionRgbConversionCreateInfoVALVE const *>( &rhs ) )
+    {
+    }
+
+    VideoEncodeSessionRgbConversionCreateInfoVALVE & operator=( VideoEncodeSessionRgbConversionCreateInfoVALVE const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_CONSTRUCTORS*/
+
+    VideoEncodeSessionRgbConversionCreateInfoVALVE & operator=( VkVideoEncodeSessionRgbConversionCreateInfoVALVE const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VideoEncodeSessionRgbConversionCreateInfoVALVE const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_SETTERS ) && !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 VideoEncodeSessionRgbConversionCreateInfoVALVE & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 VideoEncodeSessionRgbConversionCreateInfoVALVE &
+      setRgbModel( VideoEncodeRgbModelConversionFlagBitsVALVE rgbModel_ ) VULKAN_HPP_NOEXCEPT
+    {
+      rgbModel = rgbModel_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 VideoEncodeSessionRgbConversionCreateInfoVALVE &
+      setRgbRange( VideoEncodeRgbRangeCompressionFlagBitsVALVE rgbRange_ ) VULKAN_HPP_NOEXCEPT
+    {
+      rgbRange = rgbRange_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 VideoEncodeSessionRgbConversionCreateInfoVALVE &
+      setXChromaOffset( VideoEncodeRgbChromaOffsetFlagBitsVALVE xChromaOffset_ ) VULKAN_HPP_NOEXCEPT
+    {
+      xChromaOffset = xChromaOffset_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 VideoEncodeSessionRgbConversionCreateInfoVALVE &
+      setYChromaOffset( VideoEncodeRgbChromaOffsetFlagBitsVALVE yChromaOffset_ ) VULKAN_HPP_NOEXCEPT
+    {
+      yChromaOffset = yChromaOffset_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_SETTERS*/
+
+    operator VkVideoEncodeSessionRgbConversionCreateInfoVALVE const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkVideoEncodeSessionRgbConversionCreateInfoVALVE *>( this );
+    }
+
+    operator VkVideoEncodeSessionRgbConversionCreateInfoVALVE &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkVideoEncodeSessionRgbConversionCreateInfoVALVE *>( this );
+    }
+
+    operator VkVideoEncodeSessionRgbConversionCreateInfoVALVE const *() const VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<const VkVideoEncodeSessionRgbConversionCreateInfoVALVE *>( this );
+    }
+
+    operator VkVideoEncodeSessionRgbConversionCreateInfoVALVE *() VULKAN_HPP_NOEXCEPT
+    {
+      return reinterpret_cast<VkVideoEncodeSessionRgbConversionCreateInfoVALVE *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+    std::tuple<StructureType const &,
+               const void * const &,
+               VideoEncodeRgbModelConversionFlagBitsVALVE const &,
+               VideoEncodeRgbRangeCompressionFlagBitsVALVE const &,
+               VideoEncodeRgbChromaOffsetFlagBitsVALVE const &,
+               VideoEncodeRgbChromaOffsetFlagBitsVALVE const &>
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, rgbModel, rgbRange, xChromaOffset, yChromaOffset );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( VideoEncodeSessionRgbConversionCreateInfoVALVE const & ) const = default;
+#else
+    bool operator==( VideoEncodeSessionRgbConversionCreateInfoVALVE const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( rgbModel == rhs.rgbModel ) && ( rgbRange == rhs.rgbRange ) &&
+             ( xChromaOffset == rhs.xChromaOffset ) && ( yChromaOffset == rhs.yChromaOffset );
+#  endif
+    }
+
+    bool operator!=( VideoEncodeSessionRgbConversionCreateInfoVALVE const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    StructureType                               sType         = StructureType::eVideoEncodeSessionRgbConversionCreateInfoVALVE;
+    const void *                                pNext         = {};
+    VideoEncodeRgbModelConversionFlagBitsVALVE  rgbModel      = VideoEncodeRgbModelConversionFlagBitsVALVE::eRgbIdentity;
+    VideoEncodeRgbRangeCompressionFlagBitsVALVE rgbRange      = VideoEncodeRgbRangeCompressionFlagBitsVALVE::eFullRange;
+    VideoEncodeRgbChromaOffsetFlagBitsVALVE     xChromaOffset = VideoEncodeRgbChromaOffsetFlagBitsVALVE::eCositedEven;
+    VideoEncodeRgbChromaOffsetFlagBitsVALVE     yChromaOffset = VideoEncodeRgbChromaOffsetFlagBitsVALVE::eCositedEven;
+  };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeSessionRgbConversionCreateInfoVALVE>
+  {
+    using Type = VideoEncodeSessionRgbConversionCreateInfoVALVE;
+  };
+#endif
+
+  template <>
+  struct CppType<StructureType, StructureType::eVideoEncodeSessionRgbConversionCreateInfoVALVE>
+  {
+    using Type = VideoEncodeSessionRgbConversionCreateInfoVALVE;
   };
 
   // wrapper struct for struct VkVideoEncodeUsageInfoKHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/VkVideoEncodeUsageInfoKHR.html
@@ -155809,6 +166826,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoEncodeTuningModeKHR   tuningMode        = VideoEncodeTuningModeKHR::eDefault;
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEncodeUsageInfoKHR>
+  {
+    using Type = VideoEncodeUsageInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEncodeUsageInfoKHR>
   {
@@ -155911,6 +166936,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoEndCodingFlagsKHR flags = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoEndCodingInfoKHR>
+  {
+    using Type = VideoEndCodingInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoEndCodingInfoKHR>
   {
@@ -156001,6 +167034,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoEncodeAV1SuperblockSizeFlagsKHR compatibleSuperblockSizes = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoFormatAV1QuantizationMapPropertiesKHR>
+  {
+    using Type = VideoFormatAV1QuantizationMapPropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoFormatAv1QuantizationMapPropertiesKHR>
   {
@@ -156090,6 +167131,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *                         pNext              = {};
     VideoEncodeH265CtbSizeFlagsKHR compatibleCtbSizes = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoFormatH265QuantizationMapPropertiesKHR>
+  {
+    using Type = VideoFormatH265QuantizationMapPropertiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoFormatH265QuantizationMapPropertiesKHR>
@@ -156205,6 +167254,14 @@ namespace VULKAN_HPP_NAMESPACE
     ImageUsageFlags  imageUsageFlags  = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoFormatPropertiesKHR>
+  {
+    using Type = VideoFormatPropertiesKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoFormatPropertiesKHR>
   {
@@ -156293,6 +167350,14 @@ namespace VULKAN_HPP_NAMESPACE
     void *        pNext                    = {};
     Extent2D      quantizationMapTexelSize = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoFormatQuantizationMapPropertiesKHR>
+  {
+    using Type = VideoFormatQuantizationMapPropertiesKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoFormatQuantizationMapPropertiesKHR>
@@ -156415,6 +167480,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      firstQuery = {};
     uint32_t      queryCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoInlineQueryInfoKHR>
+  {
+    using Type = VideoInlineQueryInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoInlineQueryInfoKHR>
@@ -156543,6 +167616,14 @@ namespace VULKAN_HPP_NAMESPACE
     const VideoProfileInfoKHR * pProfiles    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoProfileListInfoKHR>
+  {
+    using Type = VideoProfileListInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoProfileListInfoKHR>
   {
@@ -156645,6 +167726,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext                    = {};
     uint32_t      dirtyIntraRefreshRegions = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoReferenceIntraRefreshInfoKHR>
+  {
+    using Type = VideoReferenceIntraRefreshInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoReferenceIntraRefreshInfoKHR>
@@ -156845,6 +167934,14 @@ namespace VULKAN_HPP_NAMESPACE
     const ExtensionProperties * pStdHeaderVersion          = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoSessionCreateInfoKHR>
+  {
+    using Type = VideoSessionCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoSessionCreateInfoKHR>
   {
@@ -156937,6 +168034,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t           memoryBindIndex    = {};
     MemoryRequirements memoryRequirements = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoSessionMemoryRequirementsKHR>
+  {
+    using Type = VideoSessionMemoryRequirementsKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoSessionMemoryRequirementsKHR>
@@ -157067,6 +168172,14 @@ namespace VULKAN_HPP_NAMESPACE
     VideoSessionKHR                      videoSession                   = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoSessionParametersCreateInfoKHR>
+  {
+    using Type = VideoSessionParametersCreateInfoKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eVideoSessionParametersCreateInfoKHR>
   {
@@ -157169,6 +168282,14 @@ namespace VULKAN_HPP_NAMESPACE
     const void *  pNext               = {};
     uint32_t      updateSequenceCount = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkVideoSessionParametersUpdateInfoKHR>
+  {
+    using Type = VideoSessionParametersUpdateInfoKHR;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eVideoSessionParametersUpdateInfoKHR>
@@ -157292,6 +168413,14 @@ namespace VULKAN_HPP_NAMESPACE
     struct wl_display *          display = {};
     struct wl_surface *          surface = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkWaylandSurfaceCreateInfoKHR>
+  {
+    using Type = WaylandSurfaceCreateInfoKHR;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eWaylandSurfaceCreateInfoKHR>
@@ -157558,6 +168687,14 @@ namespace VULKAN_HPP_NAMESPACE
     const DeviceMemory * pReleaseSyncs    = {};
     const uint64_t *     pReleaseKeys     = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkWin32KeyedMutexAcquireReleaseInfoKHR>
+  {
+    using Type = Win32KeyedMutexAcquireReleaseInfoKHR;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eWin32KeyedMutexAcquireReleaseInfoKHR>
@@ -157829,6 +168966,14 @@ namespace VULKAN_HPP_NAMESPACE
     const uint64_t *     pReleaseKeys                = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkWin32KeyedMutexAcquireReleaseInfoNV>
+  {
+    using Type = Win32KeyedMutexAcquireReleaseInfoNV;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eWin32KeyedMutexAcquireReleaseInfoNV>
   {
@@ -157952,6 +169097,14 @@ namespace VULKAN_HPP_NAMESPACE
     HINSTANCE                  hinstance = {};
     HWND                       hwnd      = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkWin32SurfaceCreateInfoKHR>
+  {
+    using Type = Win32SurfaceCreateInfoKHR;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eWin32SurfaceCreateInfoKHR>
@@ -158090,6 +169243,14 @@ namespace VULKAN_HPP_NAMESPACE
     const AccelerationStructureKHR * pAccelerationStructures    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkWriteDescriptorSetAccelerationStructureKHR>
+  {
+    using Type = WriteDescriptorSetAccelerationStructureKHR;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eWriteDescriptorSetAccelerationStructureKHR>
   {
@@ -158226,6 +169387,14 @@ namespace VULKAN_HPP_NAMESPACE
     const AccelerationStructureNV * pAccelerationStructures    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkWriteDescriptorSetAccelerationStructureNV>
+  {
+    using Type = WriteDescriptorSetAccelerationStructureNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eWriteDescriptorSetAccelerationStructureNV>
   {
@@ -158355,6 +169524,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      dataSize = {};
     const void *  pData    = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkWriteDescriptorSetInlineUniformBlock>
+  {
+    using Type = WriteDescriptorSetInlineUniformBlock;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eWriteDescriptorSetInlineUniformBlock>
@@ -158496,6 +169673,14 @@ namespace VULKAN_HPP_NAMESPACE
     const DeviceAddress * pAccelerationStructures    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkWriteDescriptorSetPartitionedAccelerationStructureNV>
+  {
+    using Type = WriteDescriptorSetPartitionedAccelerationStructureNV;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eWriteDescriptorSetPartitionedAccelerationStructureNV>
   {
@@ -158623,6 +169808,14 @@ namespace VULKAN_HPP_NAMESPACE
     const TensorViewARM * pTensorViews    = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkWriteDescriptorSetTensorARM>
+  {
+    using Type = WriteDescriptorSetTensorARM;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eWriteDescriptorSetTensorARM>
   {
@@ -158735,6 +169928,14 @@ namespace VULKAN_HPP_NAMESPACE
     Pipeline      pipeline = {};
   };
 
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkWriteIndirectExecutionSetPipelineEXT>
+  {
+    using Type = WriteIndirectExecutionSetPipelineEXT;
+  };
+#endif
+
   template <>
   struct CppType<StructureType, StructureType::eWriteIndirectExecutionSetPipelineEXT>
   {
@@ -158845,6 +170046,14 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t      index  = {};
     ShaderEXT     shader = {};
   };
+
+#if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkWriteIndirectExecutionSetShaderEXT>
+  {
+    using Type = WriteIndirectExecutionSetShaderEXT;
+  };
+#endif
 
   template <>
   struct CppType<StructureType, StructureType::eWriteIndirectExecutionSetShaderEXT>
@@ -158980,6 +170189,14 @@ namespace VULKAN_HPP_NAMESPACE
     xcb_window_t             window     = {};
   };
 
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkXcbSurfaceCreateInfoKHR>
+  {
+    using Type = XcbSurfaceCreateInfoKHR;
+  };
+#  endif
+
   template <>
   struct CppType<StructureType, StructureType::eXcbSurfaceCreateInfoKHR>
   {
@@ -159114,6 +170331,14 @@ namespace VULKAN_HPP_NAMESPACE
     Display *                 dpy    = {};
     Window                    window = {};
   };
+
+#  if 20 <= VULKAN_HPP_CPP_VERSION
+  template <>
+  struct CppType<VkXlibSurfaceCreateInfoKHR>
+  {
+    using Type = XlibSurfaceCreateInfoKHR;
+  };
+#  endif
 
   template <>
   struct CppType<StructureType, StructureType::eXlibSurfaceCreateInfoKHR>

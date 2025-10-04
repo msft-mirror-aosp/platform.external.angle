@@ -10,9 +10,8 @@
 
 module;
 
-#include <vulkan/vulkan_hpp_macros.hpp>
-
-#if defined( __cpp_lib_modules ) && !defined( VULKAN_HPP_ENABLE_STD_MODULE )
+#include <version>
+#if defined( __cpp_lib_modules ) && !defined( VULKAN_HPP_NO_STD_MODULE )
 #  define VULKAN_HPP_ENABLE_STD_MODULE
 #endif
 
@@ -22,11 +21,11 @@ module;
 #include <vulkan/vulkan_hash.hpp>
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_shared.hpp>
-#ifndef VULKAN_HPP_NO_TO_STRING
-#  include <vulkan/vulkan_to_string.hpp>
-#endif
 
 export module vulkan_hpp;
+#if defined( VULKAN_HPP_ENABLE_STD_MODULE )
+export import VULKAN_HPP_STD_MODULE;
+#endif
 
 export namespace VULKAN_HPP_NAMESPACE
 {
@@ -49,6 +48,8 @@ export namespace VULKAN_HPP_NAMESPACE
     using VULKAN_HPP_NAMESPACE::detail::DispatchLoaderStatic;
     using VULKAN_HPP_NAMESPACE::detail::getDispatchLoaderStatic;
 #endif /*VK_NO_PROTOTYPES*/
+    using VULKAN_HPP_NAMESPACE::detail::createResultValueType;
+    using VULKAN_HPP_NAMESPACE::detail::resultCheck;
   }  // namespace detail
 
   using VULKAN_HPP_NAMESPACE::operator&;
@@ -814,6 +815,14 @@ export namespace VULKAN_HPP_NAMESPACE
   using VULKAN_HPP_NAMESPACE::ScreenSurfaceCreateFlagsQNX;
 #endif /*VK_USE_PLATFORM_SCREEN_QNX*/
 
+  //=== VK_VALVE_video_encode_rgb_conversion ===
+  using VULKAN_HPP_NAMESPACE::VideoEncodeRgbChromaOffsetFlagBitsVALVE;
+  using VULKAN_HPP_NAMESPACE::VideoEncodeRgbChromaOffsetFlagsVALVE;
+  using VULKAN_HPP_NAMESPACE::VideoEncodeRgbModelConversionFlagBitsVALVE;
+  using VULKAN_HPP_NAMESPACE::VideoEncodeRgbModelConversionFlagsVALVE;
+  using VULKAN_HPP_NAMESPACE::VideoEncodeRgbRangeCompressionFlagBitsVALVE;
+  using VULKAN_HPP_NAMESPACE::VideoEncodeRgbRangeCompressionFlagsVALVE;
+
   //=== VK_EXT_opacity_micromap ===
   using VULKAN_HPP_NAMESPACE::BuildMicromapFlagBitsEXT;
   using VULKAN_HPP_NAMESPACE::BuildMicromapFlagsEXT;
@@ -949,6 +958,10 @@ export namespace VULKAN_HPP_NAMESPACE
   //=== VK_KHR_calibrated_timestamps ===
   using VULKAN_HPP_NAMESPACE::TimeDomainEXT;
   using VULKAN_HPP_NAMESPACE::TimeDomainKHR;
+
+  //=== VK_KHR_copy_memory_indirect ===
+  using VULKAN_HPP_NAMESPACE::AddressCopyFlagBitsKHR;
+  using VULKAN_HPP_NAMESPACE::AddressCopyFlagsKHR;
 
   //=== VK_NV_display_stereo ===
   using VULKAN_HPP_NAMESPACE::DisplaySurfaceStereoTypeNV;
@@ -2360,6 +2373,10 @@ export namespace VULKAN_HPP_NAMESPACE
   using VULKAN_HPP_NAMESPACE::EXTGlobalPriorityQuerySpecVersion;
   using VULKAN_HPP_NAMESPACE::MaxGlobalPrioritySizeEXT;
 
+  //=== VK_VALVE_video_encode_rgb_conversion ===
+  using VULKAN_HPP_NAMESPACE::VALVEVideoEncodeRgbConversionExtensionName;
+  using VULKAN_HPP_NAMESPACE::VALVEVideoEncodeRgbConversionSpecVersion;
+
   //=== VK_EXT_image_view_min_lod ===
   using VULKAN_HPP_NAMESPACE::EXTImageViewMinLodExtensionName;
   using VULKAN_HPP_NAMESPACE::EXTImageViewMinLodSpecVersion;
@@ -2743,6 +2760,10 @@ export namespace VULKAN_HPP_NAMESPACE
   //=== VK_QCOM_tile_memory_heap ===
   using VULKAN_HPP_NAMESPACE::QCOMTileMemoryHeapExtensionName;
   using VULKAN_HPP_NAMESPACE::QCOMTileMemoryHeapSpecVersion;
+
+  //=== VK_KHR_copy_memory_indirect ===
+  using VULKAN_HPP_NAMESPACE::KHRCopyMemoryIndirectExtensionName;
+  using VULKAN_HPP_NAMESPACE::KHRCopyMemoryIndirectSpecVersion;
 
   //=== VK_NV_display_stereo ===
   using VULKAN_HPP_NAMESPACE::NVDisplayStereoExtensionName;
@@ -4476,6 +4497,12 @@ export namespace VULKAN_HPP_NAMESPACE
   //=== VK_KHR_shader_untyped_pointers ===
   using VULKAN_HPP_NAMESPACE::PhysicalDeviceShaderUntypedPointersFeaturesKHR;
 
+  //=== VK_VALVE_video_encode_rgb_conversion ===
+  using VULKAN_HPP_NAMESPACE::PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE;
+  using VULKAN_HPP_NAMESPACE::VideoEncodeProfileRgbConversionInfoVALVE;
+  using VULKAN_HPP_NAMESPACE::VideoEncodeRgbConversionCapabilitiesVALVE;
+  using VULKAN_HPP_NAMESPACE::VideoEncodeSessionRgbConversionCreateInfoVALVE;
+
   //=== VK_EXT_image_view_min_lod ===
   using VULKAN_HPP_NAMESPACE::ImageViewMinLodCreateInfoEXT;
   using VULKAN_HPP_NAMESPACE::PhysicalDeviceImageViewMinLodFeaturesEXT;
@@ -4554,10 +4581,7 @@ export namespace VULKAN_HPP_NAMESPACE
   using VULKAN_HPP_NAMESPACE::RenderPassStripeSubmitInfoARM;
 
   //=== VK_NV_copy_memory_indirect ===
-  using VULKAN_HPP_NAMESPACE::CopyMemoryIndirectCommandNV;
-  using VULKAN_HPP_NAMESPACE::CopyMemoryToImageIndirectCommandNV;
   using VULKAN_HPP_NAMESPACE::PhysicalDeviceCopyMemoryIndirectFeaturesNV;
-  using VULKAN_HPP_NAMESPACE::PhysicalDeviceCopyMemoryIndirectPropertiesNV;
 
   //=== VK_NV_memory_decompression ===
   using VULKAN_HPP_NAMESPACE::DecompressMemoryRegionNV;
@@ -4922,6 +4946,18 @@ export namespace VULKAN_HPP_NAMESPACE
   using VULKAN_HPP_NAMESPACE::TileMemoryBindInfoQCOM;
   using VULKAN_HPP_NAMESPACE::TileMemoryRequirementsQCOM;
   using VULKAN_HPP_NAMESPACE::TileMemorySizeInfoQCOM;
+
+  //=== VK_KHR_copy_memory_indirect ===
+  using VULKAN_HPP_NAMESPACE::CopyMemoryIndirectCommandKHR;
+  using VULKAN_HPP_NAMESPACE::CopyMemoryIndirectCommandNV;
+  using VULKAN_HPP_NAMESPACE::CopyMemoryIndirectInfoKHR;
+  using VULKAN_HPP_NAMESPACE::CopyMemoryToImageIndirectCommandKHR;
+  using VULKAN_HPP_NAMESPACE::CopyMemoryToImageIndirectCommandNV;
+  using VULKAN_HPP_NAMESPACE::CopyMemoryToImageIndirectInfoKHR;
+  using VULKAN_HPP_NAMESPACE::PhysicalDeviceCopyMemoryIndirectFeaturesKHR;
+  using VULKAN_HPP_NAMESPACE::PhysicalDeviceCopyMemoryIndirectPropertiesKHR;
+  using VULKAN_HPP_NAMESPACE::PhysicalDeviceCopyMemoryIndirectPropertiesNV;
+  using VULKAN_HPP_NAMESPACE::StridedDeviceAddressRangeKHR;
 
   //=== VK_NV_display_stereo ===
   using VULKAN_HPP_NAMESPACE::DisplayModeStereoPropertiesNV;
@@ -5487,6 +5523,9 @@ export namespace VULKAN_HPP_NAMESPACE
   using VULKAN_HPP_NAMESPACE::SharedHandleTraits;
   using VULKAN_HPP_NAMESPACE::SharedIndirectCommandsLayoutEXT;
   using VULKAN_HPP_NAMESPACE::SharedIndirectExecutionSetEXT;
+
+  //=== VK_KHR_swapchain enum ===
+  using VULKAN_HPP_NAMESPACE::SwapchainOwns;
 #endif /*VULKAN_HPP_NO_SMART_HANDLE*/
 
   //===========================
@@ -8069,6 +8108,16 @@ export namespace std
   template <>
   struct hash<VULKAN_HPP_NAMESPACE::PhysicalDeviceShaderUntypedPointersFeaturesKHR>;
 
+  //=== VK_VALVE_video_encode_rgb_conversion ===
+  template <>
+  struct hash<VULKAN_HPP_NAMESPACE::PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE>;
+  template <>
+  struct hash<VULKAN_HPP_NAMESPACE::VideoEncodeRgbConversionCapabilitiesVALVE>;
+  template <>
+  struct hash<VULKAN_HPP_NAMESPACE::VideoEncodeProfileRgbConversionInfoVALVE>;
+  template <>
+  struct hash<VULKAN_HPP_NAMESPACE::VideoEncodeSessionRgbConversionCreateInfoVALVE>;
+
   //=== VK_EXT_image_view_min_lod ===
   template <>
   struct hash<VULKAN_HPP_NAMESPACE::PhysicalDeviceImageViewMinLodFeaturesEXT>;
@@ -8193,13 +8242,7 @@ export namespace std
 
   //=== VK_NV_copy_memory_indirect ===
   template <>
-  struct hash<VULKAN_HPP_NAMESPACE::CopyMemoryIndirectCommandNV>;
-  template <>
-  struct hash<VULKAN_HPP_NAMESPACE::CopyMemoryToImageIndirectCommandNV>;
-  template <>
   struct hash<VULKAN_HPP_NAMESPACE::PhysicalDeviceCopyMemoryIndirectFeaturesNV>;
-  template <>
-  struct hash<VULKAN_HPP_NAMESPACE::PhysicalDeviceCopyMemoryIndirectPropertiesNV>;
 
   //=== VK_NV_memory_decompression ===
   template <>
@@ -8782,6 +8825,22 @@ export namespace std
   struct hash<VULKAN_HPP_NAMESPACE::TileMemoryBindInfoQCOM>;
   template <>
   struct hash<VULKAN_HPP_NAMESPACE::TileMemorySizeInfoQCOM>;
+
+  //=== VK_KHR_copy_memory_indirect ===
+  template <>
+  struct hash<VULKAN_HPP_NAMESPACE::StridedDeviceAddressRangeKHR>;
+  template <>
+  struct hash<VULKAN_HPP_NAMESPACE::CopyMemoryIndirectCommandKHR>;
+  template <>
+  struct hash<VULKAN_HPP_NAMESPACE::CopyMemoryIndirectInfoKHR>;
+  template <>
+  struct hash<VULKAN_HPP_NAMESPACE::CopyMemoryToImageIndirectCommandKHR>;
+  template <>
+  struct hash<VULKAN_HPP_NAMESPACE::CopyMemoryToImageIndirectInfoKHR>;
+  template <>
+  struct hash<VULKAN_HPP_NAMESPACE::PhysicalDeviceCopyMemoryIndirectFeaturesKHR>;
+  template <>
+  struct hash<VULKAN_HPP_NAMESPACE::PhysicalDeviceCopyMemoryIndirectPropertiesKHR>;
 
   //=== VK_NV_display_stereo ===
   template <>
@@ -10242,6 +10301,10 @@ export using ::PFN_vkCmdBindDescriptorBufferEmbeddedSamplers2EXT;
 
 //=== VK_QCOM_tile_memory_heap ===
 export using ::PFN_vkCmdBindTileMemoryQCOM;
+
+//=== VK_KHR_copy_memory_indirect ===
+export using ::PFN_vkCmdCopyMemoryIndirectKHR;
+export using ::PFN_vkCmdCopyMemoryToImageIndirectKHR;
 
 //=== VK_NV_external_compute_queue ===
 export using ::PFN_vkCreateExternalComputeQueueNV;

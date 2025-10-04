@@ -1469,6 +1469,14 @@ bool TParseContext::declareVariable(const TSourceLoc &line,
         case EvqLastFragDepth:
         case EvqLastFragStencil:
             symbolType = SymbolType::BuiltIn;
+
+            if (mBuiltInQualified[type->getQualifier()])
+            {
+                error(
+                    line,
+                    "built-ins cannot be redeclared after being qualified as invariant or precise",
+                    identifier);
+            }
             break;
         default:
             break;
@@ -3766,6 +3774,8 @@ TIntermGlobalQualifierDeclaration *TParseContext::parseGlobalQualifierDeclaratio
     TIntermSymbol *intermSymbol = new TIntermSymbol(variable);
     intermSymbol->setLine(identifierLoc);
 
+    mBuiltInQualified[type.getQualifier()] = true;
+
     return new TIntermGlobalQualifierDeclaration(intermSymbol, typeQualifier.precise,
                                                  identifierLoc);
 }
@@ -4589,6 +4599,11 @@ TIntermFunctionDefinition *TParseContext::addFunctionDefinition(
         new TIntermFunctionDefinition(functionPrototype, functionBody);
     functionNode->setLine(location);
 
+    if (mDeclaringMain)
+    {
+        mIsMainDeclared = true;
+    }
+
     symbolTable.pop();
     return functionNode;
 }
@@ -4714,10 +4729,6 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
     }
 
     mDeclaringMain = function->isMain();
-    if (mDeclaringMain)
-    {
-        mIsMainDeclared = true;
-    }
 
     //
     // If this is a redeclaration, it could also be a definition, in which case, we want to use the

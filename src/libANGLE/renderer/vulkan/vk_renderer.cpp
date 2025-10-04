@@ -6548,6 +6548,16 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         mNativeVectorWidthHalf    = 2;
         mPreferredVectorWidthHalf = 8;
     }
+
+    // There are use cases where synchronization is not performed properly when texture is modified
+    // between different contexts. To avoid rendering artifacts, force submit staged updates for
+    // Samsung.
+    ANGLE_FEATURE_CONDITION(&mFeatures, forceSubmitImmutableTextureUpdates, isSamsung);
+
+    // Don't expose these 2 extensions on Samsung devices -
+    // 1. GL_ANGLE_shader_pixel_local_storage
+    // 2. GL_ANGLE_shader_pixel_local_storage_coherent
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportShaderPixelLocalStorageAngle, !isSamsung);
 }
 
 void Renderer::appBasedFeatureOverrides(const vk::ExtensionNameList &extensions) {}
@@ -6781,9 +6791,7 @@ angle::Result Renderer::getLockedPipelineCacheDataIfNew(vk::ErrorContext *contex
     return angle::Result::Continue;
 }
 
-angle::Result Renderer::syncPipelineCacheVk(vk::ErrorContext *context,
-                                            vk::GlobalOps *globalOps,
-                                            const gl::Context *contextGL)
+angle::Result Renderer::syncPipelineCacheVk(const gl::Context *contextGL)
 {
     // Skip syncing until pipeline cache is initialized.
     if (!mPipelineCacheInitialized)
@@ -6820,7 +6828,7 @@ angle::Result Renderer::syncPipelineCacheVk(vk::ErrorContext *context,
     {
         std::unique_lock<angle::SimpleMutex> lock(mPipelineCacheMutex);
         ANGLE_TRY(getLockedPipelineCacheDataIfNew(
-            context, &pipelineCacheSize, mPipelineCacheSizeAtLastSync, &pipelineCacheData));
+            contextVk, &pipelineCacheSize, mPipelineCacheSizeAtLastSync, &pipelineCacheData));
     }
     if (pipelineCacheData.empty())
     {
@@ -6828,6 +6836,8 @@ angle::Result Renderer::syncPipelineCacheVk(vk::ErrorContext *context,
     }
     mPipelineCacheSizeAtLastSync = pipelineCacheSize;
 
+    vk::GlobalOps *globalOps = getGlobalOps();
+    ASSERT(globalOps);
     if (mFeatures.enableAsyncPipelineCacheCompression.enabled)
     {
         // zlib compression ratio normally ranges from 2:1 to 5:1. Set kMaxTotalSize to 64M to
@@ -6848,6 +6858,12 @@ angle::Result Renderer::syncPipelineCacheVk(vk::ErrorContext *context,
     }
 
     return angle::Result::Continue;
+}
+
+angle::Result Renderer::onFrameBoundary(const gl::Context *contextGL)
+{
+    ASSERT(contextGL);
+    return syncPipelineCacheVk(contextGL);
 }
 
 // These functions look at the mandatory format for support, and fallback to querying the device (if
