@@ -95,7 +95,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r28_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-22-init-8940-g4d4cb757-1\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-22-init-8940-g4d4cb757-84\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -5789,6 +5789,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_base_tracing_internal",
         "third_party_abseil_cpp_absl_debugging_stacktrace",
         "third_party_abseil_cpp_absl_debugging_symbolize",
+        "third_party_abseil_cpp_absl_meta_type_traits",
         "third_party_abseil_cpp_absl_synchronization_graphcycles_internal",
         "third_party_abseil_cpp_absl_synchronization_kernel_timeout_internal",
         "third_party_abseil_cpp_absl_time_time",
@@ -7656,7 +7657,6 @@ cc_defaults {
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
-        "third_party_abseil_cpp_absl_base_core_headers",
     ],
     local_include_dirs: [
         "",
