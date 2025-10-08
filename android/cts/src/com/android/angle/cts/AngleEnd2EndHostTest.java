@@ -104,7 +104,11 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
 
     static String getGlobalSetting(ITestDevice device, String globalSetting) throws Exception {
         device.waitForDeviceAvailable();
-        return device.getSetting("global", globalSetting);
+        String ret = device.getSetting("global", globalSetting);
+        if (ret.equals("null")) {
+            return "\"\"";
+        }
+        return ret;
     }
 
     static void setGlobalSetting(ITestDevice device, String globalSetting, String value)
@@ -128,37 +132,29 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
         } catch (Exception e) {
             CLog.e(
                     TAG,
-                    "Exception occurred while selecting ANGLE for the test: "
-                            + ANGLE_E2E_TEST_PKG_NAME);
+                    "Exception occurred while selecting ANGLE for the test "
+                            + ANGLE_E2E_TEST_PKG_NAME
+                            + ": %s",
+                    e);
             return false;
         }
         return result;
     }
 
-    private void cleanUpAngleGLSettings() throws DeviceNotAvailableException {
-        try {
-            if (mAngleGlDriverSelectionPkgs != null) {
-                if (!mAngleGlDriverSelectionPkgs.equals("null")) {
-                    setGlobalSetting(
-                            mDevice, SETTINGS_GLOBAL_DRIVER_PKGS, mAngleGlDriverSelectionPkgs);
-                } else {
-                    setGlobalSetting(mDevice, SETTINGS_GLOBAL_DRIVER_PKGS, "\"\"");
-                }
-            }
-            if (mAngleGlDriverSelectionValues != null) {
-                if (!mAngleGlDriverSelectionValues.equals("null")) {
-                    setGlobalSetting(
-                            mDevice, SETTINGS_GLOBAL_DRIVER_VALUES, mAngleGlDriverSelectionValues);
-                } else {
-                    setGlobalSetting(mDevice, SETTINGS_GLOBAL_DRIVER_VALUES, "\"\"");
-                }
-            }
-        } catch (Exception e) {
-            CLog.e(
-                    TAG,
-                    "Exception occurred while restoring ANGLE selection: "
-                            + ANGLE_E2E_TEST_PKG_NAME);
+    private void restoreSetting(String key, String value) {
+        if (value == null) {
+            return;
         }
+        try {
+            setGlobalSetting(mDevice, key, value);
+        } catch (Exception e) {
+            CLog.e("Error restoring setting(%s=%s): %s", key, value, e);
+        }
+    }
+
+    private void cleanUpAngleGLSettings() throws DeviceNotAvailableException {
+        restoreSetting(SETTINGS_GLOBAL_DRIVER_PKGS, mAngleGlDriverSelectionPkgs);
+        restoreSetting(SETTINGS_GLOBAL_DRIVER_VALUES, mAngleGlDriverSelectionValues);
     }
 
     private boolean isVirtualDevice() throws DeviceNotAvailableException {
