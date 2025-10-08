@@ -3299,6 +3299,8 @@ cc_genrule {
         "src/compiler/translator/wgsl/TranslatorWGSL.h",
         "src/compiler/translator/wgsl/Utils.cpp",
         "src/compiler/translator/wgsl/Utils.h",
+        "src/compiler/translator/wgsl/WGSLProgramPrelude.cpp",
+        "src/compiler/translator/wgsl/WGSLProgramPrelude.h",
         "src/libANGLE/AttributeMap.cpp",
         "src/libANGLE/AttributeMap.h",
         "src/libANGLE/BlobCache.cpp",

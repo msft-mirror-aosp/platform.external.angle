@@ -49,7 +49,7 @@ vars = {
   'dummy_checkout_chromium': False,
 
   # Current revision of VK-GL-CTS (a.k.a dEQP).
-  'vk_gl_cts_revision': '7e7a6001a3f424bf6373e9e45bfa4a98e9d9b131',
+  'vk_gl_cts_revision': 'db48c34bebaf3359453e44ab151a2ff9f9c58eb2',
 
   # Current revision of googletest.
   'googletest_revision': '244cec869d12e53378fa0efb610cd4c32a454ec8',
@@ -292,6 +292,7 @@ vars = {
   'checkout_angle_restricted_trace_hungry_shark_evolution': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_hunter_assassin': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_i9_inferno_nine': 'checkout_angle_restricted_traces',
+  'checkout_angle_restricted_trace_identity_v': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_idle_heroes': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_indian_bikes_driving_3d': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_infinity_ops': 'checkout_angle_restricted_traces',
@@ -331,6 +332,7 @@ vars = {
   'checkout_angle_restricted_trace_marvel_snap': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_marvel_strike_force': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_match_factory': 'checkout_angle_restricted_traces',
+  'checkout_angle_restricted_trace_match_masters': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_matching_story': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_merge_dragons': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_merge_mansion': 'checkout_angle_restricted_traces',
@@ -1084,7 +1086,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@aa211644ec30b826d9bac4d80d90efe794f94733',
+    'url': Var('chromium_git') + '/vulkan-deps@fb5afca26b9bc6bcca137a3202bec15b144c9fac',
     'condition': 'not build_with_chromium',
   },
 
@@ -1109,7 +1111,7 @@ deps = {
   },
 
   'third_party/spirv-tools/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@533a69c63ae773d90d03b206954ffffec6517dbd',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@bced46bb023e69bae4b0e61077ea8372f0d81954',
     'condition': 'not build_with_chromium',
   },
 
@@ -1124,7 +1126,7 @@ deps = {
   },
 
   'third_party/vulkan-tools/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Tools@8ebb2a62f5beee9447a8899a57db291d4034b0fc',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Tools@faf69f66f2d9ba782fe37cabd19b9742f9f62eb3',
     'condition': 'not build_with_chromium',
   },
 
@@ -1134,7 +1136,7 @@ deps = {
   },
 
   'third_party/vulkan-validation-layers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@270dbea039c2b485e33330be58a3e0ebcaef485f',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@46ef56addf33db5bc82e1ef72eb625a9d63a0a37',
     'condition': 'not build_with_chromium',
   },
 
@@ -2783,6 +2785,16 @@ deps = {
       'dep_type': 'cipd',
       'condition': 'checkout_angle_restricted_trace_i9_inferno_nine',
   },
+  'src/tests/restricted_traces/identity_v': {
+      'packages': [
+        {
+            'package': 'angle/traces/identity_v',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_trace_identity_v',
+  },
   'src/tests/restricted_traces/idle_heroes': {
       'packages': [
         {
@@ -3172,6 +3184,16 @@ deps = {
       ],
       'dep_type': 'cipd',
       'condition': 'checkout_angle_restricted_trace_match_factory',
+  },
+  'src/tests/restricted_traces/match_masters': {
+      'packages': [
+        {
+            'package': 'angle/traces/match_masters',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_trace_match_masters',
   },
   'src/tests/restricted_traces/matching_story': {
       'packages': [
