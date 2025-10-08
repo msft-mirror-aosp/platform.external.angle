@@ -16,6 +16,7 @@
 
 package com.android.angle.cts;
 
+import com.android.compatibility.common.util.PropertyUtil;
 import com.android.tradefed.config.Option;
 import com.android.tradefed.device.DeviceNotAvailableException;
 import com.android.tradefed.device.ITestDevice;
@@ -53,11 +54,23 @@ import java.util.Set;
 
 public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
         implements IDeviceTest, IRemoteTest, ITestCollector, ITestFilterReceiver {
+
     private static final String TAG = "AngleEnd2EndHostTest";
 
     private static final String OUTPUT_DIRECTORY = "/sdcard";
     private static final String STDOUT_FILE_NAME = "out.txt";
     private static final String RESULTS_FILE_NAME = "output.json";
+
+    // Vendors are required to set ro.board.first_api_level property to 202604 to comply with the
+    // requirement of launching new devices in Android 17. ANGLE end-to-end CTS is required on
+    // new Android 17 devices and onward, even if ANGLE is not set as the system GL driver. This
+    // test uses ro.vendor.api_level (equivalent to ro.board.first_api_level) to exclude devices
+    // upgrading to Android 17 or later.
+    private static final Integer MINIMUM_VENDOR_API_LEVEL = 202604;
+    private static final String ANGLE_E2E_TEST_PKG_NAME = "com.android.angle.test";
+    private static final String ANGLE_DRIVER_NAME = "angle";
+    private static final String SETTINGS_GLOBAL_DRIVER_PKGS = "angle_gl_driver_selection_pkgs";
+    private static final String SETTINGS_GLOBAL_DRIVER_VALUES = "angle_gl_driver_selection_values";
 
     ITestDevice mDevice;
     private long mStartTime;
@@ -69,8 +82,13 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
                             + " '*' match any string. '?' match any single character. ''")
     private String mGtestFilter = "";
 
+    @Option(name = "skip-api-level-check", description = "Skip API level check. Default is false.")
+    private boolean mSkipApiLevelCheck = false;
+
     private HashSet<String> mIncludeFilters = new HashSet<>();
     private HashSet<String> mExcludeFilters = new HashSet<>();
+    private String mAngleGlDriverSelectionPkgs = null;
+    private String mAngleGlDriverSelectionValues = null;
 
     /** {@inheritDoc} */
     @Override
@@ -82,6 +100,65 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
     @Override
     public void setCollectTestsOnly(boolean shouldCollectTest) {
         // TODO(b/432021211): Get the list of tests.
+    }
+
+    static String getGlobalSetting(ITestDevice device, String globalSetting) throws Exception {
+        device.waitForDeviceAvailable();
+        return device.getSetting("global", globalSetting);
+    }
+
+    static void setGlobalSetting(ITestDevice device, String globalSetting, String value)
+            throws Exception {
+        device.waitForDeviceAvailable();
+        device.setSetting("global", globalSetting, value);
+        device.executeShellCommand("am refresh-settings-cache");
+    }
+
+    private boolean selectAngleAsGlDriver() throws DeviceNotAvailableException {
+        boolean result = false;
+        try {
+            mAngleGlDriverSelectionPkgs = getGlobalSetting(mDevice, SETTINGS_GLOBAL_DRIVER_PKGS);
+            mAngleGlDriverSelectionValues =
+                    getGlobalSetting(mDevice, SETTINGS_GLOBAL_DRIVER_VALUES);
+            setGlobalSetting(mDevice, SETTINGS_GLOBAL_DRIVER_PKGS, ANGLE_E2E_TEST_PKG_NAME);
+            setGlobalSetting(mDevice, SETTINGS_GLOBAL_DRIVER_VALUES, ANGLE_DRIVER_NAME);
+            final String pkgs = getGlobalSetting(mDevice, SETTINGS_GLOBAL_DRIVER_PKGS);
+            final String values = getGlobalSetting(mDevice, SETTINGS_GLOBAL_DRIVER_VALUES);
+            result = pkgs.equals(ANGLE_E2E_TEST_PKG_NAME) && values.equals(ANGLE_DRIVER_NAME);
+        } catch (Exception e) {
+            CLog.e(
+                    TAG,
+                    "Exception occurred while selecting ANGLE for the test: "
+                            + ANGLE_E2E_TEST_PKG_NAME);
+            return false;
+        }
+        return result;
+    }
+
+    private void cleanUpAngleGLSettings() throws DeviceNotAvailableException {
+        try {
+            if (mAngleGlDriverSelectionPkgs != null) {
+                if (!mAngleGlDriverSelectionPkgs.equals("null")) {
+                    setGlobalSetting(
+                            mDevice, SETTINGS_GLOBAL_DRIVER_PKGS, mAngleGlDriverSelectionPkgs);
+                } else {
+                    setGlobalSetting(mDevice, SETTINGS_GLOBAL_DRIVER_PKGS, "\"\"");
+                }
+            }
+            if (mAngleGlDriverSelectionValues != null) {
+                if (!mAngleGlDriverSelectionValues.equals("null")) {
+                    setGlobalSetting(
+                            mDevice, SETTINGS_GLOBAL_DRIVER_VALUES, mAngleGlDriverSelectionValues);
+                } else {
+                    setGlobalSetting(mDevice, SETTINGS_GLOBAL_DRIVER_VALUES, "\"\"");
+                }
+            }
+        } catch (Exception e) {
+            CLog.e(
+                    TAG,
+                    "Exception occurred while restoring ANGLE selection: "
+                            + ANGLE_E2E_TEST_PKG_NAME);
+        }
     }
 
     private boolean isVirtualDevice() throws DeviceNotAvailableException {
@@ -238,11 +315,23 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
             return;
         }
 
-        // TODO(b/431804941): Enable and test ANGLE on all new devices.
         if (!isAngleDefaultDriver()) {
-            CLog.i("Skipping invocation: ANGLE is not the system driver");
-            listener.invocationSkipped(new SkipReason("ANGLE is not the system driver", ""));
-            return;
+            if (mSkipApiLevelCheck
+                    || PropertyUtil.getVsrApiLevel(mDevice) >= MINIMUM_VENDOR_API_LEVEL) {
+                if (!selectAngleAsGlDriver()) {
+                    final String errorMsg = "Failed to select ANGLE as the GL driver for the test";
+                    CLog.i("Skipping invocation: " + errorMsg);
+                    listener.invocationSkipped(new SkipReason(errorMsg, ""));
+                    return;
+                }
+            } else {
+                final String errorMsg =
+                        "ANGLE is not the system driver, vendor API level is "
+                                + PropertyUtil.getVsrApiLevel(mDevice);
+                CLog.i("Skipping invocation: " + errorMsg);
+                listener.invocationSkipped(new SkipReason(errorMsg, ""));
+                return;
+            }
         }
 
         // Delete stale test results from old runs.
@@ -254,7 +343,7 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
             // We don't have feedback for individual test progress, so set all the timeouts to the
             // same overall end2end test suite limit.
             Duration timeout = Duration.ofMinutes(20);
-            DeviceTestRunOptions opts = new DeviceTestRunOptions("com.android.angle.test");
+            DeviceTestRunOptions opts = new DeviceTestRunOptions(ANGLE_E2E_TEST_PKG_NAME);
             opts.setTestClassName("com.android.angle.test.AngleEnd2EndTest");
             opts.setTestMethodName("testAngleEnd2End");
             opts.setTestTimeoutMs(timeout.toMillis());
@@ -298,6 +387,8 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
             } else {
                 parseResults(listener, testResults.get());
             }
+
+            cleanUpAngleGLSettings();
         }
     }
 
