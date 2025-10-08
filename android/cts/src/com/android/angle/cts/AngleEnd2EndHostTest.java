@@ -320,8 +320,11 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
                     || PropertyUtil.getVsrApiLevel(mDevice) >= MINIMUM_VENDOR_API_LEVEL) {
                 if (!selectAngleAsGlDriver()) {
                     final String errorMsg = "Failed to select ANGLE as the GL driver for the test";
-                    CLog.i("Skipping invocation: " + errorMsg);
-                    listener.invocationSkipped(new SkipReason(errorMsg, ""));
+                    CLog.e("Invocation failed: " + errorMsg);
+                    FailureDescription failure =
+                            FailureDescription.create(errorMsg)
+                                    .setErrorIdentifier(TestErrorIdentifier.TEST_ABORTED);
+                    listener.invocationFailed(failure);
                     return;
                 }
             } else {
