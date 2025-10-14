@@ -6346,7 +6346,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
                             isTileBasedRenderer || isSoftwareRenderer);
     // vkCmdResetEvent adds extra GPU overhead and ARM prefers CPU overhead of creating/destroying
     // VkEvent instead of GPU overhead associated with vkCmdResetEvent.
-    ANGLE_FEATURE_CONDITION(&mFeatures, recycleVkEvent, false);
+    ANGLE_FEATURE_CONDITION(&mFeatures, recycleVkEvent, isSwiftShader);
 
     // Disable for Samsung, details here -> http://anglebug.com/386749841#comment21
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsDynamicRendering,
@@ -6558,6 +6558,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // 1. GL_ANGLE_shader_pixel_local_storage
     // 2. GL_ANGLE_shader_pixel_local_storage_coherent
     ANGLE_FEATURE_CONDITION(&mFeatures, supportShaderPixelLocalStorageAngle, !isSamsung);
+
+    ANGLE_FEATURE_CONDITION(&mFeatures, debugClDumpCommandStream, false);
 }
 
 void Renderer::appBasedFeatureOverrides(const vk::ExtensionNameList &extensions) {}
