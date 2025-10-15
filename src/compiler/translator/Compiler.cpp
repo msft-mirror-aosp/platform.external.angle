@@ -26,9 +26,6 @@
 #include "compiler/translator/OutputTree.h"
 #include "compiler/translator/ParseContext.h"
 #include "compiler/translator/SizeClipCullDistance.h"
-#include "compiler/translator/ValidateBarrierFunctionCall.h"
-#include "compiler/translator/ValidateLimitations.h"
-#include "compiler/translator/ValidateMaxParameters.h"
 #include "compiler/translator/ValidateOutputs.h"
 #include "compiler/translator/ValidateTypeSizeLimitations.h"
 #include "compiler/translator/ValidateVaryingLocations.h"
@@ -65,7 +62,6 @@
 #include "compiler/translator/tree_ops/glsl/apple/AddAndTrueToLoopCondition.h"
 #include "compiler/translator/tree_ops/glsl/apple/UnfoldShortCircuitAST.h"
 #include "compiler/translator/tree_ops/msl/EnsureLoopForwardProgress.h"
-#include "compiler/translator/tree_util/BuiltIn.h"
 #include "compiler/translator/tree_util/FindSymbolNode.h"
 #include "compiler/translator/tree_util/IntermNodePatternMatcher.h"
 #include "compiler/translator/tree_util/ReplaceShadowingVariables.h"
@@ -424,51 +420,6 @@ int GetMaxShaderVersionForSpec(ShShaderSpec spec)
             UNREACHABLE();
             return 0;
     }
-}
-
-bool ValidateFragColorAndFragData(GLenum shaderType,
-                                  int shaderVersion,
-                                  const TSymbolTable &symbolTable,
-                                  TDiagnostics *diagnostics)
-{
-    if (shaderVersion > 100 || shaderType != GL_FRAGMENT_SHADER)
-    {
-        return true;
-    }
-
-    bool usesFragColor = false;
-    bool usesFragData  = false;
-    // This validation is a bit stricter than the spec - it's only an error to write to
-    // both FragData and FragColor. But because it's better not to have reads from undefined
-    // variables, we always return an error if they are both referenced, rather than only if they
-    // are written.
-    if (symbolTable.isStaticallyUsed(*BuiltInVariable::gl_FragColor()) ||
-        symbolTable.isStaticallyUsed(*BuiltInVariable::gl_SecondaryFragColorEXT()))
-    {
-        usesFragColor = true;
-    }
-    // Extension variables may not always be initialized (saves some time at symbol table init).
-    bool secondaryFragDataUsed =
-        symbolTable.gl_SecondaryFragDataEXT() != nullptr &&
-        symbolTable.isStaticallyUsed(*symbolTable.gl_SecondaryFragDataEXT());
-    if (symbolTable.isStaticallyUsed(*symbolTable.gl_FragData()) || secondaryFragDataUsed)
-    {
-        usesFragData = true;
-    }
-    if (usesFragColor && usesFragData)
-    {
-        const char *errorMessage = "cannot use both gl_FragData and gl_FragColor";
-        if (symbolTable.isStaticallyUsed(*BuiltInVariable::gl_SecondaryFragColorEXT()) ||
-            secondaryFragDataUsed)
-        {
-            errorMessage =
-                "cannot use both output variable sets (gl_FragData, gl_SecondaryFragDataEXT)"
-                " and (gl_FragColor, gl_SecondaryFragColorEXT)";
-        }
-        diagnostics->globalError(errorMessage);
-        return false;
-    }
-    return true;
 }
 
 }  // namespace
@@ -930,17 +881,6 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         }
     }
 
-    if (shouldRunLoopAndIndexingValidation(compileOptions) &&
-        !ValidateLimitations(root, mShaderType, &mSymbolTable, &mDiagnostics))
-    {
-        return false;
-    }
-
-    if (!ValidateFragColorAndFragData(mShaderType, mShaderVersion, mSymbolTable, &mDiagnostics))
-    {
-        return false;
-    }
-
     // Fold expressions that could not be folded before validation that was done as a part of
     // parsing.
     if (!FoldExpressions(this, root, &mDiagnostics))
@@ -976,12 +916,6 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         {
             return false;
         }
-    }
-
-    // Validate no barrier() after return before prunning it in |PruneNoOps()| below.
-    if (mShaderType == GL_TESS_CONTROL_SHADER && !ValidateBarrierFunctionCall(root, &mDiagnostics))
-    {
-        return false;
     }
 
     // We prune no-ops to work around driver bugs and to keep AST processing and output simple.
@@ -1095,7 +1029,6 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         }
     }
 
-    // Clamping uniform array bounds needs to happen after validateLimitations pass.
     if (compileOptions.clampIndirectArrayBounds)
     {
         if (!ClampIndirectIndices(this, root, &mSymbolTable))
@@ -1292,7 +1225,6 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         return false;
     }
 
-    // Built-in function emulation needs to happen after validateLimitations pass.
     GetGlobalPoolAllocator()->lock();
     initBuiltInFunctionEmulator(&mBuiltInFunctionEmulator, compileOptions);
     GetGlobalPoolAllocator()->unlock();
@@ -1975,12 +1907,6 @@ bool TCompiler::limitExpressionComplexity(TIntermBlock *root)
     if (!IsASTDepthBelowLimit(root, mResources.MaxExpressionComplexity))
     {
         mDiagnostics.globalError("Expression too complex.");
-        return false;
-    }
-
-    if (!ValidateMaxParameters(root, mResources.MaxFunctionParameters))
-    {
-        mDiagnostics.globalError("Function has too many parameters.");
         return false;
     }
 

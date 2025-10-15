@@ -63,6 +63,7 @@ class TParseContext : angle::NonCopyable
     void *getScanner() const { return mScanner; }
     void setScanner(void *scanner) { mScanner = scanner; }
     int getShaderVersion() const { return mShaderVersion; }
+    void onShaderVersionDeclared(int version);
     sh::GLenum getShaderType() const { return mShaderType; }
     ShShaderSpec getShaderSpec() const { return mShaderSpec; }
     int numErrors() const { return mDiagnostics->numErrors(); }
@@ -92,22 +93,6 @@ class TParseContext : angle::NonCopyable
     bool isEarlyFragmentTestsSpecified() const { return mEarlyFragmentTestsSpecified; }
     bool hasDiscard() const { return mHasDiscard; }
     bool isSampleQualifierSpecified() const { return mSampleQualifierSpecified; }
-
-    void setLoopNestingLevel(int loopNestintLevel) { mLoopNestingLevel = loopNestintLevel; }
-
-    void incrLoopNestingLevel(const TSourceLoc &line)
-    {
-        ++mLoopNestingLevel;
-        checkNestingLevel(line);
-    }
-    void decrLoopNestingLevel() { --mLoopNestingLevel; }
-
-    void incrSwitchNestingLevel(const TSourceLoc &line)
-    {
-        ++mSwitchNestingLevel;
-        checkNestingLevel(line);
-    }
-    void decrSwitchNestingLevel() { --mSwitchNestingLevel; }
 
     bool isComputeShaderLocalSizeDeclared() const { return mComputeShaderLocalSizeDeclared; }
     sh::WorkGroupSize getComputeShaderLocalSize() const;
@@ -257,9 +242,10 @@ class TParseContext : angle::NonCopyable
                                          TIntermTyped *initializer,
                                          const TSourceLoc &loc);
 
-    void onLoopConditionBegin();
-    void onLoopConditionEnd(TIntermNode *condition);
-    void onLoopContinueEnd(TIntermNode *statement);
+    void beginLoop(TLoopType loopType, const TSourceLoc &line);
+    void onLoopConditionBegin(TIntermNode *init, const TSourceLoc &line);
+    void onLoopConditionEnd(TIntermNode *condition, const TSourceLoc &line);
+    void onLoopContinueEnd(TIntermNode *statement, const TSourceLoc &line);
     void onDoLoopBegin();
     void onDoLoopConditionBegin();
     TIntermNode *addLoop(TLoopType type,
@@ -466,6 +452,7 @@ class TParseContext : angle::NonCopyable
 
     void checkIsBelowStructNestingLimit(const TSourceLoc &line, const TField &field);
 
+    void beginSwitch(const TSourceLoc &line);
     TIntermSwitch *addSwitch(TIntermTyped *init,
                              TIntermBlock *statementList,
                              const TSourceLoc &loc);
@@ -726,6 +713,13 @@ class TParseContext : angle::NonCopyable
                                                               const TSourceLoc &location,
                                                               bool insertParametersToSymbolTable);
 
+    void checkESSL100ForLoopInit(TIntermNode *init, const TSourceLoc &line);
+    void checkESSL100ForLoopCondition(TIntermNode *condition, const TSourceLoc &line);
+    void checkESSL100ForLoopContinue(TIntermNode *statement, const TSourceLoc &line);
+    void checkESSL100NoLoopSymbolAssign(TIntermSymbol *symbol, const TSourceLoc &line);
+    void checkESSL100ConstantIndex(TIntermTyped *index, const TSourceLoc &line);
+    bool isESSL100ConstantLoopSymbol(TIntermSymbol *symbol);
+
     void setAtomicCounterBindingDefaultOffset(const TPublicType &declaration,
                                               const TSourceLoc &location);
 
@@ -738,6 +732,14 @@ class TParseContext : angle::NonCopyable
     bool parseTessEvaluationShaderInputLayoutQualifier(const TTypeQualifier &typeQualifier);
 
     void sizeUnsizedArrayTypes(uint32_t arraySize);
+
+    enum class ControlFlowType
+    {
+        If,
+        Loop,
+        Switch,
+    };
+    bool isNestedIn(ControlFlowType type) const;
 
     // Certain operations become illegal only iff the shader declares pixel local storage uniforms.
     enum class PLSIllegalOperations
@@ -791,9 +793,7 @@ class TParseContext : angle::NonCopyable
     ShCompileOptions mCompileOptions;  // Options passed to TCompiler
     int mShaderVersion;
     TIntermBlock *mTreeRoot;  // root of parse tree being created
-    int mLoopNestingLevel;    // 0 if outside all loops
     int mStructNestingLevel;  // incremented while parsing a struct declaration
-    int mSwitchNestingLevel;  // 0 if outside all switch statements
     const TType
         *mCurrentFunctionType;    // the return type of the function that's currently being parsed
     bool mFunctionReturnsValue;   // true if a non-void function has a return
@@ -847,6 +847,7 @@ class TParseContext : angle::NonCopyable
     int mMaxAtomicCounterBufferSize;
     int mMaxShaderStorageBufferBindings;
     int mMaxPixelLocalStoragePlanes;
+    int mMaxFunctionParameters;
 
     // keeps track of whether any of the built-ins that can be redeclared (see
     // IsRedeclarableBuiltIn()) has been marked as invariant/precise before the possible
@@ -864,6 +865,28 @@ class TParseContext : angle::NonCopyable
     // keeps track whether we are declaring / defining the function main().
     bool mDeclaringMain;
     bool mIsMainDeclared;
+    // Whether `return` has been observed in `main()`.  Used to validate barrier() in tessellation
+    // control shaders which are not allowed after `return`.
+    bool mIsReturnVisitedInMain;
+
+    // Track state related to control flow, used for various validation:
+    //
+    // * That case is within switch, continue is within loop, and break is within loop or switch
+    // * That the shader statements don't get too nested (based on `MaxStatementDepth`)
+    // * In tessellation control shaders, barrier() cannot be called in divergent control flow.
+    // * ESSL 1.0 limits restricts the shape of `for` loops (see Appendix A)
+    // * ESSL 1.0 limits array indices to `constant-index-expressions` (see Appendix A)
+    struct ControlFlow
+    {
+        ControlFlowType type;
+
+        // Used when validating ESSL 1.0 limitations for `for` loops.
+        TSymbolUniqueId forLoopSymbol = TSymbolUniqueId::kInvalid();
+        bool isForLoopSymbolConstant  = false;
+    };
+    std::vector<ControlFlow> mControlFlow;
+    // Whether ESSL 1.0 limitations in Appendix A must be enforced.
+    bool mValidateESSL100Limitations;
 
     // Track the state of each atomic counter binding.
     std::map<int, AtomicCounterBindingState> mAtomicCounterBindingStates;
