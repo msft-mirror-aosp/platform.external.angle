@@ -767,7 +767,6 @@ bool TCompiler::getShaderBinary(const ShHandle compilerHandle,
     gl::CompiledShaderState state(shaderType);
     state.buildCompiledShaderState(
         compilerHandle,
-        gl::JoinShaderSources(static_cast<GLsizei>(numStrings), shaderStrings, nullptr),
         mOutputType);
 
     stream.writeBytes(
@@ -960,16 +959,8 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         return false;
     }
 
-    // Create the function DAG and check there is no recursion
-    if (!initCallDag(root))
-    {
-        return false;
-    }
-
-    if (compileOptions.limitCallStackDepth && !checkCallDepth())
-    {
-        return false;
-    }
+    // Create the function DAG.
+    initCallDag(root);
 
     // Checks which functions are used
     mFunctionMetadata.clear();
@@ -1687,79 +1678,10 @@ void TCompiler::clearResults()
     mSymbolTable.clearCompilationResults();
 }
 
-bool TCompiler::initCallDag(TIntermNode *root)
+void TCompiler::initCallDag(TIntermNode *root)
 {
     mCallDag.clear();
-
-    switch (mCallDag.init(root, &mDiagnostics))
-    {
-        case CallDAG::INITDAG_SUCCESS:
-            return true;
-        case CallDAG::INITDAG_RECURSION:
-        case CallDAG::INITDAG_UNDEFINED:
-            // Error message has already been written out.
-            ASSERT(mDiagnostics.numErrors() > 0);
-            return false;
-    }
-
-    UNREACHABLE();
-    return true;
-}
-
-bool TCompiler::checkCallDepth()
-{
-    std::vector<int> depths(mCallDag.size());
-
-    for (size_t i = 0; i < mCallDag.size(); i++)
-    {
-        int depth                     = 0;
-        const CallDAG::Record &record = mCallDag.getRecordFromIndex(i);
-
-        for (int calleeIndex : record.callees)
-        {
-            depth = std::max(depth, depths[calleeIndex] + 1);
-        }
-
-        depths[i] = depth;
-
-        if (depth >= mResources.MaxCallStackDepth)
-        {
-            // Trace back the function chain to have a meaningful info log.
-            std::stringstream errorStream = sh::InitializeStream<std::stringstream>();
-            errorStream << "Call stack too deep (larger than " << mResources.MaxCallStackDepth
-                        << ") with the following call chain: "
-                        << record.node->getFunction()->name();
-
-            int currentFunction = static_cast<int>(i);
-            int currentDepth    = depth;
-
-            while (currentFunction != -1)
-            {
-                errorStream
-                    << " -> "
-                    << mCallDag.getRecordFromIndex(currentFunction).node->getFunction()->name();
-
-                int nextFunction = -1;
-                for (const int &calleeIndex : mCallDag.getRecordFromIndex(currentFunction).callees)
-                {
-                    if (depths[calleeIndex] == currentDepth - 1)
-                    {
-                        currentDepth--;
-                        nextFunction = calleeIndex;
-                    }
-                }
-
-                currentFunction = nextFunction;
-            }
-
-            std::string errorStr = errorStream.str();
-            mDiagnostics.globalError(errorStr.c_str());
-
-            return false;
-        }
-    }
-
-    return true;
+    mCallDag.init(root);
 }
 
 void TCompiler::tagUsedFunctions()

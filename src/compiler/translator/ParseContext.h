@@ -452,7 +452,7 @@ class TParseContext : angle::NonCopyable
 
     void checkIsBelowStructNestingLimit(const TSourceLoc &line, const TField &field);
 
-    void beginSwitch(const TSourceLoc &line);
+    void beginSwitch(const TSourceLoc &line, TIntermTyped *init);
     TIntermSwitch *addSwitch(TIntermTyped *init,
                              TIntermBlock *statementList,
                              const TSourceLoc &loc);
@@ -595,6 +595,7 @@ class TParseContext : angle::NonCopyable
                          TVariable **variable);
 
     void checkNestingLevel(const TSourceLoc &line);
+    bool checkCase(const TSourceLoc &line, int64_t caseValue, const char *caseOrDefault);
 
     void checkCanBeDeclaredWithoutInitializer(const TSourceLoc &line,
                                               const ImmutableString &identifier,
@@ -720,6 +721,8 @@ class TParseContext : angle::NonCopyable
     void checkESSL100ConstantIndex(TIntermTyped *index, const TSourceLoc &line);
     bool isESSL100ConstantLoopSymbol(TIntermSymbol *symbol);
 
+    void checkCallGraph();
+
     void setAtomicCounterBindingDefaultOffset(const TPublicType &declaration,
                                               const TSourceLoc &location);
 
@@ -740,6 +743,7 @@ class TParseContext : angle::NonCopyable
         Switch,
     };
     bool isNestedIn(ControlFlowType type) const;
+    bool isDirectlyUnderSwitch() const;
     void popControlFlow();
 
     // Certain operations become illegal only iff the shader declares pixel local storage uniforms.
@@ -795,9 +799,8 @@ class TParseContext : angle::NonCopyable
     int mShaderVersion;
     TIntermBlock *mTreeRoot;  // root of parse tree being created
     int mStructNestingLevel;  // incremented while parsing a struct declaration
-    const TType
-        *mCurrentFunctionType;    // the return type of the function that's currently being parsed
-    bool mFunctionReturnsValue;   // true if a non-void function has a return
+    const TFunction *mCurrentFunction;   // the function that's currently being parsed
+    bool mFunctionReturnsValue;          // true if a non-void function has a return
     bool mFragmentPrecisionHighOnESSL1;  // true if highp precision is supported when compiling
                                          // ESSL1.
     bool mEarlyFragmentTestsSpecified;   // true if layout(early_fragment_tests) in; is specified.
@@ -849,6 +852,7 @@ class TParseContext : angle::NonCopyable
     int mMaxShaderStorageBufferBindings;
     int mMaxPixelLocalStoragePlanes;
     int mMaxFunctionParameters;
+    int mMaxCallStackDepth;
 
     // keeps track of whether any of the built-ins that can be redeclared (see
     // IsRedeclarableBuiltIn()) has been marked as invariant/precise before the possible
@@ -865,7 +869,7 @@ class TParseContext : angle::NonCopyable
 
     // keeps track whether we are declaring / defining the function main().
     bool mDeclaringMain;
-    bool mIsMainDeclared;
+    const TFunction *mMainFunction;
     // Whether `return` has been observed in `main()`.  Used to validate barrier() in tessellation
     // control shaders which are not allowed after `return`.
     bool mIsReturnVisitedInMain;
@@ -892,6 +896,13 @@ class TParseContext : angle::NonCopyable
         const TVariable *loopConditionConstantTrueSymbol = nullptr;
         bool hasBreak                                    = false;
         bool hasReturn                                   = false;
+
+        // Used to detect and reject invalid `case` placements in a switch.
+        // int64_t is used to include both signed and unsigned case values (which are 32-bit).  The
+        // default case uses a number outside the [INT_MIN, UINT_MAX] range.
+        TBasicType switchType                      = EbtInt;
+        static constexpr int64_t kDefaultCaseLabel = std::numeric_limits<int64_t>::max();
+        TVector<int64_t> caseLabels;
     };
     std::vector<ControlFlow> mControlFlow;
     // Whether ESSL 1.0 limitations in Appendix A must be enforced.
@@ -906,6 +917,12 @@ class TParseContext : angle::NonCopyable
         const TVariable *loopVariable;
     };
     TVector<PossiblyInfiniteLoop> mPossiblyInfiniteLoops;
+
+    // Track the static call graph.  Static recursion is disallowed by GLSL.
+    TUnorderedMap<const TFunction *, TUnorderedSet<const TFunction *>> mCallGraph;
+    // Track functions that have been defined.  At the end of parse, if any
+    // function is called that's not in this list, it's a compile error.
+    TUnorderedSet<const TFunction *> mDefinedFunctions;
 
     // Track the state of each atomic counter binding.
     std::map<int, AtomicCounterBindingState> mAtomicCounterBindingStates;
