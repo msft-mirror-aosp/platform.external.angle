@@ -6,6 +6,10 @@
 
 // validationES31.cpp: Validation functions for OpenGL ES 3.1 entry point parameters
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
+
 #include "libANGLE/validationES31_autogen.h"
 
 #include "libANGLE/Context.h"
@@ -1621,7 +1625,8 @@ bool ValidateGenProgramPipelinesBase(const Context *context,
                                      GLsizei n,
                                      const ProgramPipelineID *pipelines)
 {
-    return ValidateGenOrDelete(context, entryPoint, n, pipelines);
+    return ValidateGenOrDelete(context->getMutableErrorSetForValidation(), entryPoint, n,
+                               pipelines);
 }
 
 bool ValidateDeleteProgramPipelinesBase(const Context *context,
@@ -1629,7 +1634,8 @@ bool ValidateDeleteProgramPipelinesBase(const Context *context,
                                         GLsizei n,
                                         const ProgramPipelineID *pipelines)
 {
-    return ValidateGenOrDelete(context, entryPoint, n, pipelines);
+    return ValidateGenOrDelete(context->getMutableErrorSetForValidation(), entryPoint, n,
+                               pipelines);
 }
 
 bool ValidateBindProgramPipelineBase(const Context *context,

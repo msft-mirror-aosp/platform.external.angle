@@ -4,8 +4,12 @@
 // found in the LICENSE file.
 //
 
-// context_private_call.cpp:
+// context_private_call.inl.h:
 //   Helpers that set/get state that is entirely locally accessed by the context.
+
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
 
 #include "libANGLE/context_private_call_autogen.h"
 
@@ -1512,6 +1516,30 @@ inline void ContextPrivateTranslatex(PrivateState *privateState,
 {
     ContextPrivateTranslatef(privateState, privateStateCache, ConvertFixedToFloat(x),
                              ConvertFixedToFloat(y), ConvertFixedToFloat(z));
+}
+
+inline void ContextPrivateGenVertexArrays(PrivateState *privateState,
+                                          PrivateStateCache *privateStateCache,
+                                          GLsizei n,
+                                          VertexArrayID *arrays)
+{
+    for (int arrayIndex = 0; arrayIndex < n; arrayIndex++)
+    {
+        arrays[arrayIndex] = privateState->allocateVertexID();
+    }
+}
+
+inline GLboolean ContextPrivateIsVertexArray(PrivateState *privateState,
+                                             PrivateStateCache *privateStateCache,
+                                             VertexArrayID array)
+{
+    if (array.value == 0)
+    {
+        return GL_FALSE;
+    }
+
+    VertexArray *vao = privateState->getVertexArray(array);
+    return ConvertToGLBoolean(vao != nullptr);
 }
 
 inline void ContextPrivateDisableVertexAttribArray(PrivateState *privateState,

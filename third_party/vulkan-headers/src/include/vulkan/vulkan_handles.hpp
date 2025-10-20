@@ -9,7 +9,7 @@
 #define VULKAN_HANDLES_HPP
 
 // include-what-you-use: make sure, vulkan.hpp is used by code-completers
-// IWYU pragma: private; include "vulkan.hpp"
+// IWYU pragma: private, include "vulkan/vulkan.hpp"
 
 namespace VULKAN_HPP_NAMESPACE
 {
@@ -1545,6 +1545,12 @@ namespace VULKAN_HPP_NAMESPACE
   //=== VK_KHR_shader_untyped_pointers ===
   struct PhysicalDeviceShaderUntypedPointersFeaturesKHR;
 
+  //=== VK_VALVE_video_encode_rgb_conversion ===
+  struct PhysicalDeviceVideoEncodeRgbConversionFeaturesVALVE;
+  struct VideoEncodeRgbConversionCapabilitiesVALVE;
+  struct VideoEncodeProfileRgbConversionInfoVALVE;
+  struct VideoEncodeSessionRgbConversionCreateInfoVALVE;
+
   //=== VK_EXT_image_view_min_lod ===
   struct PhysicalDeviceImageViewMinLodFeaturesEXT;
   struct ImageViewMinLodCreateInfoEXT;
@@ -1623,10 +1629,7 @@ namespace VULKAN_HPP_NAMESPACE
   struct RenderPassStripeSubmitInfoARM;
 
   //=== VK_NV_copy_memory_indirect ===
-  struct CopyMemoryIndirectCommandNV;
-  struct CopyMemoryToImageIndirectCommandNV;
   struct PhysicalDeviceCopyMemoryIndirectFeaturesNV;
-  struct PhysicalDeviceCopyMemoryIndirectPropertiesNV;
 
   //=== VK_NV_memory_decompression ===
   struct DecompressMemoryRegionNV;
@@ -1992,6 +1995,18 @@ namespace VULKAN_HPP_NAMESPACE
   struct TileMemoryBindInfoQCOM;
   struct TileMemorySizeInfoQCOM;
 
+  //=== VK_KHR_copy_memory_indirect ===
+  struct StridedDeviceAddressRangeKHR;
+  struct CopyMemoryIndirectCommandKHR;
+  using CopyMemoryIndirectCommandNV = CopyMemoryIndirectCommandKHR;
+  struct CopyMemoryIndirectInfoKHR;
+  struct CopyMemoryToImageIndirectCommandKHR;
+  using CopyMemoryToImageIndirectCommandNV = CopyMemoryToImageIndirectCommandKHR;
+  struct CopyMemoryToImageIndirectInfoKHR;
+  struct PhysicalDeviceCopyMemoryIndirectFeaturesKHR;
+  struct PhysicalDeviceCopyMemoryIndirectPropertiesKHR;
+  using PhysicalDeviceCopyMemoryIndirectPropertiesNV = PhysicalDeviceCopyMemoryIndirectPropertiesKHR;
+
   //=== VK_NV_display_stereo ===
   struct DisplaySurfaceStereoCreateInfoNV;
   struct DisplayModeStereoPropertiesNV;
@@ -2114,6 +2129,9 @@ namespace VULKAN_HPP_NAMESPACE
   struct PhysicalDeviceImageAlignmentControlPropertiesMESA;
   struct ImageAlignmentControlCreateInfoMESA;
 
+  //=== VK_KHR_shader_fma ===
+  struct PhysicalDeviceShaderFmaFeaturesKHR;
+
   //=== VK_EXT_depth_clamp_control ===
   struct PhysicalDeviceDepthClampControlFeaturesEXT;
   struct PipelineViewportDepthClampControlCreateInfoEXT;
@@ -2132,8 +2150,7 @@ namespace VULKAN_HPP_NAMESPACE
 
 #if defined( VK_USE_PLATFORM_OHOS )
   //=== VK_OHOS_surface ===
-  struct OHSurfaceCreateInfoOHOS;
-  using SurfaceCreateInfoOHOS = OHSurfaceCreateInfoOHOS;
+  struct SurfaceCreateInfoOHOS;
 #endif /*VK_USE_PLATFORM_OHOS*/
 
   //=== VK_HUAWEI_hdr_vivid ===
@@ -2917,10 +2934,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_surfaceKHR == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( SurfaceKHR const & ) const = default;
-#endif
-
   private:
     VkSurfaceKHR m_surfaceKHR = {};
   };
@@ -3015,10 +3028,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_debugReportCallbackEXT == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( DebugReportCallbackEXT const & ) const = default;
-#endif
 
   private:
     VkDebugReportCallbackEXT m_debugReportCallbackEXT = {};
@@ -3115,10 +3124,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_debugUtilsMessengerEXT == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( DebugUtilsMessengerEXT const & ) const = default;
-#endif
-
   private:
     VkDebugUtilsMessengerEXT m_debugUtilsMessengerEXT = {};
   };
@@ -3204,10 +3209,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_displayKHR == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( DisplayKHR const & ) const = default;
-#endif
 
   private:
     VkDisplayKHR m_displayKHR = {};
@@ -3301,10 +3302,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_swapchainKHR == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( SwapchainKHR const & ) const = default;
-#endif
-
   private:
     VkSwapchainKHR m_swapchainKHR = {};
   };
@@ -3397,10 +3394,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_semaphore == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( Semaphore const & ) const = default;
-#endif
-
   private:
     VkSemaphore m_semaphore = {};
   };
@@ -3492,10 +3485,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_fence == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( Fence const & ) const = default;
-#endif
 
   private:
     VkFence m_fence = {};
@@ -3596,10 +3585,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_performanceConfigurationINTEL == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( PerformanceConfigurationINTEL const & ) const = default;
-#endif
-
   private:
     VkPerformanceConfigurationINTEL m_performanceConfigurationINTEL = {};
   };
@@ -3685,10 +3670,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_queryPool == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( QueryPool const & ) const = default;
-#endif
 
   private:
     VkQueryPool m_queryPool = {};
@@ -3782,10 +3763,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_buffer == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( Buffer const & ) const = default;
-#endif
-
   private:
     VkBuffer m_buffer = {};
   };
@@ -3877,10 +3854,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_pipelineLayout == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( PipelineLayout const & ) const = default;
-#endif
 
   private:
     VkPipelineLayout m_pipelineLayout = {};
@@ -3974,10 +3947,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_descriptorSet == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( DescriptorSet const & ) const = default;
-#endif
-
   private:
     VkDescriptorSet m_descriptorSet = {};
   };
@@ -4069,10 +4038,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_imageView == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( ImageView const & ) const = default;
-#endif
 
   private:
     VkImageView m_imageView = {};
@@ -4166,10 +4131,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_pipeline == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( Pipeline const & ) const = default;
-#endif
-
   private:
     VkPipeline m_pipeline = {};
   };
@@ -4262,10 +4223,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_shaderEXT == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( ShaderEXT const & ) const = default;
-#endif
-
   private:
     VkShaderEXT m_shaderEXT = {};
   };
@@ -4351,10 +4308,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_image == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( Image const & ) const = default;
-#endif
 
   private:
     VkImage m_image = {};
@@ -4452,10 +4405,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_accelerationStructureNV == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( AccelerationStructureNV const & ) const = default;
-#endif
 
   private:
     VkAccelerationStructureNV m_accelerationStructureNV = {};
@@ -4555,10 +4504,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_dataGraphPipelineSessionARM == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( DataGraphPipelineSessionARM const & ) const = default;
-#endif
-
   private:
     VkDataGraphPipelineSessionARM m_dataGraphPipelineSessionARM = {};
   };
@@ -4647,10 +4592,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_opticalFlowSessionNV == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( OpticalFlowSessionNV const & ) const = default;
-#endif
 
   private:
     VkOpticalFlowSessionNV m_opticalFlowSessionNV = {};
@@ -4743,10 +4684,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_descriptorUpdateTemplate == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( DescriptorUpdateTemplate const & ) const = default;
-#endif
 
   private:
     VkDescriptorUpdateTemplate m_descriptorUpdateTemplate = {};
@@ -4841,10 +4778,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_event == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( Event const & ) const = default;
-#endif
 
   private:
     VkEvent m_event = {};
@@ -4944,10 +4877,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_accelerationStructureKHR == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( AccelerationStructureKHR const & ) const = default;
-#endif
-
   private:
     VkAccelerationStructureKHR m_accelerationStructureKHR = {};
   };
@@ -5039,10 +4968,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_micromapEXT == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( MicromapEXT const & ) const = default;
-#endif
 
   private:
     VkMicromapEXT m_micromapEXT = {};
@@ -8050,6 +7975,32 @@ namespace VULKAN_HPP_NAMESPACE
                              Dispatch const & d                                        VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
 #endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
+    //=== VK_KHR_copy_memory_indirect ===
+
+    // wrapper function for command vkCmdCopyMemoryIndirectKHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/vkCmdCopyMemoryIndirectKHR.html
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void copyMemoryIndirectKHR( const CopyMemoryIndirectInfoKHR * pCopyMemoryIndirectInfo,
+                                Dispatch const & d                VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    // wrapper function for command vkCmdCopyMemoryIndirectKHR, see https://registry.khronos.org/vulkan/specs/latest/man/html/vkCmdCopyMemoryIndirectKHR.html
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void copyMemoryIndirectKHR( const CopyMemoryIndirectInfoKHR & copyMemoryIndirectInfo,
+                                Dispatch const & d                VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
+    // wrapper function for command vkCmdCopyMemoryToImageIndirectKHR, see
+    // https://registry.khronos.org/vulkan/specs/latest/man/html/vkCmdCopyMemoryToImageIndirectKHR.html
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void copyMemoryToImageIndirectKHR( const CopyMemoryToImageIndirectInfoKHR * pCopyMemoryToImageIndirectInfo,
+                                       Dispatch const & d                       VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+    // wrapper function for command vkCmdCopyMemoryToImageIndirectKHR, see
+    // https://registry.khronos.org/vulkan/specs/latest/man/html/vkCmdCopyMemoryToImageIndirectKHR.html
+    template <typename Dispatch = VULKAN_HPP_DEFAULT_DISPATCHER_TYPE>
+    void copyMemoryToImageIndirectKHR( const CopyMemoryToImageIndirectInfoKHR & copyMemoryToImageIndirectInfo,
+                                       Dispatch const & d                       VULKAN_HPP_DEFAULT_DISPATCHER_ASSIGNMENT ) const VULKAN_HPP_NOEXCEPT;
+#endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
+
     //=== VK_NV_cluster_acceleration_structure ===
 
     // wrapper function for command vkCmdBuildClusterAccelerationStructureIndirectNV, see
@@ -8139,10 +8090,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_commandBuffer == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( CommandBuffer const & ) const = default;
-#endif
 
   private:
     VkCommandBuffer m_commandBuffer = {};
@@ -8236,10 +8183,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_deviceMemory == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( DeviceMemory const & ) const = default;
-#endif
-
   private:
     VkDeviceMemory m_deviceMemory = {};
   };
@@ -8332,10 +8275,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_videoSessionKHR == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( VideoSessionKHR const & ) const = default;
-#endif
-
   private:
     VkVideoSessionKHR m_videoSessionKHR = {};
   };
@@ -8424,10 +8363,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_deferredOperationKHR == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( DeferredOperationKHR const & ) const = default;
-#endif
 
   private:
     VkDeferredOperationKHR m_deferredOperationKHR = {};
@@ -8520,10 +8455,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_bufferCollectionFUCHSIA == VK_NULL_HANDLE;
     }
-
-#  if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( BufferCollectionFUCHSIA const & ) const = default;
-#  endif
 
   private:
     VkBufferCollectionFUCHSIA m_bufferCollectionFUCHSIA = {};
@@ -8618,10 +8549,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_bufferView == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( BufferView const & ) const = default;
-#endif
-
   private:
     VkBufferView m_bufferView = {};
   };
@@ -8713,10 +8640,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_commandPool == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( CommandPool const & ) const = default;
-#endif
 
   private:
     VkCommandPool m_commandPool = {};
@@ -8810,10 +8733,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_pipelineCache == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( PipelineCache const & ) const = default;
-#endif
-
   private:
     VkPipelineCache m_pipelineCache = {};
   };
@@ -8905,10 +8824,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_cuFunctionNVX == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( CuFunctionNVX const & ) const = default;
-#endif
 
   private:
     VkCuFunctionNVX m_cuFunctionNVX = {};
@@ -9002,10 +8917,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_cuModuleNVX == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( CuModuleNVX const & ) const = default;
-#endif
-
   private:
     VkCuModuleNVX m_cuModuleNVX = {};
   };
@@ -9098,10 +9009,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_cudaFunctionNV == VK_NULL_HANDLE;
     }
-
-#  if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( CudaFunctionNV const & ) const = default;
-#  endif
 
   private:
     VkCudaFunctionNV m_cudaFunctionNV = {};
@@ -9197,10 +9104,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_cudaModuleNV == VK_NULL_HANDLE;
     }
 
-#  if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( CudaModuleNV const & ) const = default;
-#  endif
-
   private:
     VkCudaModuleNV m_cudaModuleNV = {};
   };
@@ -9293,10 +9196,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_descriptorPool == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( DescriptorPool const & ) const = default;
-#endif
 
   private:
     VkDescriptorPool m_descriptorPool = {};
@@ -9392,10 +9291,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_descriptorSetLayout == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( DescriptorSetLayout const & ) const = default;
-#endif
 
   private:
     VkDescriptorSetLayout m_descriptorSetLayout = {};
@@ -9502,10 +9397,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_externalComputeQueueNV == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( ExternalComputeQueueNV const & ) const = default;
-#endif
-
   private:
     VkExternalComputeQueueNV m_externalComputeQueueNV = {};
   };
@@ -9591,10 +9482,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_framebuffer == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( Framebuffer const & ) const = default;
-#endif
 
   private:
     VkFramebuffer m_framebuffer = {};
@@ -9694,10 +9581,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_indirectCommandsLayoutEXT == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( IndirectCommandsLayoutEXT const & ) const = default;
-#endif
-
   private:
     VkIndirectCommandsLayoutEXT m_indirectCommandsLayoutEXT = {};
   };
@@ -9790,10 +9673,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_indirectCommandsLayoutNV == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( IndirectCommandsLayoutNV const & ) const = default;
-#endif
-
   private:
     VkIndirectCommandsLayoutNV m_indirectCommandsLayoutNV = {};
   };
@@ -9885,10 +9764,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_indirectExecutionSetEXT == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( IndirectExecutionSetEXT const & ) const = default;
-#endif
-
   private:
     VkIndirectExecutionSetEXT m_indirectExecutionSetEXT = {};
   };
@@ -9974,10 +9849,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_privateDataSlot == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( PrivateDataSlot const & ) const = default;
-#endif
 
   private:
     VkPrivateDataSlot m_privateDataSlot = {};
@@ -10066,10 +9937,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_renderPass == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( RenderPass const & ) const = default;
-#endif
 
   private:
     VkRenderPass m_renderPass = {};
@@ -10162,10 +10029,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_sampler == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( Sampler const & ) const = default;
-#endif
 
   private:
     VkSampler m_sampler = {};
@@ -10262,10 +10125,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_samplerYcbcrConversion == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( SamplerYcbcrConversion const & ) const = default;
-#endif
-
   private:
     VkSamplerYcbcrConversion m_samplerYcbcrConversion = {};
   };
@@ -10360,10 +10219,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_shaderModule == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( ShaderModule const & ) const = default;
-#endif
-
   private:
     VkShaderModule m_shaderModule = {};
   };
@@ -10456,10 +10311,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_tensorARM == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( TensorARM const & ) const = default;
-#endif
-
   private:
     VkTensorARM m_tensorARM = {};
   };
@@ -10545,10 +10396,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_tensorViewARM == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( TensorViewARM const & ) const = default;
-#endif
 
   private:
     VkTensorViewARM m_tensorViewARM = {};
@@ -10637,10 +10484,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_validationCacheEXT == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( ValidationCacheEXT const & ) const = default;
-#endif
 
   private:
     VkValidationCacheEXT m_validationCacheEXT = {};
@@ -10740,10 +10583,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_videoSessionParametersKHR == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( VideoSessionParametersKHR const & ) const = default;
-#endif
-
   private:
     VkVideoSessionParametersKHR m_videoSessionParametersKHR = {};
   };
@@ -10829,10 +10668,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_pipelineBinaryKHR == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( PipelineBinaryKHR const & ) const = default;
-#endif
 
   private:
     VkPipelineBinaryKHR m_pipelineBinaryKHR = {};
@@ -11106,10 +10941,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_queue == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( Queue const & ) const = default;
-#endif
 
   private:
     VkQueue m_queue = {};
@@ -18361,10 +18192,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_device == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( Device const & ) const = default;
-#endif
-
   private:
     VkDevice m_device = {};
   };
@@ -18456,10 +18283,6 @@ namespace VULKAN_HPP_NAMESPACE
     {
       return m_displayModeKHR == VK_NULL_HANDLE;
     }
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( DisplayModeKHR const & ) const = default;
-#endif
 
   private:
     VkDisplayModeKHR m_displayModeKHR = {};
@@ -20420,10 +20243,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_physicalDevice == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( PhysicalDevice const & ) const = default;
-#endif
-
   private:
     VkPhysicalDevice m_physicalDevice = {};
   };
@@ -21232,10 +21051,6 @@ namespace VULKAN_HPP_NAMESPACE
       return m_instance == VK_NULL_HANDLE;
     }
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( Instance const & ) const = default;
-#endif
-
   private:
     VkInstance m_instance = {};
   };
@@ -21354,7 +21169,6 @@ namespace VULKAN_HPP_NAMESPACE
 #endif /* VULKAN_HPP_DISABLE_ENHANCED_MODE */
 
   // operators to compare VULKAN_HPP_NAMESPACE::-handles
-#if !defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
   template <typename T, typename std::enable_if<isVulkanHandleType<T>::value, int>::type = 0>
   bool operator==( T const & lhs, T const & rhs )
   {
@@ -21390,7 +21204,6 @@ namespace VULKAN_HPP_NAMESPACE
   {
     return static_cast<typename T::NativeType>( lhs ) >= static_cast<typename T::NativeType>( rhs );
   }
-#endif
 
   template <typename T, typename std::enable_if<isVulkanHandleType<T>::value, int>::type = 0>
   bool operator==( T const & v, std::nullptr_t )

@@ -7,6 +7,10 @@
 //    CPU-side storage of commands to delay GPU-side allocation until commands are submitted.
 //
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
+
 #include "libANGLE/renderer/vulkan/SecondaryCommandBuffer.h"
 #include "common/debug.h"
 #include "libANGLE/renderer/vulkan/vk_utils.h"
@@ -258,7 +262,9 @@ void SecondaryCommandBuffer::executeCommands(PrimaryCommandBuffer *primary)
                         GetFirstArrayParameter<VkDescriptorSet>(params);
                     const uint32_t *dynamicOffsets =
                         GetNextArrayParameter<uint32_t>(descriptorSets, params->descriptorSetCount);
-                    vkCmdBindDescriptorSets(cmdBuffer, params->pipelineBindPoint, params->layout,
+                    const VkPipelineBindPoint pipelineBindPoint =
+                        static_cast<VkPipelineBindPoint>(params->pipelineBindPoint);
+                    vkCmdBindDescriptorSets(cmdBuffer, pipelineBindPoint, params->layout,
                                             params->firstSet, params->descriptorSetCount,
                                             descriptorSets, params->dynamicOffsetCount,
                                             dynamicOffsets);
@@ -317,18 +323,32 @@ void SecondaryCommandBuffer::executeCommands(PrimaryCommandBuffer *primary)
                     const VkBuffer *buffers = GetFirstArrayParameter<VkBuffer>(params);
                     const VkDeviceSize *offsets =
                         GetNextArrayParameter<VkDeviceSize>(buffers, params->bindingCount);
+                    const VkDeviceSize *sizes =
+                        GetNextArrayParameter<VkDeviceSize>(offsets, params->bindingCount);
                     const VkDeviceSize *strides =
+                        GetNextArrayParameter<VkDeviceSize>(sizes, params->bindingCount);
+                    vkCmdBindVertexBuffers2EXT(cmdBuffer, 0, params->bindingCount, buffers, offsets,
+                                               sizes, strides);
+                    break;
+                }
+                case CommandID::BindVertexBuffers2NoStride:
+                {
+                    const BindVertexBuffers2NoStrideParams *params =
+                        getParamPtr<BindVertexBuffers2NoStrideParams>(currentCommand);
+                    const VkBuffer *buffers = GetFirstArrayParameter<VkBuffer>(params);
+                    const VkDeviceSize *offsets =
+                        GetNextArrayParameter<VkDeviceSize>(buffers, params->bindingCount);
+                    const VkDeviceSize *sizes =
                         GetNextArrayParameter<VkDeviceSize>(offsets, params->bindingCount);
                     vkCmdBindVertexBuffers2EXT(cmdBuffer, 0, params->bindingCount, buffers, offsets,
-                                               nullptr, strides);
+                                               sizes, nullptr);
                     break;
                 }
                 case CommandID::BlitImage:
                 {
                     const BlitImageParams *params = getParamPtr<BlitImageParams>(currentCommand);
-                    vkCmdBlitImage(cmdBuffer, params->srcImage,
-                                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, params->dstImage,
-                                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &params->region,
+                    vkCmdBlitImage(cmdBuffer, params->srcImage, params->srcImageLayout,
+                                   params->dstImage, params->dstImageLayout, 1, &params->region,
                                    params->filter);
                     break;
                 }
@@ -682,9 +702,8 @@ void SecondaryCommandBuffer::executeCommands(PrimaryCommandBuffer *primary)
                 {
                     const ResolveImageParams *params =
                         getParamPtr<ResolveImageParams>(currentCommand);
-                    vkCmdResolveImage(cmdBuffer, params->srcImage,
-                                      VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, params->dstImage,
-                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &params->region);
+                    vkCmdResolveImage(cmdBuffer, params->srcImage, params->srcImageLayout,
+                                      params->dstImage, params->dstImageLayout, 1, &params->region);
                     break;
                 }
                 case CommandID::SetBlendConstants:
@@ -749,7 +768,8 @@ void SecondaryCommandBuffer::executeCommands(PrimaryCommandBuffer *primary)
                         getParamPtr<SetFragmentShadingRateParams>(currentCommand);
                     const VkExtent2D fragmentSize = {params->fragmentWidth, params->fragmentHeight};
                     const VkFragmentShadingRateCombinerOpKHR ops[2] = {
-                        VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
+                        static_cast<VkFragmentShadingRateCombinerOpKHR>(
+                            params->vkFragmentShadingRateCombinerOp0),
                         static_cast<VkFragmentShadingRateCombinerOpKHR>(
                             params->vkFragmentShadingRateCombinerOp1)};
                     vkCmdSetFragmentShadingRateKHR(cmdBuffer, &fragmentSize, ops);

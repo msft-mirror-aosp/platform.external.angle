@@ -7,6 +7,10 @@
 //   ANGLE GL state serialization.
 //
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_libc_calls
+#endif
+
 #include "libANGLE/capture/serialize.h"
 
 #include "common/Color.h"
@@ -196,7 +200,7 @@ void SerializeBindingPointerVector(
         {
             std::ostringstream s;
             s << std::setfill('0') << std::setw(3) << i;
-            json->addScalar(s.str().c_str(), obj.id().value);
+            json->addScalar(s.str(), obj.id().value);
         }
     }
 }
@@ -933,7 +937,7 @@ void SerializeCompiledShaderState(JsonSerializer *json, const gl::SharedCompiled
 {
     json->addCString("Type", gl::ShaderTypeToString(state->shaderType));
     json->addScalar("Version", state->shaderVersion);
-    json->addString("TranslatedSource", state->translatedSource);
+    json->addString("TranslatedSource", *state->translatedSource);
     json->addVectorAsHash("CompiledBinary", state->compiledBinary);
     SerializeWorkGroupSize(json, state->localSize);
     SerializeShaderVariablesVector(json, state->inputVaryings);

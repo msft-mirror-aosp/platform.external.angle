@@ -9,9 +9,12 @@
 //   See: https://www.khronos.org/registry/vulkan/specs/misc/GL_KHR_vulkan_glsl.txt
 //
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
+
 #include "compiler/translator/spirv/TranslatorSPIRV.h"
 
-#include "angle_gl.h"
 #include "common/PackedEnums.h"
 #include "common/utilities.h"
 #include "compiler/translator/ImmutableStringBuilder.h"
@@ -22,7 +25,6 @@
 #include "compiler/translator/tree_ops/DeclarePerVertexBlocks.h"
 #include "compiler/translator/tree_ops/GatherDefaultUniforms.h"
 #include "compiler/translator/tree_ops/MonomorphizeUnsupportedFunctions.h"
-#include "compiler/translator/tree_ops/RecordConstantPrecision.h"
 #include "compiler/translator/tree_ops/RemoveAtomicCounterBuiltins.h"
 #include "compiler/translator/tree_ops/RewriteArrayOfArrayOfOpaqueUniforms.h"
 #include "compiler/translator/tree_ops/RewriteAtomicCounters.h"
@@ -49,7 +51,6 @@
 #include "compiler/translator/tree_util/ReplaceClipCullDistanceVariable.h"
 #include "compiler/translator/tree_util/ReplaceVariable.h"
 #include "compiler/translator/tree_util/RewriteSampleMaskVariable.h"
-#include "compiler/translator/tree_util/RunAtTheBeginningOfShader.h"
 #include "compiler/translator/tree_util/RunAtTheEndOfShader.h"
 #include "compiler/translator/tree_util/SpecializationConstant.h"
 #include "compiler/translator/util.h"
@@ -337,9 +338,11 @@ TIntermSequence *GetMainSequence(TIntermBlock *root)
         TLayoutQualifier layoutQualifier = TLayoutQualifier::Create();
         layoutQualifier.blockStorage     = EbsStd430;
 
+        const TInterfaceBlock *interfaceBlock =
+            DeclareInterfaceBlock(symbolTable, fieldList, layoutQualifier, blockName);
         const TVariable *xfbBuffer =
-            DeclareInterfaceBlock(root, symbolTable, fieldList, EvqBuffer, layoutQualifier,
-                                  TMemoryQualifier::Create(), 0, blockName, varName);
+            DeclareInterfaceBlockVariable(root, symbolTable, EvqBuffer, interfaceBlock,
+                                          layoutQualifier, TMemoryQualifier::Create(), 0, varName);
 
         static_assert(vk::spirv::kIdXfbEmulationBufferBlockOne ==
                       vk::spirv::kIdXfbEmulationBufferBlockZero + 1);
@@ -524,7 +527,6 @@ bool HasFramebufferFetch(const TExtensionBehavior &extBehavior,
            IsExtensionEnabled(extBehavior, TExtension::ARM_shader_framebuffer_fetch) ||
            IsExtensionEnabled(extBehavior,
                               TExtension::ARM_shader_framebuffer_fetch_depth_stencil) ||
-           IsExtensionEnabled(extBehavior, TExtension::NV_shader_framebuffer_fetch) ||
            (compileOptions.pls.type == ShPixelLocalStorageType::FramebufferFetch &&
             IsExtensionEnabled(extBehavior, TExtension::ANGLE_shader_pixel_local_storage));
 }
@@ -1034,7 +1036,8 @@ bool TranslatorSPIRV::translateImpl(TIntermBlock *root,
                     static_cast<const TVariable *>(getSymbolTable().findBuiltIn(
                         ImmutableString("gl_NumSamples"), getShaderVersion()));
                 TIntermTyped *numSamples = driverUniforms->getNumSamples();
-                if (!ReplaceVariableWithTyped(this, root, numSamplesVar, numSamples))
+                if (numSamplesVar &&
+                    !ReplaceVariableWithTyped(this, root, numSamplesVar, numSamples))
                 {
                     return false;
                 }

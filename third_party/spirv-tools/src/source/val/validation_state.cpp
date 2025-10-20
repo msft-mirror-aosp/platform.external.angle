@@ -903,6 +903,8 @@ uint32_t ValidationState_t::GetComponentType(uint32_t id) const {
     case spv::Op::OpTypeFloat:
     case spv::Op::OpTypeInt:
     case spv::Op::OpTypeBool:
+    case spv::Op::OpTypePointer:
+    case spv::Op::OpTypeUntypedPointerKHR:
       return id;
 
     case spv::Op::OpTypeArray:
@@ -968,11 +970,20 @@ uint32_t ValidationState_t::GetBitWidth(uint32_t id) const {
   const Instruction* inst = FindDef(component_type_id);
   assert(inst);
 
-  if (inst->opcode() == spv::Op::OpTypeFloat ||
-      inst->opcode() == spv::Op::OpTypeInt)
-    return inst->word(2);
-
-  if (inst->opcode() == spv::Op::OpTypeBool) return 1;
+  switch (inst->opcode()) {
+    case spv::Op::OpTypeFloat:
+    case spv::Op::OpTypeInt:
+      return inst->word(2);
+    case spv::Op::OpTypeBool:
+      return 1;
+    case spv::Op::OpTypePointer:
+    case spv::Op::OpTypeUntypedPointerKHR:
+      assert(inst->GetOperandAs<spv::StorageClass>(1) ==
+             spv::StorageClass::PhysicalStorageBuffer);
+      return 64;  // all pointers to another PSB is 64-bit
+    default:
+      break;
+  }
 
   assert(0);
   return 0;
@@ -1368,6 +1379,28 @@ bool ValidationState_t::GetPointerTypeInfo(
   *storage_class = spv::StorageClass(inst->word(2));
   *data_type = inst->word(3);
   return true;
+}
+
+uint32_t ValidationState_t::GetLargestScalarType(uint32_t id) const {
+  const Instruction* inst = FindDef(id);
+
+  switch (inst->opcode()) {
+    case spv::Op::OpTypeStruct: {
+      uint32_t size = 0;
+      for (uint32_t i = 1; i < inst->operands().size(); ++i) {
+        const uint32_t member_size =
+            GetLargestScalarType(inst->GetOperandAs<uint32_t>(i));
+        size = std::max(size, member_size);
+      }
+      return size;
+    }
+    case spv::Op::OpTypeArray:
+      return GetLargestScalarType(inst->GetOperandAs<uint32_t>(1));
+    case spv::Op::OpTypeVector:
+      return GetLargestScalarType(inst->GetOperandAs<uint32_t>(1));
+    default:
+      return GetBitWidth(id) / 8;
+  }
 }
 
 bool ValidationState_t::IsAccelerationStructureType(uint32_t id) const {
@@ -2569,6 +2602,8 @@ std::string ValidationState_t::VkErrorID(uint32_t id,
       return VUID_WRAP(VUID-StandaloneSpirv-Flat-06202);
     case 6214:
       return VUID_WRAP(VUID-StandaloneSpirv-OpTypeImage-06214);
+    case 6314:
+      return VUID_WRAP(VUID-StandaloneSpirv-PhysicalStorageBuffer64-06314);
     case 6491:
       return VUID_WRAP(VUID-StandaloneSpirv-DescriptorSet-06491);
     case 6671:
@@ -2679,6 +2714,10 @@ std::string ValidationState_t::VkErrorID(uint32_t id,
       return VUID_WRAP(VUID-StandaloneSpirv-OpEntryPoint-09658);
     case 9659:
       return VUID_WRAP(VUID-StandaloneSpirv-OpEntryPoint-09659);
+    case 10151:
+      return VUID_WRAP(VUID-StandaloneSpirv-DerivativeGroupQuadsKHR-10151);
+    case 10152:
+      return VUID_WRAP(VUID-StandaloneSpirv-DerivativeGroupLinearKHR-10152);
     case 10213:
       // This use to be a standalone, but maintenance8 will set allow_offset_texture_operand now
       return VUID_WRAP(VUID-RuntimeSpirv-Offset-10213);
@@ -2749,6 +2788,8 @@ std::string ValidationState_t::VkErrorID(uint32_t id,
       return VUID_WRAP(VUID-StandaloneSpirv-UnequalMemorySemantics-10879);
     case 10880:
       return VUID_WRAP(VUID-StandaloneSpirv-TessLevelInner-10880);
+    case 11167:
+      return VUID_WRAP(VUID-StandaloneSpirv-OpUntypedVariableKHR-11167);
     default:
       return "";  // unknown id
   }

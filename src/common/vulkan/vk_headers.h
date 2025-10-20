@@ -16,6 +16,16 @@
 #    include <vulkan/vulkan.h>
 #endif
 
+/* vulkan.h includes <X11/Xlib.h> when VK_USE_PLATFORM_XLIB_KHR is defined
+ * after https://github.com/KhronosGroup/Vulkan-Headers/pull/534.
+ * This defines some macros which break build, so undefine them here.
+ */
+#undef Always
+#undef Bool
+#undef None
+#undef Status
+#undef Success
+
 #if !defined(ANGLE_SHARED_LIBVULKAN)
 
 namespace rx
@@ -149,6 +159,16 @@ extern PFN_vkCmdSetRenderingInputAttachmentIndicesKHR vkCmdSetRenderingInputAtta
 // VK_KHR_synchronization2
 extern PFN_vkCmdPipelineBarrier2KHR vkCmdPipelineBarrier2KHR;
 extern PFN_vkCmdWriteTimestamp2KHR vkCmdWriteTimestamp2KHR;
+
+// VK_KHR_external_memory_fd
+extern PFN_vkGetMemoryFdKHR vkGetMemoryFdKHR;
+extern PFN_vkGetMemoryFdPropertiesKHR vkGetMemoryFdPropertiesKHR;
+
+// VK_EXT_external_memory_host
+extern PFN_vkGetMemoryHostPointerPropertiesEXT vkGetMemoryHostPointerPropertiesEXT;
+
+// VK_KHR_buffer_device_address
+extern PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
 
 }  // namespace rx
 

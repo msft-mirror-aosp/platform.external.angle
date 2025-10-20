@@ -413,15 +413,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         mGraphicsDirtyBits |= kIndexAndVertexDirtyBits;
     }
 
-    angle::Result onVertexBufferChange(const vk::BufferHelper *vertexBuffer);
-
-    angle::Result onVertexAttributeChange(size_t attribIndex,
-                                          GLuint stride,
-                                          GLuint divisor,
-                                          angle::FormatID format,
-                                          bool compressed,
-                                          GLuint relativeOffset,
-                                          const vk::BufferHelper *vertexBuffer);
+    angle::Result onVertexArrayChange(const gl::AttributesMask dirtyAttribBits);
 
     void invalidateDefaultAttribute(size_t attribIndex);
     void invalidateDefaultAttributes(const gl::AttributesMask &dirtyMask);
@@ -528,23 +520,23 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     angle::Result onImageReleaseToExternal(const vk::ImageHelper &image);
 
     void onImageRenderPassRead(VkImageAspectFlags aspectFlags,
-                               vk::ImageLayout imageLayout,
+                               vk::ImageAccess imageAccess,
                                vk::ImageHelper *image)
     {
         ASSERT(mRenderPassCommands->started());
-        mRenderPassCommands->imageRead(this, aspectFlags, imageLayout, image);
+        mRenderPassCommands->imageRead(this, aspectFlags, imageAccess, image);
     }
 
     void onImageRenderPassWrite(gl::LevelIndex level,
                                 uint32_t layerStart,
                                 uint32_t layerCount,
                                 VkImageAspectFlags aspectFlags,
-                                vk::ImageLayout imageLayout,
+                                vk::ImageAccess imageAccess,
                                 vk::ImageHelper *image)
     {
         ASSERT(mRenderPassCommands->started());
         mRenderPassCommands->imageWrite(this, level, layerStart, layerCount, aspectFlags,
-                                        imageLayout, image);
+                                        imageAccess, image);
     }
 
     void onColorDraw(gl::LevelIndex level,
@@ -604,19 +596,19 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     void finalizeImageLayout(vk::ImageHelper *image, UniqueSerial imageSiblingSerial);
 
     angle::Result getOutsideRenderPassCommandBuffer(
-        const vk::CommandBufferAccess &access,
+        const vk::CommandResources &resources,
         vk::OutsideRenderPassCommandBuffer **commandBufferOut)
     {
-        ANGLE_TRY(onResourceAccess(access));
+        ANGLE_TRY(onResourceAccess(resources));
         *commandBufferOut = &mOutsideRenderPassCommands->getCommandBuffer();
         return angle::Result::Continue;
     }
 
     angle::Result getOutsideRenderPassCommandBufferHelper(
-        const vk::CommandBufferAccess &access,
+        const vk::CommandResources &resources,
         vk::OutsideRenderPassCommandBufferHelper **commandBufferHelperOut)
     {
-        ANGLE_TRY(onResourceAccess(access));
+        ANGLE_TRY(onResourceAccess(resources));
         *commandBufferHelperOut = mOutsideRenderPassCommands;
         return angle::Result::Continue;
     }
@@ -893,7 +885,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     bool hasExcessPendingGarbage() const;
 
-    angle::Result onFramebufferBoundary(const gl::Context *contextGL);
+    angle::Result onFrameBoundary(const gl::Context *contextGL);
 
     uint32_t getCurrentFrameCount() const { return mShareGroupVk->getCurrentFrameCount(); }
 
@@ -967,8 +959,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         DIRTY_BIT_DYNAMIC_LOGIC_OP,
         DIRTY_BIT_DYNAMIC_PRIMITIVE_RESTART_ENABLE,
         // - In VK_KHR_fragment_shading_rate
-        DIRTY_BIT_DYNAMIC_FRAGMENT_SHADING_RATE_QCOM,
-        DIRTY_BIT_DYNAMIC_FRAGMENT_SHADING_RATE_EXT,
+        DIRTY_BIT_DYNAMIC_FRAGMENT_SHADING_RATE,
 
         DIRTY_BIT_MAX,
     };
@@ -1061,9 +1052,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                   "Render pass using dirty bit must be handled after the render pass dirty bit");
     static_assert(DIRTY_BIT_DYNAMIC_PRIMITIVE_RESTART_ENABLE > DIRTY_BIT_RENDER_PASS,
                   "Render pass using dirty bit must be handled after the render pass dirty bit");
-    static_assert(DIRTY_BIT_DYNAMIC_FRAGMENT_SHADING_RATE_QCOM > DIRTY_BIT_RENDER_PASS,
-                  "Render pass using dirty bit must be handled after the render pass dirty bit");
-    static_assert(DIRTY_BIT_DYNAMIC_FRAGMENT_SHADING_RATE_EXT > DIRTY_BIT_RENDER_PASS,
+    static_assert(DIRTY_BIT_DYNAMIC_FRAGMENT_SHADING_RATE > DIRTY_BIT_RENDER_PASS,
                   "Render pass using dirty bit must be handled after the render pass dirty bit");
 
     using DirtyBits = angle::BitSet<DIRTY_BIT_MAX>;
@@ -1228,8 +1217,12 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                                                      DirtyBits dirtyBitMask);
     angle::Result handleDirtyGraphicsTextures(DirtyBits::Iterator *dirtyBitsIterator,
                                               DirtyBits dirtyBitMask);
-    angle::Result handleDirtyGraphicsVertexBuffers(DirtyBits::Iterator *dirtyBitsIterator,
-                                                   DirtyBits dirtyBitMask);
+    angle::Result handleDirtyGraphicsVertexBuffersVertexInputDynamicStateEnabled(
+        DirtyBits::Iterator *dirtyBitsIterator,
+        DirtyBits dirtyBitMask);
+    angle::Result handleDirtyGraphicsVertexBuffersVertexInputDynamicStateDisabled(
+        DirtyBits::Iterator *dirtyBitsIterator,
+        DirtyBits dirtyBitMask);
     angle::Result handleDirtyGraphicsIndexBuffer(DirtyBits::Iterator *dirtyBitsIterator,
                                                  DirtyBits dirtyBitMask);
     angle::Result handleDirtyGraphicsDriverUniforms(DirtyBits::Iterator *dirtyBitsIterator,
@@ -1296,11 +1289,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     angle::Result handleDirtyGraphicsDynamicPrimitiveRestartEnable(
         DirtyBits::Iterator *dirtyBitsIterator,
         DirtyBits dirtyBitMask);
-    angle::Result handleDirtyGraphicsDynamicFragmentShadingRateQCOM(
-        DirtyBits::Iterator *dirtyBitsIterator,
-        DirtyBits dirtyBitMask);
-    // EXT_fragment_shading_rate
-    angle::Result handleDirtyGraphicsDynamicFragmentShadingRateEXT(
+    angle::Result handleDirtyGraphicsDynamicFragmentShadingRate(
         DirtyBits::Iterator *dirtyBitsIterator,
         DirtyBits dirtyBitMask);
 
@@ -1403,8 +1392,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                                                    FramebufferVk *drawFramebuffer,
                                                    bool isStencilTexture);
 
-    angle::Result onResourceAccess(const vk::CommandBufferAccess &access);
-    angle::Result flushCommandBuffersIfNecessary(const vk::CommandBufferAccess &access);
+    angle::Result onResourceAccess(const vk::CommandResources &resources);
+    angle::Result flushCommandBuffersIfNecessary(const vk::CommandResources &resources);
     bool renderPassUsesStorageResources() const;
 
     angle::Result pushDebugGroupImpl(GLenum source, GLuint id, const char *message);
@@ -1449,8 +1438,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     void generateOutsideRenderPassCommandsQueueSerial();
     void generateRenderPassCommandsQueueSerial(QueueSerial *queueSerialOut);
-
-    angle::Result ensureInterfacePipelineCache();
 
     angle::ImageLoadContext mImageLoadContext;
 
@@ -1749,36 +1736,6 @@ ANGLE_INLINE angle::Result ContextVk::onIndexBufferChange(
     mGraphicsDirtyBits.set(DIRTY_BIT_INDEX_BUFFER);
     mLastIndexBufferOffset = reinterpret_cast<const void *>(angle::DirtyPointer);
     return endRenderPassIfTransformFeedbackBuffer(currentIndexBuffer);
-}
-
-ANGLE_INLINE angle::Result ContextVk::onVertexBufferChange(const vk::BufferHelper *vertexBuffer)
-{
-    mGraphicsDirtyBits.set(DIRTY_BIT_VERTEX_BUFFERS);
-    return endRenderPassIfTransformFeedbackBuffer(vertexBuffer);
-}
-
-ANGLE_INLINE angle::Result ContextVk::onVertexAttributeChange(size_t attribIndex,
-                                                              GLuint stride,
-                                                              GLuint divisor,
-                                                              angle::FormatID format,
-                                                              bool compressed,
-                                                              GLuint relativeOffset,
-                                                              const vk::BufferHelper *vertexBuffer)
-{
-    const GLuint staticStride =
-        mRenderer->getFeatures().useVertexInputBindingStrideDynamicState.enabled ? 0 : stride;
-
-    if (!getFeatures().supportsVertexInputDynamicState.enabled)
-    {
-        invalidateCurrentGraphicsPipeline();
-
-        // Set divisor to 1 for attribs with emulated divisor
-        mGraphicsPipelineDesc->updateVertexInput(
-            this, &mGraphicsPipelineTransition, static_cast<uint32_t>(attribIndex), staticStride,
-            divisor > mRenderer->getMaxVertexAttribDivisor() ? 1 : divisor, format, compressed,
-            relativeOffset);
-    }
-    return onVertexBufferChange(vertexBuffer);
 }
 
 ANGLE_INLINE bool ContextVk::hasUnsubmittedUse(const vk::ResourceUse &use) const

@@ -40,19 +40,26 @@ android_test_helper_app {
     ],
 }
 
-java_test_host {
-    name: "CtsAngleEnd2EndTests",
-    srcs: ["src/com/angle/cts/AngleEnd2EndHostTest.java"],
-    test_suites: [
-        "cts",
-        "dts",
-        "general-tests",
-    ],
+tradefed_java_library_host {
+    name: "AngleEnd2EndTestsHostLibrary",
+    srcs: ["src/**/*.java"],
     libs: [
         "compatibility-host-util",
         "cts-tradefed",
         "junit",
         "tradefed",
+    ],
+}
+
+java_test_host {
+    name: "CtsAngleEnd2EndTestCases",
+    test_suites: [
+        "cts",
+        "dts",
+        "general-tests",
+    ],
+    static_libs: [
+        "AngleEnd2EndTestsHostLibrary",
     ],
     device_common_data: [
         ":AngleEnd2EndTestsHelper",

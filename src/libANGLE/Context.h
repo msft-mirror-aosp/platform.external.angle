@@ -11,6 +11,10 @@
 #ifndef LIBANGLE_CONTEXT_H_
 #define LIBANGLE_CONTEXT_H_
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_libc_calls
+#endif
+
 #include <mutex>
 #include <set>
 #include <string>
@@ -589,7 +593,6 @@ class StateCache final : angle::NonCopyable
     bool mCachedCanDraw;
 };
 
-using VertexArrayMap       = ResourceMap<VertexArray, VertexArrayID>;
 using QueryMap             = ResourceMap<Query, QueryID>;
 using TransformFeedbackMap = ResourceMap<TransformFeedback, TransformFeedbackID>;
 
@@ -652,7 +655,6 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     Framebuffer *getFramebuffer(FramebufferID handle) const;
     Renderbuffer *getRenderbuffer(RenderbufferID handle) const;
-    VertexArray *getVertexArray(VertexArrayID handle) const;
     Sampler *getSampler(SamplerID handle) const;
     Query *getOrCreateQuery(QueryID handle, QueryType type);
     Query *getQuery(QueryID handle) const;
@@ -667,7 +669,6 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     Compiler *getCompiler() const;
 
-    bool isVertexArrayGenerated(VertexArrayID vertexArray) const;
     bool isTransformFeedbackGenerated(TransformFeedbackID transformFeedback) const;
 
     bool isZeroTextureBound(TextureType textureType) const;
@@ -871,7 +872,10 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     angle::FrameCapture *getFrameCapture() const { return mFrameCapture.get(); }
 
-    const VertexArrayMap &getVertexArraysForCapture() const { return mVertexArrayMap; }
+    const VertexArrayMap &getVertexArraysForCapture() const
+    {
+        return getPrivateState().getVertexArrayMap();
+    }
     const QueryMap &getQueriesForCapture() const { return mQueryMap; }
     const TransformFeedbackMap &getTransformFeedbacksForCapture() const
     {
@@ -1072,9 +1076,6 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     QueryMap mQueryMap;
     HandleAllocator mQueryHandleAllocator;
-
-    VertexArrayMap mVertexArrayMap;
-    HandleAllocator mVertexArrayHandleAllocator;
 
     TransformFeedbackMap mTransformFeedbackMap;
     HandleAllocator mTransformFeedbackHandleAllocator;

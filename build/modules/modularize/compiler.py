@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 import collections
+import enum
 import functools
 import logging
 import pathlib
@@ -17,14 +18,15 @@ import time
 import config
 from graph import CompileStatus
 from graph import Header
-from graph import HeaderRef
 from graph import IncludeDir
+from graph import calculate_rdeps
 import modulemap
 
 _FRAMEWORK = ' (framework directory)'
 # Foo.framework/Versions/A/headers/Bar.h -> Foo/Bar.h
 _FRAMEWORK_HEADER = re.compile(
     r'([^/]+)\.framework/(?:Versions/[^/]+/)?(?:Headers|Modules)/(.*)')
+_LIBCXXABI = '../../third_party/libc++abi/src/include'
 
 
 # Some of these steps are quite slow (O(minutes)).
@@ -53,18 +55,39 @@ def _maybe_cache(fn):
   return new_fn
 
 
+class Os(str, enum.Enum):
+  Android = 'android'
+  Fuchsia = 'fuchsia'
+  Ios = 'ios'
+  Linux = 'linux'
+  Mac = 'mac'
+  Win = 'win'
+
+  @property
+  def is_apple(self):
+    return self == Os.Mac or self == Os.Ios
+
+
+class Cpu(str, enum.Enum):
+  x86 = 'x86'
+  x64 = 'x64'
+  arm = 'arm'
+  arm64 = 'arm64'
+
+
 class Compiler:
 
   def __init__(self, *, source_root: pathlib.Path, gn_out: pathlib.Path,
-               error_dir: pathlib.Path | None, use_cache: bool):
+               error_dir: pathlib.Path | None, use_cache: bool, os: Os,
+               cpu: Cpu):
     self._error_dir = error_dir
     self._use_cache = use_cache
     self.gn_out = gn_out
     self.source_root = source_root
 
-    self.os = self._get_os()
-    self.cpu = self._get_cpu()
-    self.sysroot_dir = IncludeDir.SysrootModule if self.is_apple else IncludeDir.Sysroot
+    self.os = os
+    self.cpu = cpu
+    self.sysroot_dir = IncludeDir.SysrootModule if self.os.is_apple else IncludeDir.Sysroot
     self.sysroot = None
 
   # __eq__ and __hash__ are required for functools.cache to work correctly.
@@ -73,10 +96,6 @@ class Compiler:
 
   def __hash__(self):
     return hash(self.gn_out)
-
-  @property
-  def is_apple(self):
-    return self.os in ['mac', 'ios']
 
   def _parse_depfile(self, content: str) -> list[pathlib.Path]:
     files = []
@@ -91,50 +110,11 @@ class Compiler:
       files.append(p.resolve())
     return files
 
-  def _get_gn_arg(self, name: str) -> str:
-    content = (self.gn_out / 'args.gn').read_text()
-    # For a platform that's unconfigured for clang modules, this will raise an
-    # error. We add a BUILD.gn to fix this, but this code runs
-    # before that happens.
-    content += '\nuse_clang_modules = false\n'
-    with tempfile.TemporaryDirectory(dir=self.gn_out.parent) as d:
-      d = pathlib.Path(d)
-      (d / 'args.gn').write_text(content)
-      (d / 'build.ninja').touch()
-      ps = subprocess.run(
-          ['gn', 'args', '.', f'--list={name}', '--short'],
-          text=True,
-          check=False,
-          cwd=d,
-          stdout=subprocess.PIPE,
-          stderr=subprocess.DEVNULL,
-      )
-
-      # GN args outputs errors to stdout, so we can't use check=True.
-      if ps.returncode != 0:
-        print(ps.stdout, file=sys.stderr)
-        exit(1)
-
-    # output format: 'target_cpu = "x64"\n'
-    return ps.stdout.rstrip().split(' = ')[1].strip('"')
-
   def _clang_arg(self, arg: str) -> str:
     if self.os == 'win':
       return f'/clang:{arg}'
     else:
       return arg
-
-  @_maybe_cache
-  def _get_cpu(self):
-    # If the target_cpu is not explicitly set, it returns the empty string and
-    # it uses the host_cpu instead.
-    return self._get_gn_arg('target_cpu') or self._get_gn_arg('host_cpu')
-
-  @_maybe_cache
-  def _get_os(self):
-    # If the target_os is not explicitly set, it returns the empty string and
-    # it uses the host_os instead.
-    return self._get_gn_arg('target_os') or self._get_gn_arg('host_os')
 
   def _write_err(self, rel: str, content: bytes):
     if self._error_dir is not None:
@@ -166,7 +146,7 @@ class Compiler:
         [
             'build/modules/modularize/no_modules_compile_command.sh',
             str(self.gn_out),
-            self.os,
+            str(self.os),
         ],
         check=True,
         text=True,
@@ -187,7 +167,7 @@ class Compiler:
         '-o',
         '/dev/null',
     ]
-    cmd.remove('-c')
+    cmd.remove('/c' if self.os == Os.Win else '-c')
     # include dir lines both start and end with whitespace
     lines = [
         line.strip() for line in subprocess.run(
@@ -207,7 +187,8 @@ class Compiler:
     # We don't care about these.
     dirs.remove('../..')
     dirs.remove('gen')
-    dirs.remove('../../third_party/libc++abi/src/include')
+    if _LIBCXXABI in dirs:
+      dirs.remove(_LIBCXXABI)
 
     out = []
     for d in dirs:
@@ -276,19 +257,19 @@ class Compiler:
   def _modules_and_headers(self):
     return modulemap.calculate_modules(self.include_dirs)
 
-  def modulemaps_for_modules(self):
+  def modulemaps_for_modules(self) -> dict[str, pathlib.Path]:
     return self._modules_and_headers()[0]
 
-  def modulemap_headers(self):
+  def modulemap_headers(self) -> set[Header]:
     return self._modules_and_headers()[1]
 
   @_maybe_cache
-  def compile_all(self) -> dict[HeaderRef, Header]:
+  def compile_all(self) -> dict[str, Header]:
     """Generates a graph of headers by compiling all files in the sysroot."""
     if self._error_dir is not None:
       shutil.rmtree(self._error_dir, ignore_errors=True)
 
-    graph: dict[HeaderRef, Header] = {}
+    graph: dict[str, Header] = {}
     uncompiled = []
     seen = set()
 
@@ -353,7 +334,7 @@ class Compiler:
           # Skip compiling textual headers - we'll calculate their dependencies after the fact.
           if not dep.textual:
             visit(to_rel)
-        state.deps.append((dep.include_dir, dep.rel))
+        state.deps.append(dep)
 
       state.compile_status = CompileStatus.Success if ps.returncode == 0 else CompileStatus.Failure
       if ps.returncode == 0:
@@ -383,7 +364,12 @@ class Compiler:
       if state.root_module is None and ps.returncode != 0:
         state.textual = True
 
+    rdeps = calculate_rdeps(graph.values())
+    includes = collections.defaultdict(list)
+
+    logging.info('Inferring dependencies')
     for header in sorted(graph.values()):
+      includes[header.rel].append(header)
       if header.abs is None:
         for d, kind in self.include_dirs:
           if header.include_dir == kind and (d / header.rel).is_file():
@@ -391,5 +377,30 @@ class Compiler:
             break
       assert header.abs is not None
 
+      # If we were unable to compile something, calculate what the dependencies
+      # likely are.
+      if header.compile_status == CompileStatus.NotCompiled and rdeps[header]:
+        intersection = set.intersection(
+            *[set(rdep.deps) for rdep in rdeps[header]])
+        # For libcxx/foo.h -> builtin/foo.h -> sysroot/foo.h
+        # Despite the fact that builtin/foo.h should appear all the time, we need
+        # to filter it out for sysroot/foo.h.
+        header.deps = [
+            dep for dep in intersection
+            if dep.rel != header.rel or dep.include_dir > header.include_dir
+        ]
+
+    # Translate it to a mapping from include path to a linked list of headers.
+    out = {}
+    for k, headers in includes.items():
+      headers.sort()
+      for prev, nxt in zip(headers, headers[1:]):
+        # If it didn't #include_next we don't need to worry about it.
+        if nxt not in prev.deps:
+          break
+        prev.next = nxt
+        nxt.prev = prev
+      out[k] = headers[0]
+
     logging.info('Compilation complete')
-    return graph
+    return out

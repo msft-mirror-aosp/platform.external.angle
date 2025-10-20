@@ -53,13 +53,19 @@ with devil_env.SysPath(
     os.path.join(_DIR_SOURCE_ROOT, 'build', 'android', 'gyp')):
   import bundletool
 
+with devil_env.SysPath(os.path.join(_DIR_SOURCE_ROOT, 'build', 'util')):
+  import android_chrome_version
+
 BASE_MODULE = 'base'
 
 
+def _IsTrichrome():
+  calling_script_name = os.path.basename(sys.argv[0])
+  return 'trichrome' in calling_script_name
+
+
 def _Colorize(text, style=''):
-  return (style
-      + text
-      + colorama.Style.RESET_ALL)
+  return style + text + colorama.Style.RESET_ALL
 
 
 def _InstallApk(devices, apk, install_dict):
@@ -242,7 +248,7 @@ def _ResolveActivity(device, package_name, category, action):
     raise Exception(f'Did not find {category_text}, {action_text} in\n{data}')
   if len(matched_entries) > 1:
     # When there are multiple matches, look for the one marked as default.
-    # Necessary for Monochrome, which also has MonochromeLauncherActivity.
+    # Added for Monochrome.
     default_entries = [
         e for e in matched_entries if 'android.intent.category.DEFAULT' in e
     ]
@@ -1345,8 +1351,7 @@ class _Command:
   def _FindSupportedDevices(self, devices):
     """Returns supported devices and reasons for each not supported one."""
     app_abis = self.apk_helper.GetAbis()
-    calling_script_name = os.path.basename(sys.argv[0])
-    is_webview = 'webview' in calling_script_name
+    is_webview = _IsWebViewProvider(self.apk_helper)
     requires_32_bit = self.apk_helper.Get32BitAbiOverride() == '0xffffffff'
     logging.debug('App supports (requires 32bit: %r, is webview: %r): %r',
                   requires_32_bit, is_webview, app_abis)
@@ -1537,6 +1542,20 @@ class _PackageInfoCommand(_Command):
     print('minSdkVersion: %s' % self.apk_helper.GetMinSdkVersion())
     print('targetSdkVersion: %s' % self.apk_helper.GetTargetSdkVersion())
     print('Supported ABIs: %r' % self.apk_helper.GetAbis())
+
+    if len(str(self.apk_helper.GetVersionCode())) == 9:
+      # android_chrome_version expects Trichrome to be is_webview=False, even if
+      # this is TrichromeWebView.
+      is_webview = (_IsWebViewProvider(self.apk_helper) and not _IsTrichrome())
+      x = android_chrome_version.TranslateVersionCode(
+          str(self.apk_helper.GetVersionCode()), is_webview)
+      print(f'Decoded versionCode: build_number={x.build_number} '
+            f'patch_number={x.patch_number} sku={x.package_name} abi={x.abi}')
+    else:
+      # This does not follow the chromium versionCode scheme. This might be a
+      # test APK, a utiltiy APK (like WebView shell browser), or it could just
+      # be any other non-chromium APK.
+      print('Decoded versionCode: N/A')
 
 
 class _InstallCommand(_Command):

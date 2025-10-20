@@ -10,6 +10,10 @@
 #ifndef LIBANGLE_FRAME_CAPTURE_H_
 #define LIBANGLE_FRAME_CAPTURE_H_
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
+
 #include <fstream>
 #include "sys/stat.h"
 
@@ -358,7 +362,6 @@ class ResourceTracker final : angle::NonCopyable
         mBufferBindingCalls.clear();
         mStartingBuffersMappedInitial.clear();
         mStartingBuffersMappedCurrent.clear();
-        mMaxShaderPrograms = 0;
         mStartingFenceSyncs.clear();
         mFenceSyncRegenCalls.clear();
         mFenceSyncsToRegen.clear();
@@ -1003,6 +1006,7 @@ class FrameCaptureShared final : angle::NonCopyable
 
     void reset();
     void resetMidExecutionCapture(gl::Context *context);
+    void maybeSetSyncPoint(CallCapture &inCall);
     void maybeOverrideEntryPoint(const gl::Context *context,
                                  CallCapture &call,
                                  std::vector<CallCapture> &newCalls);

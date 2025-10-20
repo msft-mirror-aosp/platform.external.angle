@@ -9,6 +9,8 @@
 #ifndef COMPILER_TRANSLATOR_INTERMNODEUTIL_H_
 #define COMPILER_TRANSLATOR_INTERMNODEUTIL_H_
 
+#include <optional>
+
 #include "compiler/translator/IntermNode.h"
 #include "compiler/translator/Name.h"
 #include "compiler/translator/tree_util/FindFunction.h"
@@ -65,15 +67,19 @@ std::pair<const TVariable *, const TVariable *> DeclareStructure(
     uint32_t arraySize,
     const ImmutableString &structTypeName,
     const ImmutableString *structInstanceName);
-const TVariable *DeclareInterfaceBlock(TIntermBlock *root,
-                                       TSymbolTable *symbolTable,
+TInterfaceBlock *DeclareInterfaceBlock(TSymbolTable *symbolTable,
                                        TFieldList *fieldList,
-                                       TQualifier qualifier,
                                        const TLayoutQualifier &layoutQualifier,
-                                       const TMemoryQualifier &memoryQualifier,
-                                       uint32_t arraySize,
-                                       const ImmutableString &blockTypeName,
-                                       const ImmutableString &blockVariableName);
+                                       const ImmutableString &blockTypeName);
+
+const TVariable *DeclareInterfaceBlockVariable(TIntermBlock *root,
+                                               TSymbolTable *symbolTable,
+                                               TQualifier qualifier,
+                                               const TInterfaceBlock *interfaceBlock,
+                                               const TLayoutQualifier &layoutQualifier,
+                                               const TMemoryQualifier &memoryQualifier,
+                                               uint32_t arraySize,
+                                               const ImmutableString &blockVariableName);
 
 // Creates a variable for a struct type.
 const TVariable &CreateStructTypeVariable(TSymbolTable &symbolTable, const TStructure &structure);
@@ -157,6 +163,9 @@ TIntermSwizzle *CreateSwizzle(TIntermTyped *reference, ArgsT... args)
 // i.e. a block can only end in a branch if its last statement is a branch or is a block ending in
 // branch.
 bool EndsInBranch(TIntermBlock *block);
+
+// Cast a scalar to the basic type of type. No-ops if scalar is already the right type.
+TIntermNode *CastScalar(const TType &type, TIntermTyped *scalar);
 
 }  // namespace sh
 

@@ -4,6 +4,10 @@
 // found in the LICENSE file.
 //
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
+
 #include "test_utils/ANGLETest.h"
 #include "test_utils/gl_raii.h"
 #include "util/random_utils.h"
@@ -786,7 +790,7 @@ TEST_P(UniformBufferTest, VeryLargeReadback)
 // block before larger one.
 TEST_P(UniformBufferTest, MultipleSizesSmallBeforeBig)
 {
-    constexpr size_t kSizeOfVec4  = 4 * sizeof(float);
+    constexpr GLint kSizeOfVec4   = 4 * sizeof(float);
     constexpr char kUniformName[] = "uni";
     constexpr char kFS1[]         = R"(#version 300 es
 precision highp float;
@@ -813,8 +817,9 @@ void main() {
 
     GLint offsetAlignmentInBytes;
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &offsetAlignmentInBytes);
-    ASSERT_EQ(offsetAlignmentInBytes % kSizeOfVec4, 0U);
-    GLint offsetAlignmentInVec4 = offsetAlignmentInBytes / kSizeOfVec4;
+    ASSERT_TRUE(offsetAlignmentInBytes < kSizeOfVec4 || offsetAlignmentInBytes % kSizeOfVec4 == 0);
+    GLint offsetAlignmentInVec4 =
+        offsetAlignmentInBytes < kSizeOfVec4 ? 1 : offsetAlignmentInBytes / kSizeOfVec4;
 
     // Insert padding required by implementation to have first unform block at a non-zero
     // offset.

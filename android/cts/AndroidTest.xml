@@ -26,10 +26,6 @@
         <!-- The end2end tests require the device to be at the Launcher to get a valid surface. -->
         <!-- Non-HSUM Devices: Dismiss the lock screen (keyguard). -->
         <option name="run-command" value="wm dismiss-keyguard" />
-        <!-- HSUM Devices: Switch to user 10 to dismiss the login screen. -->
-        <!-- This is expected to fail on non-HSUM devices because user 10 does not exist. -->
-        <!-- TODO(b/420640007, b/424268326) Remove when tradefed can login correctly. -->
-        <option name="run-command" value="am switch-user 10" />
         <option name="run-command" value="am wait-for-broadcast-idle" />
         <!-- Disable "unsafe app" notification -->
         <option name="run-command" value="settings put global verifier_engprod 1" />

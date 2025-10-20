@@ -1867,6 +1867,7 @@ if (build_angle_deqp_tests && !is_fuchsia) {
   config("angle_deqp_khr_common_config") {
     include_dirs = [
       "$deqp_path/external/openglcts/modules/common",
+      "$deqp_path/external/openglcts/modules/common/meshShader",
       "$deqp_path/external/openglcts/modules/common/subgroups",
       "$deqp_path/external/openglcts/modules/gl",
       "$deqp_path/external/openglcts/modules/gles2",
@@ -2094,11 +2095,9 @@ group("angle_tests") {
     deps += [ ":angle_trace_perf_tests" ]
     deps += [ "capture_tests:angle_capture_tests_multi_frame_trace" ]
     deps += [ "capture_tests:angle_capture_tests_active_textures_trace" ]
-
-    # TODO: anglebug.com/438195622
-    #if (angle_enable_cl) {
-    #  deps += [ "capture_tests:angle_capture_tests_multi_frame_cl_trace" ]
-    #}
+    if (angle_enable_cl) {
+      deps += [ "capture_tests:angle_capture_tests_multi_frame_cl_trace" ]
+    }
   }
   if (is_clang && angle_has_frame_capture) {
     deps += [ "capture_replay_tests" ]

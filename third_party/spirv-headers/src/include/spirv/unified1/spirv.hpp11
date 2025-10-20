@@ -1256,6 +1256,7 @@ enum class Capability : unsigned {
     BitInstructions = 6025,
     GroupNonUniformRotateKHR = 6026,
     FloatControls2 = 6029,
+    FMAKHR = 6030,
     AtomicFloat32AddEXT = 6033,
     AtomicFloat64AddEXT = 6034,
     LongCompositesINTEL = 6089,
@@ -1280,6 +1281,7 @@ enum class Capability : unsigned {
     Subgroup2DBlockTransposeINTEL = 6230,
     SubgroupMatrixMultiplyAccumulateINTEL = 6236,
     TernaryBitwiseFunctionINTEL = 6241,
+    UntypedVariableLengthArrayINTEL = 6243,
     SpecConditionalINTEL = 6245,
     FunctionVariantsINTEL = 6246,
     GroupUniformArithmeticKHR = 6400,
@@ -1970,6 +1972,7 @@ enum class Op : unsigned {
     OpUntypedInBoundsPtrAccessChainKHR = 4424,
     OpUntypedArrayLengthKHR = 4425,
     OpUntypedPrefetchKHR = 4426,
+    OpFmaKHR = 4427,
     OpSubgroupAllKHR = 4428,
     OpSubgroupAnyKHR = 4429,
     OpSubgroupAllEqualKHR = 4430,
@@ -2102,6 +2105,7 @@ enum class Op : unsigned {
     OpTypeAccelerationStructureNV = 5341,
     OpExecuteCallableNV = 5344,
     OpRayQueryGetClusterIdNV = 5345,
+    OpRayQueryGetIntersectionClusterIdNV = 5345,
     OpHitObjectGetClusterIdNV = 5346,
     OpTypeCooperativeMatrixNV = 5358,
     OpCooperativeMatrixLoadNV = 5359,
@@ -2411,6 +2415,7 @@ enum class Op : unsigned {
     OpSubgroup2DBlockStoreINTEL = 6235,
     OpSubgroupMatrixMultiplyAccumulateINTEL = 6237,
     OpBitwiseFunctionINTEL = 6242,
+    OpUntypedVariableLengthArrayINTEL = 6244,
     OpConditionalExtensionINTEL = 6248,
     OpConditionalEntryPointINTEL = 6249,
     OpConditionalCapabilityINTEL = 6250,
@@ -2812,6 +2817,7 @@ inline void HasResultAndType(Op opcode, bool *hasResult, bool *hasResultType) {
     case Op::OpUntypedInBoundsPtrAccessChainKHR: *hasResult = true; *hasResultType = true; break;
     case Op::OpUntypedArrayLengthKHR: *hasResult = true; *hasResultType = true; break;
     case Op::OpUntypedPrefetchKHR: *hasResult = false; *hasResultType = false; break;
+    case Op::OpFmaKHR: *hasResult = true; *hasResultType = true; break;
     case Op::OpSubgroupAllKHR: *hasResult = true; *hasResultType = true; break;
     case Op::OpSubgroupAnyKHR: *hasResult = true; *hasResultType = true; break;
     case Op::OpSubgroupAllEqualKHR: *hasResult = true; *hasResultType = true; break;
@@ -2935,7 +2941,7 @@ inline void HasResultAndType(Op opcode, bool *hasResult, bool *hasResultType) {
     case Op::OpRayQueryGetIntersectionTriangleVertexPositionsKHR: *hasResult = true; *hasResultType = true; break;
     case Op::OpTypeAccelerationStructureKHR: *hasResult = true; *hasResultType = false; break;
     case Op::OpExecuteCallableNV: *hasResult = false; *hasResultType = false; break;
-    case Op::OpRayQueryGetClusterIdNV: *hasResult = true; *hasResultType = true; break;
+    case Op::OpRayQueryGetIntersectionClusterIdNV: *hasResult = true; *hasResultType = true; break;
     case Op::OpHitObjectGetClusterIdNV: *hasResult = true; *hasResultType = true; break;
     case Op::OpTypeCooperativeMatrixNV: *hasResult = true; *hasResultType = false; break;
     case Op::OpCooperativeMatrixLoadNV: *hasResult = true; *hasResultType = true; break;
@@ -3242,6 +3248,7 @@ inline void HasResultAndType(Op opcode, bool *hasResult, bool *hasResultType) {
     case Op::OpSubgroup2DBlockStoreINTEL: *hasResult = false; *hasResultType = false; break;
     case Op::OpSubgroupMatrixMultiplyAccumulateINTEL: *hasResult = true; *hasResultType = true; break;
     case Op::OpBitwiseFunctionINTEL: *hasResult = true; *hasResultType = true; break;
+    case Op::OpUntypedVariableLengthArrayINTEL: *hasResult = true; *hasResultType = true; break;
     case Op::OpConditionalExtensionINTEL: *hasResult = false; *hasResultType = false; break;
     case Op::OpConditionalEntryPointINTEL: *hasResult = false; *hasResultType = false; break;
     case Op::OpConditionalCapabilityINTEL: *hasResult = false; *hasResultType = false; break;
@@ -4207,6 +4214,7 @@ inline const char* CapabilityToString(Capability value) {
     case Capability::BitInstructions: return "BitInstructions";
     case Capability::GroupNonUniformRotateKHR: return "GroupNonUniformRotateKHR";
     case Capability::FloatControls2: return "FloatControls2";
+    case Capability::FMAKHR: return "FMAKHR";
     case Capability::AtomicFloat32AddEXT: return "AtomicFloat32AddEXT";
     case Capability::AtomicFloat64AddEXT: return "AtomicFloat64AddEXT";
     case Capability::LongCompositesINTEL: return "LongCompositesINTEL";
@@ -4230,6 +4238,7 @@ inline const char* CapabilityToString(Capability value) {
     case Capability::Subgroup2DBlockTransposeINTEL: return "Subgroup2DBlockTransposeINTEL";
     case Capability::SubgroupMatrixMultiplyAccumulateINTEL: return "SubgroupMatrixMultiplyAccumulateINTEL";
     case Capability::TernaryBitwiseFunctionINTEL: return "TernaryBitwiseFunctionINTEL";
+    case Capability::UntypedVariableLengthArrayINTEL: return "UntypedVariableLengthArrayINTEL";
     case Capability::SpecConditionalINTEL: return "SpecConditionalINTEL";
     case Capability::FunctionVariantsINTEL: return "FunctionVariantsINTEL";
     case Capability::GroupUniformArithmeticKHR: return "GroupUniformArithmeticKHR";
@@ -4801,6 +4810,7 @@ inline const char* OpToString(Op value) {
     case Op::OpUntypedInBoundsPtrAccessChainKHR: return "OpUntypedInBoundsPtrAccessChainKHR";
     case Op::OpUntypedArrayLengthKHR: return "OpUntypedArrayLengthKHR";
     case Op::OpUntypedPrefetchKHR: return "OpUntypedPrefetchKHR";
+    case Op::OpFmaKHR: return "OpFmaKHR";
     case Op::OpSubgroupAllKHR: return "OpSubgroupAllKHR";
     case Op::OpSubgroupAnyKHR: return "OpSubgroupAnyKHR";
     case Op::OpSubgroupAllEqualKHR: return "OpSubgroupAllEqualKHR";
@@ -5231,6 +5241,7 @@ inline const char* OpToString(Op value) {
     case Op::OpSubgroup2DBlockStoreINTEL: return "OpSubgroup2DBlockStoreINTEL";
     case Op::OpSubgroupMatrixMultiplyAccumulateINTEL: return "OpSubgroupMatrixMultiplyAccumulateINTEL";
     case Op::OpBitwiseFunctionINTEL: return "OpBitwiseFunctionINTEL";
+    case Op::OpUntypedVariableLengthArrayINTEL: return "OpUntypedVariableLengthArrayINTEL";
     case Op::OpConditionalExtensionINTEL: return "OpConditionalExtensionINTEL";
     case Op::OpConditionalEntryPointINTEL: return "OpConditionalEntryPointINTEL";
     case Op::OpConditionalCapabilityINTEL: return "OpConditionalCapabilityINTEL";

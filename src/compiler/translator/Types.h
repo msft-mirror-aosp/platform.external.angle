@@ -64,6 +64,7 @@ class TFieldListCollection : angle::NonCopyable
     bool containsMatrices() const;
     bool containsType(TBasicType t) const;
     bool containsSamplers() const;
+    bool containsOnlySamplers() const;
 
     size_t objectSize() const;
     // How many locations the field list consumes as a uniform.
@@ -252,6 +253,7 @@ class TType
     {
         return primarySize == 1 && secondarySize == 1 && !mStructure && isArray();
     }
+    bool isScalarBool() const { return isScalar() && type == EbtBool; }
     bool isScalarFloat() const { return isScalar() && type == EbtFloat; }
     bool isScalarInt() const { return isScalar() && (type == EbtInt || type == EbtUInt); }
 
@@ -337,6 +339,7 @@ class TType
     bool isStructureContainingMatrices() const;
     bool isStructureContainingType(TBasicType t) const;
     bool isStructureContainingSamplers() const;
+    bool isStructureContainingOnlySamplers() const;
     bool isInterfaceBlockContainingType(TBasicType t) const;
 
     bool isStructSpecifier() const { return mIsStructSpecifier; }

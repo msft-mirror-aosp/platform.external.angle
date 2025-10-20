@@ -190,9 +190,11 @@ enum class DeviceInfo : uint8_t
     IntegerDotProductCapabilities                       = 109,
     IntegerDotProductAccelerationProperties8bit         = 110,
     IntegerDotProductAccelerationProperties4x8bitPacked = 111,
+    ExternalMemoryImportHandleTypes                     = 112,
+    ExternalMemoryLinearImagesHandleTypes               = 113,
 
-    InvalidEnum = 112,
-    EnumCount   = 112,
+    InvalidEnum = 114,
+    EnumCount   = 114,
 };
 
 template <>
@@ -233,6 +235,22 @@ ExecutionStatus FromCLenum<ExecutionStatus>(CLenum from);
 CLenum ToCLenum(ExecutionStatus from);
 std::ostream &operator<<(std::ostream &os, ExecutionStatus value);
 
+enum class ExternalMemoryHandle : uint8_t
+{
+    OpaqueFd       = 0,
+    OpaqueWin32    = 1,
+    OpaqueWin32Kmt = 2,
+    DmaBuf         = 3,
+
+    InvalidEnum = 4,
+    EnumCount   = 4,
+};
+
+template <>
+ExternalMemoryHandle FromCLenum<ExternalMemoryHandle>(CLenum from);
+CLenum ToCLenum(ExternalMemoryHandle from);
+std::ostream &operator<<(std::ostream &os, ExternalMemoryHandle value);
+
 enum class FilterMode : uint8_t
 {
     Nearest = 0,
@@ -246,6 +264,65 @@ template <>
 FilterMode FromCLenum<FilterMode>(CLenum from);
 CLenum ToCLenum(FilterMode from);
 std::ostream &operator<<(std::ostream &os, FilterMode value);
+
+enum class ImageChannelOrder : uint8_t
+{
+    R         = 0,
+    A         = 1,
+    RG        = 2,
+    RA        = 3,
+    RGB       = 4,
+    RGBA      = 5,
+    BGRA      = 6,
+    ARGB      = 7,
+    Intensity = 8,
+    Luminance = 9,
+    Rx        = 10,
+    RGx       = 11,
+    RGBx      = 12,
+    Depth     = 13,
+    sRGB      = 14,
+    sRGBx     = 15,
+    sRGBA     = 16,
+    sBGRA     = 17,
+    ABGR      = 18,
+
+    InvalidEnum = 19,
+    EnumCount   = 19,
+};
+
+template <>
+ImageChannelOrder FromCLenum<ImageChannelOrder>(CLenum from);
+CLenum ToCLenum(ImageChannelOrder from);
+std::ostream &operator<<(std::ostream &os, ImageChannelOrder value);
+
+enum class ImageChannelType : uint8_t
+{
+    SnormInt8        = 0,
+    SnormInt16       = 1,
+    UnormInt8        = 2,
+    UnormInt16       = 3,
+    UnormShort565    = 4,
+    UnormShort555    = 5,
+    UnormInt101010   = 6,
+    SignedInt8       = 7,
+    SignedInt16      = 8,
+    SignedInt32      = 9,
+    UnsignedInt8     = 10,
+    UnsignedInt16    = 11,
+    UnsignedInt32    = 12,
+    HalfFloat        = 13,
+    Float            = 14,
+    UnormInt101010_2 = 15,
+
+    InvalidEnum = 16,
+    EnumCount   = 16,
+};
+
+template <>
+ImageChannelType FromCLenum<ImageChannelType>(CLenum from);
+CLenum ToCLenum(ImageChannelType from);
+std::ostream &operator<<(std::ostream &os, ImageChannelType value);
 
 enum class ImageInfo : uint8_t
 {
@@ -397,6 +474,20 @@ MemObjectType FromCLenum<MemObjectType>(CLenum from);
 CLenum ToCLenum(MemObjectType from);
 std::ostream &operator<<(std::ostream &os, MemObjectType value);
 
+enum class MemProperties : uint8_t
+{
+    ExternalMemoryHandleListStart = 0,
+    ExternalMemoryHandleListEnd   = 1,
+
+    InvalidEnum = 2,
+    EnumCount   = 2,
+};
+
+template <>
+MemProperties FromCLenum<MemProperties>(CLenum from);
+CLenum ToCLenum(MemProperties from);
+std::ostream &operator<<(std::ostream &os, MemProperties value);
+
 enum class PipeInfo : uint8_t
 {
     PacketSize = 0,
@@ -423,9 +514,10 @@ enum class PlatformInfo : uint8_t
     NumericVersion        = 6,
     ExtensionsWithVersion = 7,
     IcdSuffix             = 8,
+    ExternalMemory        = 9,
 
-    InvalidEnum = 9,
-    EnumCount   = 9,
+    InvalidEnum = 10,
+    EnumCount   = 10,
 };
 
 template <>

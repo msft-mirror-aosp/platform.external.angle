@@ -26,7 +26,7 @@
 
 // Version number for shader translation API.
 // It is incremented every time the API changes.
-#define ANGLE_SH_VERSION 381
+#define ANGLE_SH_VERSION 383
 
 enum ShShaderSpec
 {
@@ -473,6 +473,8 @@ struct ShCompileOptions
     // still be reflected.
     uint64_t skipAllValidationAndTransforms : 1;
 
+    uint64_t transformFloatUniformTo16Bits : 1;
+
     ShCompileOptionsMetal metal;
     ShPixelLocalStorageOptions pls;
 };
@@ -519,7 +521,6 @@ struct ShBuiltInResources
     int EXT_shader_texture_lod;
     int EXT_shader_framebuffer_fetch;
     int EXT_shader_framebuffer_fetch_non_coherent;
-    int NV_shader_framebuffer_fetch;
     int NV_shader_noperspective_interpolation;
     int ARM_shader_framebuffer_fetch;
     int ARM_shader_framebuffer_fetch_depth_stencil;
@@ -1146,6 +1147,15 @@ enum ReservedIds
     kIdInputAttachment7 = kIdInputAttachment0 + 7,
     kIdDepthInputAttachment,
     kIdStencilInputAttachment,
+
+    // 16-bit storage extension
+    kIdFloat16,
+    kIdFloat16Vec2,
+    kIdFloat16Vec3,
+    kIdFloat16Vec4,
+    kIdFloat16Mat2,
+    kIdFloat16Mat3,
+    kIdFloat16Mat4,
 
     kIdFirstUnreserved,
 };

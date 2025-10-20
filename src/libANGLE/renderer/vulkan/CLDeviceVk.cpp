@@ -4,8 +4,14 @@
 // found in the LICENSE file.
 //
 // CLDeviceVk.cpp: Implements the class methods for CLDeviceVk.
+//
+
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
 
 #include "libANGLE/renderer/vulkan/CLDeviceVk.h"
+#include "libANGLE/renderer/driver_utils.h"
 #include "libANGLE/renderer/vulkan/clspv_utils.h"
 #include "libANGLE/renderer/vulkan/vk_renderer.h"
 
@@ -78,7 +84,9 @@ CLDeviceVk::CLDeviceVk(const cl::Device &device, vk::Renderer *renderer)
         {cl::DeviceInfo::MaxConstantBufferSize, 64 * 1024},
         {cl::DeviceInfo::SingleFpConfig, singleFPConfig},
         {cl::DeviceInfo::AtomicMemoryCapabilities,
-         CL_DEVICE_ATOMIC_ORDER_RELAXED | CL_DEVICE_ATOMIC_SCOPE_WORK_GROUP},
+         CL_DEVICE_ATOMIC_ORDER_RELAXED | CL_DEVICE_ATOMIC_SCOPE_WORK_GROUP |
+             CL_DEVICE_ATOMIC_ORDER_ACQ_REL | CL_DEVICE_ATOMIC_SCOPE_DEVICE |
+             CL_DEVICE_ATOMIC_ORDER_SEQ_CST},
         // TODO (http://anglebug.com/379669750) Add these based on the Vulkan features query
         {cl::DeviceInfo::AtomicFenceCapabilities, CL_DEVICE_ATOMIC_ORDER_RELAXED |
                                                       CL_DEVICE_ATOMIC_ORDER_ACQ_REL |
@@ -110,7 +118,8 @@ CLDeviceVk::CLDeviceVk(const cl::Device &device, vk::Renderer *renderer)
 
         // TODO(aannestrand) Update these hardcoded platform/device queries
         // http://anglebug.com/42266935
-        {cl::DeviceInfo::AddressBits, 32},
+        {cl::DeviceInfo::AddressBits,
+         mRenderer->getFeatures().supportsBufferDeviceAddress.enabled ? 64 : 32},
         {cl::DeviceInfo::EndianLittle, CL_TRUE},
         {cl::DeviceInfo::LocalMemType, CL_LOCAL},
         // TODO (http://anglebug.com/379669750) Vulkan reports a big sampler count number, we dont
@@ -129,16 +138,16 @@ CLDeviceVk::CLDeviceVk(const cl::Device &device, vk::Renderer *renderer)
         {cl::DeviceInfo::NativeVectorWidthInt, 1},
         {cl::DeviceInfo::NativeVectorWidthLong, 1},
         {cl::DeviceInfo::NativeVectorWidthFloat, 1},
-        {cl::DeviceInfo::NativeVectorWidthDouble, 1},
-        {cl::DeviceInfo::NativeVectorWidthHalf, 0},
+        {cl::DeviceInfo::NativeVectorWidthDouble, mRenderer->getNativeVectorWidthDouble()},
+        {cl::DeviceInfo::NativeVectorWidthHalf, mRenderer->getNativeVectorWidthHalf()},
         {cl::DeviceInfo::PartitionMaxSubDevices, 0},
+        {cl::DeviceInfo::PreferredVectorWidthChar, 4},
+        {cl::DeviceInfo::PreferredVectorWidthShort, 8},
         {cl::DeviceInfo::PreferredVectorWidthInt, 1},
         {cl::DeviceInfo::PreferredVectorWidthLong, 1},
-        {cl::DeviceInfo::PreferredVectorWidthChar, 4},
-        {cl::DeviceInfo::PreferredVectorWidthHalf, 0},
-        {cl::DeviceInfo::PreferredVectorWidthShort, 2},
         {cl::DeviceInfo::PreferredVectorWidthFloat, 1},
-        {cl::DeviceInfo::PreferredVectorWidthDouble, 0},
+        {cl::DeviceInfo::PreferredVectorWidthDouble, mRenderer->getPreferredVectorWidthDouble()},
+        {cl::DeviceInfo::PreferredVectorWidthHalf, mRenderer->getPreferredVectorWidthHalf()},
         {cl::DeviceInfo::PreferredLocalAtomicAlignment, 0},
         {cl::DeviceInfo::PreferredGlobalAtomicAlignment, 0},
         {cl::DeviceInfo::PreferredPlatformAtomicAlignment, 0},
@@ -173,8 +182,8 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
     info.image3D_MaxWidth  = properties.limits.maxImageDimension3D;
     info.image3D_MaxHeight = properties.limits.maxImageDimension3D;
     info.image3D_MaxDepth  = properties.limits.maxImageDimension3D;
-    // TODO (http://anglebug.com/379669750) For now set it minimum requirement.
-    info.imageMaxBufferSize        = 65536;
+    // Max number of pixels for a 1D image created from a buffer object.
+    info.imageMaxBufferSize        = properties.limits.maxTexelBufferElements;
     info.imageMaxArraySize         = properties.limits.maxImageArrayLayers;
     info.imagePitchAlignment       = 0u;
     info.imageBaseAddressAlignment = 0u;
@@ -211,7 +220,16 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
                         .name    = "cl_khr_local_int32_extended_atomics"},
     };
 
+    CLExtensions::ExternalMemoryHandleBitset supportedHandles;
+    supportedHandles.set(cl::ExternalMemoryHandle::OpaqueFd, supportsExternalMemoryFd());
+    supportedHandles.set(cl::ExternalMemoryHandle::DmaBuf, supportsExternalMemoryDmaBuf());
+
     // Populate other extensions based on feature support
+    if (info.populateSupportedExternalMemoryHandleTypes(supportedHandles))
+    {
+        versionedExtensionList.push_back(
+            cl_name_version{.version = CL_MAKE_VERSION(1, 0, 0), .name = "cl_khr_external_memory"});
+    }
     if (mRenderer->getFeatures().supportsShaderFloat16.enabled)
     {
         versionedExtensionList.push_back(
@@ -227,6 +245,11 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
         versionedExtensionList.push_back(
             cl_name_version{.version = CL_MAKE_VERSION(1, 0, 0), .name = "cl_khr_3d_image_writes"});
     }
+    if (mRenderer->getQueueFamilyProperties().queueCount > 1)
+    {
+        versionedExtensionList.push_back(
+            cl_name_version{.version = CL_MAKE_VERSION(1, 0, 0), .name = "cl_khr_priority_hints"});
+    }
 
     info.integerDotProductCapabilities = getIntegerDotProductCapabilities();
     info.integerDotProductAccelerationProperties8Bit =
@@ -239,6 +262,16 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
         versionedExtensionList.push_back(cl_name_version{.version = CL_MAKE_VERSION(2, 0, 0),
                                                          .name    = "cl_khr_integer_dot_product"});
     }
+
+    // cl_khr_int64_base_atomics and cl_khr_int64_extended_atomics
+    if (mRenderer->getFeatures().supportsShaderAtomicInt64.enabled)
+    {
+        versionedExtensionList.push_back(cl_name_version{.version = CL_MAKE_VERSION(1, 0, 0),
+                                                         .name    = "cl_khr_int64_base_atomics"});
+        versionedExtensionList.push_back(cl_name_version{.version = CL_MAKE_VERSION(1, 0, 0),
+                                                         .name = "cl_khr_int64_extended_atomics"});
+    }
+
     info.initializeVersionedExtensions(std::move(versionedExtensionList));
 
     if (!mRenderer->getFeatures().supportsUniformBufferStandardLayout.enabled)
@@ -272,6 +305,13 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
             cl_name_version{.version = CL_MAKE_VERSION(3, 0, 0),
                             .name    = "__opencl_c_integer_dot_product_input_4x8bit_packed"});
     }
+
+    info.OpenCL_C_Features.push_back(cl_name_version{.version = CL_MAKE_VERSION(3, 0, 0),
+                                                     .name    = "__opencl_c_atomic_order_acq_rel"});
+    info.OpenCL_C_Features.push_back(cl_name_version{.version = CL_MAKE_VERSION(3, 0, 0),
+                                                     .name    = "__opencl_c_atomic_order_seq_cst"});
+    info.OpenCL_C_Features.push_back(cl_name_version{.version = CL_MAKE_VERSION(3, 0, 0),
+                                                     .name    = "__opencl_c_atomic_scope_device"});
 
     return info;
 }
@@ -326,6 +366,16 @@ angle::Result CLDeviceVk::getInfoString(cl::DeviceInfo name, size_t size, char *
     ANGLE_CL_RETURN_ERROR(CL_INVALID_VALUE);
 }
 
+bool CLDeviceVk::supportsExternalMemoryFd() const
+{
+    return mRenderer->getFeatures().supportsExternalMemoryFd.enabled;
+}
+
+bool CLDeviceVk::supportsExternalMemoryDmaBuf() const
+{
+    return mRenderer->getFeatures().supportsExternalMemoryDmaBuf.enabled;
+}
+
 angle::Result CLDeviceVk::createSubDevices(const cl_device_partition_property *properties,
                                            cl_uint numDevices,
                                            CreateFuncs &subDevices,
@@ -338,7 +388,6 @@ angle::Result CLDeviceVk::createSubDevices(const cl_device_partition_property *p
 cl::WorkgroupSize CLDeviceVk::selectWorkGroupSize(const cl::NDRange &ndrange) const
 {
     // Limit total work-group size to the Vulkan device's limit
-    const VkPhysicalDeviceProperties &props = mRenderer->getPhysicalDeviceProperties();
     uint32_t maxSize = static_cast<uint32_t>(mInfoSizeT.at(cl::DeviceInfo::MaxWorkGroupSize));
     maxSize          = std::min(maxSize, 64u);
 
@@ -352,7 +401,7 @@ cl::WorkgroupSize CLDeviceVk::selectWorkGroupSize(const cl::NDRange &ndrange) co
             cl::WorkgroupSize newLocalSize = localSize;
             newLocalSize[i] *= 2;
 
-            if (newLocalSize[i] <= props.limits.maxComputeWorkGroupCount[i] &&
+            if (newLocalSize[i] <= ndrange.globalWorkSize[i] &&
                 newLocalSize[0] * newLocalSize[1] * newLocalSize[2] <= maxSize)
             {
                 localSize      = newLocalSize;
@@ -431,4 +480,5 @@ CLDeviceVk::getIntegerDotProductAccelerationProperties4x8BitPacked() const
 
     return integerDotProductAccelerationProperties;
 }
+
 }  // namespace rx

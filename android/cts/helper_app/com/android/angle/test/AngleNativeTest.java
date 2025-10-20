@@ -16,7 +16,10 @@
 
 package com.android.angle.test;
 
+import static android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+
 import android.app.NativeActivity;
+import android.os.Bundle;
 import android.util.Log;
 
 import java.io.IOException;
@@ -41,9 +44,19 @@ public final class AngleNativeTest extends NativeActivity {
         // Generate an output.json file. On the device, translates to: /data/media/[0|10]
         commandLineFlags += "--results-directory=" + OUTPUT_DIRECTORY;
 
-        // TODO(b/279980674): Remove filter and Enable all tests, filtered by the expectations file.
-        // We want to run at least one test to exercise things, and this one is small and passing.
-        commandLineFlags += " --gtest_filter=ClearTest.DefaultFramebuffer/* ";
+        final String gtestFilter =
+                androidx.test.platform.app.InstrumentationRegistry.getArguments()
+                        .getString("gtest_filter");
+        if (gtestFilter != null && !gtestFilter.isEmpty()) {
+            commandLineFlags += " --gtest_filter=" + gtestFilter + " ";
+        }
+
+        final String collectTestOnly =
+                androidx.test.platform.app.InstrumentationRegistry.getArguments()
+                        .getString("collect_test_only");
+        if (collectTestOnly != null) {
+            commandLineFlags += " --list-tests ";
+        }
 
         return commandLineFlags;
     }
@@ -61,6 +74,15 @@ public final class AngleNativeTest extends NativeActivity {
         }
 
         nativeRunTests(getCommandLineFlags(), "", stdoutFilePath.toString());
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // Disable input events to prevent keyDispatchingTimedOut exception from
+        // ever happening when an ANR state is being detected by InputDispatcher
+        // thread through sending any input to the process in testing.
+        getWindow().addFlags(FLAG_NOT_FOCUSABLE);
     }
 
     private native void nativeRunTests(

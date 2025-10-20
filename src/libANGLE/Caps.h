@@ -718,6 +718,9 @@ struct DisplayExtensions
     // EGL_ANGLE_metal_shared_event_sync
     bool mtlSyncSharedEventANGLE = false;
 
+    // EGL_ANGLE_metal_commands_scheduled_sync
+    bool mtlSyncCommandsScheduledANGLE = false;
+
     // EGL_ANGLE_global_fence_sync
     bool globalFenceSyncANGLE = false;
 
@@ -732,6 +735,9 @@ struct DisplayExtensions
 
     // EXT_ANGLE_create_context_passthrough_shaders
     bool createContextPassthroughShadersANGLE = false;
+
+    // EGL_NV_context_priority_realtime
+    bool contextPriorityRealtimeNV = false;
 };
 
 struct DeviceExtensions

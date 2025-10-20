@@ -4,6 +4,10 @@
 // found in the LICENSE file.
 //
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_libc_calls
+#endif
+
 //
 // Implement the top-level of interface to the compiler,
 // as defined in ShaderLang.h
@@ -196,7 +200,6 @@ void InitBuiltInResources(ShBuiltInResources *resources)
     resources->EXT_shader_texture_lod                         = 0;
     resources->EXT_shader_framebuffer_fetch                   = 0;
     resources->EXT_shader_framebuffer_fetch_non_coherent      = 0;
-    resources->NV_shader_framebuffer_fetch                    = 0;
     resources->ARM_shader_framebuffer_fetch                   = 0;
     resources->ARM_shader_framebuffer_fetch_depth_stencil     = 0;
     resources->OVR_multiview                                  = 0;

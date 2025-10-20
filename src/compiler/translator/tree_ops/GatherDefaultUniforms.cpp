@@ -17,8 +17,6 @@
 #include "compiler/translator/tree_util/ReplaceVariable.h"
 #include "compiler/translator/util.h"
 
-#include "compiler/translator/OutputTree.h"
-
 namespace sh
 {
 
@@ -62,9 +60,10 @@ class ReplaceDefaultUniformsTraverser : public TIntermTraverser
             return;
         }
 
-        ASSERT(mVariableMap.count(&variable) > 0);
+        ASSERT(mVariableMap.count(variable.uniqueId()) > 0);
 
-        queueReplacement(mVariableMap.at(&variable)->deepCopy(), OriginalNode::IS_DROPPED);
+        queueReplacement(mVariableMap.at(variable.uniqueId())->deepCopy(),
+                         OriginalNode::IS_DROPPED);
     }
 
   private:
@@ -168,9 +167,17 @@ bool GatherDefaultUniforms(TCompiler *compiler,
     {
         TLayoutQualifier layoutQualifier = TLayoutQualifier::Create();
         layoutQualifier.blockStorage     = EbsStd140;
-        *outUniformBlock = DeclareInterfaceBlock(root, symbolTable, uniformList, EvqUniform,
-                                                 layoutQualifier, TMemoryQualifier::Create(), 0,
-                                                 uniformBlockType, uniformBlockVarName);
+        TInterfaceBlock *interfaceBlock =
+            DeclareInterfaceBlock(symbolTable, uniformList, layoutQualifier, uniformBlockType);
+        // Set the mIsDefaultUniformBlock bit because the interfaceBlock represents default uniform
+        // interfaceBlock.
+        // Later when traversing the AST and output SPIRV, we will rely on this bit to decide if we
+        // want to transform FP32 to FP16 for float based on if the float vars are inside the
+        // default uniform block.
+        interfaceBlock->setDefaultUniformBlock();
+        *outUniformBlock = DeclareInterfaceBlockVariable(
+            root, symbolTable, EvqUniform, interfaceBlock, layoutQualifier,
+            TMemoryQualifier::Create(), 0, uniformBlockVarName);
 
         // Create a map from the uniform variables to new variables that reference the fields of the
         // block.
@@ -180,12 +187,12 @@ bool GatherDefaultUniforms(TCompiler *compiler,
 
             if ((*outUniformBlock)->symbolType() == SymbolType::Empty)
             {
-                variableMap[variable] = CreateVariableForFieldOfNamelessInterfaceBlock(
+                variableMap[variable->uniqueId()] = CreateVariableForFieldOfNamelessInterfaceBlock(
                     *outUniformBlock, static_cast<int>(fieldIndex), symbolTable);
             }
             else
             {
-                variableMap[variable] = AccessFieldOfNamedInterfaceBlock(
+                variableMap[variable->uniqueId()] = AccessFieldOfNamedInterfaceBlock(
                     *outUniformBlock, static_cast<int>(fieldIndex));
             }
         }

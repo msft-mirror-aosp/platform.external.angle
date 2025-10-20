@@ -4262,6 +4262,24 @@ bool TGlslangToSpvTraverser::visitAggregate(glslang::TVisit visit, glslang::TInt
         // store the result to the pointer
         builder.createStore(result, operands[0]);
         result = 0;
+    } else if (node->getOp() == glslang::EOpBitCastArrayQCOM) {
+        builder.addCapability(spv::Capability::CooperativeMatrixConversionQCOM);
+        builder.addExtension(spv::E_SPV_QCOM_cooperative_matrix_conversion);
+        result = builder.createUnaryOp(spv::Op::OpBitCastArrayQCOM, resultType(), operands[0]);
+    } else if (node->getOp() == glslang::EOpCompositeConstructCoopMatQCOM) {
+        builder.addCapability(spv::Capability::CooperativeMatrixConversionQCOM);
+        builder.addExtension(spv::E_SPV_QCOM_cooperative_matrix_conversion);
+        result = builder.createUnaryOp(spv::Op::OpCompositeConstructCoopMatQCOM, resultType(), operands[0]);
+    } else if (node->getOp() == glslang::EOpCompositeExtractCoopMatQCOM) {
+        builder.addCapability(spv::Capability::CooperativeMatrixConversionQCOM);
+        builder.addExtension(spv::E_SPV_QCOM_cooperative_matrix_conversion);
+        result = builder.createUnaryOp(spv::Op::OpCompositeExtractCoopMatQCOM, resultType(), operands[0]);
+    } else if (node->getOp() == glslang::EOpExtractSubArrayQCOM) {
+        builder.addCapability(spv::Capability::CooperativeMatrixConversionQCOM);
+        builder.addExtension(spv::E_SPV_QCOM_cooperative_matrix_conversion);
+
+        std::vector<spv::Id> arguments { operands[0], operands[1] };;
+        result = builder.createOp(spv::Op::OpExtractSubArrayQCOM, resultType(), arguments);
     } else if (node->getOp() == glslang::EOpCooperativeVectorMatMulNV ||
                node->getOp() == glslang::EOpCooperativeVectorMatMulAddNV) {
         auto matrixOperands = spv::CooperativeMatrixOperandsMask::MaskNone;
@@ -5381,7 +5399,7 @@ spv::Id TGlslangToSpvTraverser::convertGlslangToSpvType(const glslang::TType& ty
         spv::Id scope = makeArraySizeId(*type.getTypeParameters()->arraySizes, 0);
         spv::Id rows = makeArraySizeId(*type.getTypeParameters()->arraySizes, 1);
         spv::Id cols = makeArraySizeId(*type.getTypeParameters()->arraySizes, 2);
-        spv::Id use = builder.makeUintConstant(type.getCoopMatKHRuse());
+        spv::Id use = makeArraySizeId(*type.getTypeParameters()->arraySizes, 3, true);
 
         spvType = builder.makeCooperativeMatrixTypeKHR(spvType, scope, rows, cols, use);
     }
@@ -5578,6 +5596,7 @@ spv::Id TGlslangToSpvTraverser::convertGlslangStructToSpvType(const glslang::TTy
     int memberDelta = 0;  // how much the member's index changes from glslang to SPIR-V, normally 0,
                           // except sometimes for blocks
     std::vector<std::pair<glslang::TType*, glslang::TQualifier> > deferredForwardPointers;
+    std::vector<spv::DebugTypeLoc> memberDebugInfo;
     for (int i = 0; i < (int)glslangMembers->size(); i++) {
         auto& glslangMember = (*glslangMembers)[i];
         if (glslangMember.type->hiddenMember()) {
@@ -5628,15 +5647,17 @@ spv::Id TGlslangToSpvTraverser::convertGlslangStructToSpvType(const glslang::TTy
             //  + Not as clean as desired. Traverser queries/sets persistent state. This is fragile.
             //  + Table lookup during creation of composite debug types. This really shouldn't be necessary.
             if(options.emitNonSemanticShaderDebugInfo) {
-                builder.debugTypeLocs[spvMember].name = glslangMember.type->getFieldName().c_str();
-                builder.debugTypeLocs[spvMember].line = glslangMember.loc.line;
-                builder.debugTypeLocs[spvMember].column = glslangMember.loc.column;
+                spv::DebugTypeLoc typeLoc{};
+                typeLoc.name = glslangMember.type->getFieldName().c_str();
+                typeLoc.line = glslangMember.loc.line;
+                typeLoc.column = glslangMember.loc.column;
+                memberDebugInfo.push_back(typeLoc);
             }
         }
     }
 
     // Make the SPIR-V type
-    spv::Id spvType = builder.makeStructType(spvMembers, type.getTypeName().c_str(), false);
+    spv::Id spvType = builder.makeStructType(spvMembers, memberDebugInfo, type.getTypeName().c_str(), false);
     if (! HasNonLayoutQualifiers(type, qualifier))
         structMap[explicitLayout][qualifier.layoutMatrix][glslangMembers] = spvType;
 
@@ -7055,7 +7076,7 @@ spv::Id TGlslangToSpvTraverser::createImageTextureFunctionCall(glslang::TIntermO
         for (int i = 0; i < 5; i++) {
             members.push_back(builder.getContainedTypeId(resultStructType, i));
         }
-        spv::Id resType = builder.makeStructType(members, "ResType");
+        spv::Id resType = builder.makeStructType(members, {}, "ResType");
 
         //call ImageFootprintNV
         spv::Id res = builder.createTextureCall(precision, resType, sparse, cracked.fetch, cracked.proj,

@@ -8,6 +8,14 @@ from dataclasses import dataclass, field
 from enum import IntFlag, Enum, auto
 
 @dataclass
+class FeatureRequirement:
+    """Each instance of FeatureRequirement is one part of the AND operation,
+       unless the struct/field are the same, then the depends are AND togethered"""
+    struct: str
+    field: str # Can have comma delimiter, which are expressed as OR
+    depends: (str | None) # ex) "VK_EXT_descriptor_indexing", "VK_VERSION_1_2+VkPhysicalDeviceVulkan12Features::descriptorIndexing"
+
+@dataclass
 class Extension:
     """<extension>"""
     name: str # ex) VK_KHR_SURFACE
@@ -27,13 +35,15 @@ class Extension:
     deprecatedBy: (str | None)
     obsoletedBy: (str | None)
     specialUse: list[str]
+    featureRequirement: list[FeatureRequirement]
     ratified: bool
 
     # These are here to allow for easy reverse lookups
     # To prevent infinite recursion, other classes reference a string back to the Extension class
     # Quotes allow us to forward declare the dataclass
-    handles: list['Handle'] = field(default_factory=list, init=False)
+    handles:  list['Handle']  = field(default_factory=list, init=False)
     commands: list['Command'] = field(default_factory=list, init=False)
+    structs:  list['Struct']  = field(default_factory=list, init=False)
     enums:    list['Enum']    = field(default_factory=list, init=False)
     bitmasks: list['Bitmask'] = field(default_factory=list, init=False)
     flags: dict[str, list['Flags']] = field(default_factory=dict, init=False)
@@ -51,6 +61,8 @@ class Version:
     name: str       # ex) VK_VERSION_1_1
     nameString: str # ex) "VK_VERSION_1_1" (no marco, so has quotes)
     nameApi: str    # ex) VK_API_VERSION_1_1
+
+    featureRequirement: list[FeatureRequirement]
 
 @dataclass
 class Deprecate:
@@ -130,17 +142,6 @@ class Param:
     def __lt__(self, other):
         return self.name < other.name
 
-class Queues(IntFlag):
-    TRANSFER       = auto() # VK_QUEUE_TRANSFER_BIT
-    GRAPHICS       = auto() # VK_QUEUE_GRAPHICS_BIT
-    COMPUTE        = auto() # VK_QUEUE_COMPUTE_BIT
-    PROTECTED      = auto() # VK_QUEUE_PROTECTED_BIT
-    SPARSE_BINDING = auto() # VK_QUEUE_SPARSE_BINDING_BIT
-    OPTICAL_FLOW   = auto() # VK_QUEUE_OPTICAL_FLOW_BIT_NV
-    DECODE         = auto() # VK_QUEUE_VIDEO_DECODE_BIT_KHR
-    ENCODE         = auto() # VK_QUEUE_VIDEO_ENCODE_BIT_KHR
-    DATA_GRAPH     = auto() # VK_QUEUE_DATA_GRAPH_BIT_ARM
-
 class CommandScope(Enum):
     NONE    = auto()
     INSIDE  = auto()
@@ -166,7 +167,7 @@ class Command:
     device: bool
 
     tasks: list[str]        # ex) [ action, state, synchronization ]
-    queues: Queues          # zero == No Queues found (represents restriction which queue type can be used)
+    queues: list[str]       # ex) [ VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_COMPUTE_BIT ]
     allowNoQueues: bool     # VK_KHR_maintenance9 allows some calls to be done with zero queues
     successCodes: list[str] # ex) [ VK_SUCCESS, VK_INCOMPLETE ]
     errorCodes: list[str]   # ex) [ VK_ERROR_OUT_OF_HOST_MEMORY ]
@@ -411,7 +412,7 @@ class Format:
 @dataclass
 class SyncSupport:
     """<syncsupport>"""
-    queues: Queues
+    queues: list[str]  # ex) [ VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_COMPUTE_BIT ]
     stages: list[Flag] # VkPipelineStageFlagBits2
     max: bool # If this supports max values
 
@@ -570,8 +571,6 @@ class VulkanObject():
     platforms: dict[str, str]        = field(default_factory=dict, init=False)
     # list of all vendor Suffix names (KHR, EXT, etc. )
     vendorTags: list[str]            = field(default_factory=list, init=False)
-    # ex) [ Queues.COMPUTE : VK_QUEUE_COMPUTE_BIT ]
-    queueBits: dict[IntFlag, str]    = field(default_factory=dict, init=False)
 
     # Video codec information from the vk.xml
     videoCodecs: dict[str, VideoCodec] = field(default_factory=dict, init=False)
