@@ -3234,6 +3234,8 @@ cc_genrule {
         "src/compiler/translator/tree_ops/spirv/RewriteR32fImages.h",
         "src/compiler/translator/tree_ops/spirv/RewriteSamplerExternalTexelFetch.cpp",
         "src/compiler/translator/tree_ops/spirv/RewriteSamplerExternalTexelFetch.h",
+        "src/compiler/translator/tree_ops/wgsl/EmulateMutableFunctionParams.cpp",
+        "src/compiler/translator/tree_ops/wgsl/EmulateMutableFunctionParams.h",
         "src/compiler/translator/tree_ops/wgsl/RewriteMixedTypeMathExprs.cpp",
         "src/compiler/translator/tree_ops/wgsl/RewriteMixedTypeMathExprs.h",
         "src/compiler/translator/tree_ops/wgsl/RewriteMultielementSwizzleAssignment.cpp",
