@@ -572,6 +572,7 @@
 452919815 PIXEL4ORXL GLES : GLSLTest_ES3.VaryingAnonymousStructEquality/* = SKIP
 42265301 PIXEL4ORXL GLES : GeometryShaderTest.RedeclareGlIn/* = SKIP
 42265301 PIXEL4ORXL GLES : GeometryShaderTest.RedeclareGlInBeforeInputSize/* = SKIP
+42265301 PIXEL4ORXL GLES : GeometryShaderTest.RedeclareGlInBeforeInputSizeButUnused/* = SKIP
 42264513 PIXEL4ORXL GLES : ImageTest.Source2DTarget2D_Colorspace/* = SKIP
 42264513 PIXEL4ORXL GLES : ImageTest.Source2DTargetExternal_Colorspace/* = SKIP
 42264513 PIXEL4ORXL GLES : ImageTest.Source2DTargetRenderbuffer_Colorspace/* = SKIP
@@ -643,6 +644,9 @@
 384314370 PIXEL4ORXL GLES : FramebufferFetchES31.WriteOnlyInOutVariableDiscard/* = SKIP
 384314370 PIXEL4ORXL GLES : FramebufferFetchES31.WriteOnlyInOutVariableEarlyReturn/* = SKIP
 384314370 PIXEL4ORXL GLES : FramebufferFetchES31.WriteOnlyInOutVariablePartial/* = SKIP
+42264513 PIXEL4ORXL GLES : GLSLTest.NestedInoutVars2/* = SKIP
+42264513 PIXEL4ORXL GLES : GLSLTest.NestedInoutVars3/* = SKIP
+42264513 PIXEL4ORXL GLES : SimpleUniformUsageTestES3.TernarySelectAnArrayThenIndex/* = SKIP
 
 42267082 PIXEL4ORXL GLES : BlobCacheTest.FragmentOutputLocationKey/* = SKIP
 42267082 PIXEL4ORXL GLES : EGLBlobCacheTest.FragmentOutputLocationKey/* = SKIP
@@ -1992,6 +1996,31 @@
 
 // Pixel4's GLES driver fails new test: TransformFeedbackTest.CaptureThenUseAsUBO.
 419403192 PIXEL4ORXL GLES : TransformFeedbackTest.CaptureThenUseAsUBO/* = SKIP
+
+454067880 D3D9 : GLSLTest.ComplicatedMultielementSwizzle1/* = SKIP
+454067880 D3D11 : GLSLTest.ComplicatedMultielementSwizzle1/* = SKIP
+
+454067880 D3D9 : GLSLTest.ComplicatedMultielementSwizzle2/* = SKIP
+454067880 D3D11 : GLSLTest.ComplicatedMultielementSwizzle2/* = SKIP
+454067880 OPENGL : GLSLTest.ComplicatedMultielementSwizzle2/* = SKIP
+454067880 GLES : GLSLTest.ComplicatedMultielementSwizzle2/* = SKIP
+
+454016926 D3D9 : GLSLTest.TernaryModifiesVariableInSameStatement/* = SKIP
+454016926 D3D11 : GLSLTest.TernaryModifiesVariableInSameStatement/* = SKIP
+454016926 OPENGL : GLSLTest.TernaryModifiesVariableInSameStatement/* = SKIP
+454016926 GLES : GLSLTest.TernaryModifiesVariableInSameStatement/* = SKIP
+454016926 VULKAN : GLSLTest.TernaryModifiesVariableInSameStatement/* = SKIP
+454016926 METAL : GLSLTest.TernaryModifiesVariableInSameStatement/* = SKIP
+
+454016926 OPENGL : GLSLTest.FunctionArgumentEvalOrder/* = SKIP
+454016926 GLES : GLSLTest.FunctionArgumentEvalOrder/* = SKIP
+454016926 VULKAN : GLSLTest.FunctionArgumentEvalOrder/* = SKIP
+454016926 METAL : GLSLTest.FunctionArgumentEvalOrder/* = SKIP
+
+454016926 OPENGL : GLSLTest.FunctionArgumentEvalOrderOverloaded/* = SKIP
+454016926 GLES : GLSLTest.FunctionArgumentEvalOrderOverloaded/* = SKIP
+454016926 VULKAN : GLSLTest.FunctionArgumentEvalOrderOverloaded/* = SKIP
+454016926 METAL : GLSLTest.FunctionArgumentEvalOrderOverloaded/* = SKIP
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Slow tests, should appear last in this file
