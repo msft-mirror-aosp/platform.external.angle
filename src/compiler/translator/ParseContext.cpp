@@ -17,9 +17,7 @@
 #include "common/utilities.h"
 #include "compiler/preprocessor/SourceLocation.h"
 #include "compiler/translator/Declarator.h"
-#include "compiler/translator/StaticType.h"
 #include "compiler/translator/ValidateGlobalInitializer.h"
-#include "compiler/translator/ValidateSwitch.h"
 #include "compiler/translator/glslang.h"
 #include "compiler/translator/tree_util/BuiltIn.h"
 #include "compiler/translator/tree_util/IntermNode_util.h"
@@ -36,7 +34,6 @@ namespace sh
 
 namespace
 {
-
 const int kWebGLMaxStructNesting = 4;
 
 bool ShouldEnforceESSL100LoopAndIndexingLimitations(ShShaderSpec spec,
@@ -3422,8 +3419,9 @@ void TParseContext::popControlFlow()
         {
             mControlFlow.back().hasReturn =
                 mControlFlow.back().hasReturn || justEndedControlFlow.hasReturn;
-            // `break` in an if statement also break out of the outer construct.
-            if (justEndedControlFlow.type == ControlFlowType::If)
+            // `break` in an if block or just a nested block also break out of the outer construct.
+            if (justEndedControlFlow.type == ControlFlowType::If ||
+                justEndedControlFlow.type == ControlFlowType::NewScope)
             {
                 mControlFlow.back().hasBreak =
                     mControlFlow.back().hasBreak || justEndedControlFlow.hasBreak;
@@ -3460,6 +3458,21 @@ void TParseContext::popControlFlow()
             mPossiblyInfiniteLoops.push_back(loop);
         }
     }
+}
+
+void TParseContext::beginNestedScope()
+{
+    symbolTable.push();
+
+    ControlFlow flow = {};
+    flow.type        = ControlFlowType::NewScope;
+    mControlFlow.push_back(flow);
+}
+
+void TParseContext::endNestedScope()
+{
+    symbolTable.pop();
+    popControlFlow();
 }
 
 void TParseContext::beginLoop(TLoopType loopType, const TSourceLoc &line)
@@ -4672,9 +4685,13 @@ bool TParseContext::parseGeometryShaderInputLayoutQualifier(const TTypeQualifier
         if (mGeometryShaderInputPrimitiveType == EptUndefined)
         {
             mGeometryShaderInputPrimitiveType = layoutQualifier.primitiveType;
-            setGeometryShaderInputArraySize(
-                GetGeometryShaderInputArraySize(mGeometryShaderInputPrimitiveType),
-                typeQualifier.line);
+            const GLuint inputArraySize =
+                GetGeometryShaderInputArraySize(mGeometryShaderInputPrimitiveType);
+
+            // Size any implicitly sized arrays that have already been declared.  Done before
+            // verifying gl_in's array size, since that could also need to be sized.
+            sizeUnsizedArrayTypes(inputArraySize);
+            setGeometryShaderInputArraySize(inputArraySize, typeQualifier.line);
         }
         else if (mGeometryShaderInputPrimitiveType != layoutQualifier.primitiveType)
         {
@@ -4682,10 +4699,6 @@ bool TParseContext::parseGeometryShaderInputLayoutQualifier(const TTypeQualifier
                   "layout");
             return false;
         }
-
-        // Size any implicitly sized arrays that have already been declared.
-        sizeUnsizedArrayTypes(
-            symbolTable.getGlInVariableWithArraySize()->getType().getOutermostArraySize());
     }
 
     // Set mGeometryInvocations if exists
@@ -4851,26 +4864,6 @@ void TParseContext::sizeUnsizedArrayTypes(uint32_t arraySize)
         type->sizeOutermostUnsizedArray(arraySize);
     }
     mDeferredArrayTypesToSize.clear();
-
-    // The gl_in variable may have been redeclared before it is sized.  Make sure it's declaration
-    // is in sync with SymbolTable::mGlInVariableWithArraySize.
-    if (mTreeRoot)
-    {
-        for (TIntermNode *node : *mTreeRoot->getSequence())
-        {
-            TIntermDeclaration *decl = node->getAsDeclarationNode();
-            TIntermSymbol *symbol    = decl && decl->getChildCount() == 1
-                                           ? decl->getChildNode(0)->getAsSymbolNode()
-                                           : nullptr;
-            if (symbol != nullptr && symbol->getQualifier() == EvqPerVertexIn)
-            {
-                ASSERT(symbolTable.getGlInVariableWithArraySize() != nullptr);
-                decl->replaceChildNode(
-                    symbol, new TIntermSymbol(symbolTable.getGlInVariableWithArraySize()));
-                break;
-            }
-        }
-    }
 }
 
 void TParseContext::parseGlobalLayoutQualifier(const TTypeQualifierBuilder &typeQualifierBuilder)
@@ -7500,6 +7493,8 @@ void TParseContext::beginSwitch(const TSourceLoc &line, TIntermTyped *init)
     flow.switchType  = init->getBasicType();
     mControlFlow.push_back(flow);
 
+    symbolTable.push();
+
     checkNestingLevel(line);
 }
 
@@ -7507,6 +7502,7 @@ TIntermSwitch *TParseContext::addSwitch(TIntermTyped *init,
                                         TIntermBlock *statementList,
                                         const TSourceLoc &loc)
 {
+    symbolTable.pop();
     popControlFlow();
 
     TBasicType switchType = init->getBasicType();
@@ -7529,12 +7525,6 @@ TIntermSwitch *TParseContext::addSwitch(TIntermTyped *init,
     {
         error(loc, "no statement between the last case label and the end of the switch statement",
               "switch");
-        return nullptr;
-    }
-
-    if (!ValidateSwitchStatementList(switchType, mDiagnostics, statementList, loc))
-    {
-        ASSERT(mDiagnostics->numErrors() > 0);
         return nullptr;
     }
 
