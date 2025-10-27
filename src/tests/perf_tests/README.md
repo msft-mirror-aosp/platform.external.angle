@@ -62,6 +62,7 @@ Several command-line arguments control how the tests run:
 * `--warmup`: Run a warmup phase before the test. Defaults to off.
 * `--fixed-test-time-with-warmup x`: Start with a warmup, then run the tests until this much time has elapsed.
 * `--trials`: Number of times to repeat testing. Defaults to 3.
+* `--sleep-between-trials`: Number of milliseconds to sleep between trials. May be useful to see trials boundaries in Perfetto `"gpu.renderstages"` traces.
 * `--no-finish`: Don't call glFinish after each test trial.
 * `--validation`: Enable serialization validation in the trace tests. Normally used with SwiftShader and retracing.
 * `--perf-counters`: Additional performance counters to include in the result output. Separate multiple entries with colons: ':'.
@@ -113,6 +114,7 @@ Trace tests take command line arguments that pick the run configuration:
 * `--include-inactive-resources` : Include all resources captured at trace-time during replay. Only resources which are active during trace execution are replayed by default.
 * `--fps-limit <limit>` : Limit replay framerate to specified value.
 * `--track-gpu-time` : Enables GPU frametime tracking if "GL_EXT_disjoint_timer_query" is available.
+* `--add-swap-into-gpu-time` : Normally, GPU time is only tracked for the replay frame commands while excluding swap (or blit calls in case of the offscreen test). This option includes swap/blit time into the GPU frametime tracking. Warning: this will also include screenshot capture code when it is enabled.
 
 For example, for an endless run with no warmup on swiftshader, run:
 
