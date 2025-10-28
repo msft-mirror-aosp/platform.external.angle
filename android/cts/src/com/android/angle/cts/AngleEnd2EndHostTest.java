@@ -16,6 +16,8 @@
 
 package com.android.angle.cts;
 
+import static org.junit.Assert.assertFalse;
+
 import com.android.compatibility.common.util.PropertyUtil;
 import com.android.tradefed.config.Option;
 import com.android.tradefed.device.DeviceNotAvailableException;
@@ -122,6 +124,36 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
         device.waitForDeviceAvailable();
         device.setSetting("global", globalSetting, value);
         device.executeShellCommand("am refresh-settings-cache");
+    }
+
+    private TestDescription createTestDescription(String testName) {
+        // Example input:
+        // CTS host Java pkg/class name:   com.android.angle.cts.AngleEnd2EndHostTest
+        // GoogleTest C++ class/test name: BasicUniformUsageTest.Integer/ES2_Vulkan
+        //                                 |     Left part     | |   Right part   |
+        //                                                      ^ Search for the 1st period.
+        //
+        // This function massages above input strings by locating the 1st period in the GoogleTest
+        // (ANGLE E2E) class/test name, then appends the left part to the CTS Java pkg/class name w/
+        // '.' in between, and reports it to TestDescription as the class name. And then reports the
+        // right part as the test name to TestDescription. The TestDescription stringifies class and
+        // test names by inserting a '#' in between. See below.
+        //
+        // Example output of TestDescription:
+        // |                     Class name                               | |   Test name    |
+        // com.android.angle.cts.AngleEnd2EndHostTest.BasicUniformUsageTest#Integer/ES2_Vulkan
+        // |            Package name                | |     Class name    | |  Method name   |
+        //
+        // On Android Test Investigate webpage, the beginning of TestDescription stringified output
+        // until the last period character before the '#' character is used as the package name.
+        // The rest of string until hitting the '#' character is used as the class name to group
+        // method names on ATI webpage. See above.
+        int indexOfFirstPeriod = testName.indexOf('.');
+        assertFalse(indexOfFirstPeriod == -1);
+        final String packageAndClassName =
+                getClass().getCanonicalName() + '.' + testName.substring(0, indexOfFirstPeriod);
+        final String methodName = testName.substring(indexOfFirstPeriod + 1);
+        return new TestDescription(packageAndClassName, methodName);
     }
 
     private boolean selectAngleAsGlDriver() throws DeviceNotAvailableException {
@@ -268,8 +300,7 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
         // Record the available test results.
         for (Map.Entry<String, TestResult> testResult : testResults.entrySet()) {
             TestResult result = testResult.getValue();
-            final TestDescription testId =
-                    new TestDescription(getClass().getCanonicalName(), result.mTestName);
+            final TestDescription testId = createTestDescription(result.mTestName);
 
             listener.testStarted(testId);
 
@@ -336,7 +367,7 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
             CLog.e(TAG, "Failed to read log file: %s", e);
             return false;
         }
-        List<String> tests = new ArrayList<>();
+        List<String> testNames = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(stdoutFile))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -350,16 +381,17 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
                     break;
                 }
                 if (!line.trim().isEmpty()) {
-                    tests.add(line.trim());
+                    testNames.add(line.trim());
                 }
             }
         } catch (IOException e) {
             CLog.e(TAG, "Failed to parse log file: %s", e);
             return false;
         }
-        listener.testRunStarted("CtsAngleEnd2EndTestCases", tests.size());
-        for (String test : tests) {
-            final TestDescription testId = new TestDescription(getClass().getCanonicalName(), test);
+        // Record the list result.
+        listener.testRunStarted("CtsAngleEnd2EndTestCases", testNames.size());
+        for (String testName : testNames) {
+            final TestDescription testId = createTestDescription(testName);
             listener.testStarted(testId);
             listener.testEnded(testId, new HashMap<String, Metric>());
         }
