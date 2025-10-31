@@ -48,6 +48,9 @@
 413447006 VULKAN : ProgramInterfaceTestES31.ArrayofArraysQueries/* = SKIP
 434026537 VULKAN : VulkanPerformanceCounterTest* = SKIP
 436334607 VULKAN : Texture2DBaseMaxTestES3.Fuzz545ImmutableTexRenderFeedback/* = SKIP
+454016926 VULKAN : GLSLTest.FunctionArgumentEvalOrder/* = SKIP
+454016926 VULKAN : GLSLTest.FunctionArgumentEvalOrderOverloaded/* = SKIP
+454016926 VULKAN : GLSLTest.TernaryModifiesVariableInSameStatement/* = SKIP
 
 //
 // Failures with ANGLE as the system driver
