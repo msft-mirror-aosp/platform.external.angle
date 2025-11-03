@@ -95,7 +95,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r28_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-22-init-8940-g4d4cb757-84\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-22-init-12326-g8a5f1533-1\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -1003,7 +1003,9 @@ cc_library_shared {
         "src/tests/gl_tests/FramebufferMultiviewTest.cpp",
         "src/tests/gl_tests/FramebufferRenderMipmapTest.cpp",
         "src/tests/gl_tests/FramebufferTest.cpp",
+        "src/tests/gl_tests/GLSLConstantFoldingTest.cpp",
         "src/tests/gl_tests/GLSLTest.cpp",
+        "src/tests/gl_tests/GLSLValidationTest.cpp",
         "src/tests/gl_tests/GeometryShaderTest.cpp",
         "src/tests/gl_tests/GetImageTest.cpp",
         "src/tests/gl_tests/GetTexLevelParameterTest.cpp",
@@ -1132,6 +1134,7 @@ cc_library_shared {
         "src/tests/test_expectations/GPUTestExpectationsTest.cpp",
         "src/tests/test_utils/ANGLETest.cpp",
         "src/tests/test_utils/ANGLETestCL.cpp",
+        "src/tests/test_utils/CompilerTest.cpp",
         "src/tests/test_utils/MultiviewTest.cpp",
         "src/tests/test_utils/VulkanHelper.cpp",
         "src/tests/test_utils/runner/TestSuite.cpp",
@@ -6210,7 +6213,7 @@ cc_defaults {
 }
 
 cc_defaults {
-    name: "third_party_abseil_cpp_absl_strings_resize_and_overwrite",
+    name: "third_party_abseil_cpp_absl_strings_charset",
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
@@ -6218,9 +6221,7 @@ cc_defaults {
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
-        "third_party_abseil_cpp_absl_base_core_headers",
-        "third_party_abseil_cpp_absl_base_dynamic_annotations",
-        "third_party_abseil_cpp_absl_base_throw_delegate",
+        "third_party_abseil_cpp_absl_strings_string_view",
     ],
     local_include_dirs: [
         "",
@@ -6245,7 +6246,7 @@ cc_defaults {
 }
 
 cc_defaults {
-    name: "third_party_abseil_cpp_absl_strings_charset",
+    name: "third_party_abseil_cpp_absl_strings_append_and_overwrite",
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
@@ -6253,7 +6254,8 @@ cc_defaults {
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
-        "third_party_abseil_cpp_absl_strings_string_view",
+        "third_party_abseil_cpp_absl_base_core_headers",
+        "third_party_abseil_cpp_absl_strings_resize_and_overwrite",
     ],
     local_include_dirs: [
         "",
@@ -6313,10 +6315,46 @@ cc_defaults {
         "third_party_abseil_cpp_absl_meta_type_traits",
         "third_party_abseil_cpp_absl_numeric_bits",
         "third_party_abseil_cpp_absl_numeric_int128",
+        "third_party_abseil_cpp_absl_strings_append_and_overwrite",
         "third_party_abseil_cpp_absl_strings_charset",
         "third_party_abseil_cpp_absl_strings_internal",
         "third_party_abseil_cpp_absl_strings_resize_and_overwrite",
         "third_party_abseil_cpp_absl_strings_string_view",
+    ],
+    local_include_dirs: [
+        "",
+        "third_party/abseil-cpp/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-Wno-c++11-narrowing",
+        "-Wno-exit-time-destructors",
+        "-Wno-unused-but-set-variable",
+        "-Wno-unused-variable",
+    ],
+    sdk_version: "current",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
+    name: "third_party_abseil_cpp_absl_strings_resize_and_overwrite",
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "buildtools_third_party_libc++_all_modules",
+        "buildtools_third_party_libc++_custom_headers",
+        "buildtools_third_party_libc++_libcxx_headers",
+        "third_party_abseil_cpp_absl_base_config",
+        "third_party_abseil_cpp_absl_base_core_headers",
+        "third_party_abseil_cpp_absl_base_dynamic_annotations",
+        "third_party_abseil_cpp_absl_base_throw_delegate",
     ],
     local_include_dirs: [
         "",
@@ -6358,6 +6396,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_base_endian",
         "third_party_abseil_cpp_absl_base_raw_logging_internal",
         "third_party_abseil_cpp_absl_meta_type_traits",
+        "third_party_abseil_cpp_absl_strings_resize_and_overwrite",
     ],
     local_include_dirs: [
         "",
@@ -6835,6 +6874,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_hash_weakly_mixed_integer",
         "third_party_abseil_cpp_absl_meta_type_traits",
         "third_party_abseil_cpp_absl_numeric_bits",
+        "third_party_abseil_cpp_absl_strings_append_and_overwrite",
         "third_party_abseil_cpp_absl_strings_cord_internal",
         "third_party_abseil_cpp_absl_strings_cordz_info",
         "third_party_abseil_cpp_absl_strings_cordz_update_scope",

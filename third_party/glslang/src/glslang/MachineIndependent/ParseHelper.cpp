@@ -1484,6 +1484,17 @@ TIntermTyped* TParseContext::handleFunctionCall(const TSourceLoc& loc, TFunction
                         i == 1 && arg->getAsTyped()->getType().getBasicType() != aggregate->getSequence()[0]->getAsTyped()->getType().getBasicType())
                         error(arguments->getLoc(), "cooperative vector basic types must match", fnCandidate->getName().c_str(), "");
 
+                    // Check that coopVecLoadNV and coopVecStoreNV buffer parameter is in buffer or shared storage
+                    if (builtIn && (fnCandidate->getBuiltInOp() == EOpCooperativeVectorLoadNV ||
+                                    fnCandidate->getBuiltInOp() == EOpCooperativeVectorStoreNV) &&
+                        i == 1) {
+                        TStorageQualifier storage = arg->getAsTyped()->getType().getQualifier().storage;
+                        if (storage != EvqBuffer && storage != EvqShared) {
+                            error(arguments->getLoc(), "buffer argument must be in buffer or shared storage", 
+                                  fnCandidate->getName().c_str(), "");
+                        }
+                    }
+
                     // TODO 4.5 functionality:  A shader will fail to compile
                     // if the value passed to the memargument of an atomic memory function does not correspond to a buffer or
                     // shared variable. It is acceptable to pass an element of an array or a single component of a vector to the
@@ -5502,6 +5513,9 @@ void TParseContext::arraySizesCheck(const TSourceLoc& loc, const TQualifier& qua
     if (qualifier.storage == EvqBuffer && lastMember)
         return;
 
+    if (qualifier.storage == EvqUniform && lastMember && extensionTurnedOn(E_GL_EXT_uniform_buffer_unsized_array))
+        return;
+
     arraySizeRequiredCheck(loc, *arraySizes);
 }
 
@@ -5621,6 +5635,20 @@ void TParseContext::checkRuntimeSizable(const TSourceLoc& loc, const TIntermType
 
             const int index = binary->getRight()->getAsConstantUnion()->getConstArray()[0].getIConst();
             const int memberCount = (int)binary->getLeft()->getType().getReferentType()->getStruct()->size();
+            if (index == memberCount - 1)
+                return;
+        }
+    }
+
+    // Check for last member of a uniform block, which can be runtime sizeable
+    // when using GL_EXT_uniform_buffer_unsized_array
+    if (base.getType().getQualifier().storage == EvqUniform && extensionTurnedOn(E_GL_EXT_uniform_buffer_unsized_array)) {
+        const TIntermBinary* binary = base.getAsBinaryNode();
+        if (binary != nullptr &&
+            binary->getOp() == EOpIndexDirectStruct) {
+
+            const int index = binary->getRight()->getAsConstantUnion()->getConstArray()[0].getIConst();
+            const int memberCount = (int)binary->getLeft()->getType().getStruct()->size();
             if (index == memberCount - 1)
                 return;
         }

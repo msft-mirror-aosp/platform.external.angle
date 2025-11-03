@@ -12,11 +12,7 @@
       {
           "description": "Applications in this list will not use ANGLE",
           "choice": "native",
-          "apps": [
-              {
-                  "packageName": "com.google.android.apps.tachyon"
-              }
-          ]
+          "apps": []
       }
    ]
 }
