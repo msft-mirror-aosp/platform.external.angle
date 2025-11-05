@@ -666,7 +666,7 @@ bool SyncvalMessageMatchesSkip(const char *messageId,
                                const char *message,
                                const vk::SkippedSyncvalMessage &skip)
 {
-    // TODO(http://angleproject:391284743): Ongoing transition: textual matches -> extraProperties.
+    // TODO(http://anglebug.com/391284743): Ongoing transition: textual matches -> extraProperties.
     // The skip should include at least one extraProperty
     ASSERT(skip.extraProperties[0]);
 
@@ -5494,6 +5494,10 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsMultiview, mMultiviewFeatures.multiview == VK_TRUE);
 
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsMultiviewMultisampleRenderToTexture,
+                            mFeatures.supportsMultisampledRenderToSingleSampled.enabled &&
+                                mFeatures.supportsMultiview.enabled);
+
     // VK_EXT_device_fault can provide more information when the device is lost.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsDeviceFault,
@@ -5722,12 +5726,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // or extensions. For the purpose of testing coverage, we would still enable ES 3.2 on these
     // platforms. However, once a listed test platform is updated to a version that does support
     // ES 3.2, it should be unlisted.
-    ANGLE_FEATURE_CONDITION(
-        &mFeatures, exposeES32ForTesting,
-        mFeatures.exposeNonConformantExtensionsAndVersions.enabled &&
-            (isSoftwareRenderer || isPixel4 ||
-             (IsLinux() && isNvidia && driverVersion < angle::VersionTriple(441, 0, 0)) ||
-             (IsWindows() && isIntel)));
+    ANGLE_FEATURE_CONDITION(&mFeatures, exposeES32ForTesting,
+                            mFeatures.exposeNonConformantExtensionsAndVersions.enabled &&
+                                (isSoftwareRenderer || isPixel4 || (IsWindows() && isIntel)));
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsMemoryBudget,
@@ -6283,6 +6284,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsHostImageCopy,
                             mHostImageCopyFeatures.hostImageCopy == VK_TRUE &&
                                 mHostImageCopyProperties.identicalMemoryTypeRequirements);
+    // Software renderers always benefit from host-image-copy, because that's just memcpy.
+    ANGLE_FEATURE_CONDITION(&mFeatures, allowHostImageCopyAfterInitialUpload, isSoftwareRenderer);
 
     // 1) host vk driver does not natively support ETC format.
     // 2) host vk driver supports BC format.

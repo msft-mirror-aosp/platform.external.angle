@@ -2996,6 +2996,285 @@ void main()
     }
     reset();
 }
+
+class GLSLValidationBaseVertexTest_ES3 : public GLSLValidationTest_ES3
+{};
+
+class WebGL2GLSLValidationBaseVertexTest : public WebGL2GLSLValidationTest
+{};
+
+// Check that base vertex/instance is not exposed to WebGL.
+TEST_P(WebGL2GLSLValidationBaseVertexTest, NoSupport)
+{
+    constexpr char kVS[] = R"(#version 300 es
+#extension GL_ANGLE_base_vertex_base_instance_shader_builtin : require
+void main() {
+   gl_Position = vec4(float(gl_BaseVertex), float(gl_BaseInstance), 0.0, 1.0);
+})";
+    validateError(
+        GL_VERTEX_SHADER, kVS,
+        "'GL_ANGLE_base_vertex_base_instance_shader_builtin' : extension is not supported");
+}
+
+// Check that compiling with the old extension doesn't work
+TEST_P(GLSLValidationBaseVertexTest_ES3, CheckCompileOldExtension)
+{
+    constexpr char kVS[] = R"(#version 300 es
+#extension GL_ANGLE_base_vertex_base_instance : require
+void main() {
+   gl_Position = vec4(float(gl_BaseVertex), float(gl_BaseInstance), 0.0, 1.0);
+})";
+    validateError(GL_VERTEX_SHADER, kVS,
+                  "'GL_ANGLE_base_vertex_base_instance' : extension is not supported");
+}
+
+// Check that a user-defined "gl_BaseVertex" or "gl_BaseInstance" is not permitted
+TEST_P(GLSLValidationBaseVertexTest_ES3, DisallowsUserDefinedGLDrawID)
+{
+    {
+        // Check that it is not permitted without the
+        // GL_ANGLE_base_vertex_base_instance_shader_builtin extension
+        constexpr char kVS[] = R"(#version 300 es
+uniform int gl_BaseVertex;
+void main() {
+   gl_Position = vec4(float(gl_BaseVertex), 0.0, 0.0, 1.0);
+})";
+        validateError(GL_VERTEX_SHADER, kVS, "'gl_' : reserved built-in name");
+    }
+
+    {
+        constexpr char kVS[] = R"(#version 300 es
+uniform int gl_BaseInstance;
+void main() {
+   gl_Position = vec4(float(gl_BaseInstance), 0.0, 0.0, 1.0);
+})";
+        validateError(GL_VERTEX_SHADER, kVS, "'gl_' : reserved built-in name");
+    }
+
+    {
+        constexpr char kVS[] = R"(#version 300 es
+void main() {
+   int gl_BaseVertex = 0;
+   gl_Position = vec4(float(gl_BaseVertex), 0.0, 0.0, 1.0);
+})";
+        validateError(GL_VERTEX_SHADER, kVS, "'gl_' : reserved built-in name");
+    }
+
+    {
+        constexpr char kVS[] = R"(#version 300 es
+void main() {
+   int gl_BaseInstance = 0;
+   gl_Position = vec4(float(gl_BaseInstance), 0.0, 0.0, 1.0);
+})";
+        validateError(GL_VERTEX_SHADER, kVS, "'gl_' : reserved built-in name");
+    }
+
+    {
+        // Check that it is not permitted with the extension
+        constexpr char kVS[] = R"(#version 300 es
+#extension GL_ANGLE_base_vertex_base_instance_shader_builtin : require
+uniform int gl_BaseVertex;
+void main() {
+   gl_Position = vec4(float(gl_BaseVertex), 0.0, 0.0, 1.0);
+})";
+        validateError(GL_VERTEX_SHADER, kVS, "'gl_' : reserved built-in name");
+    }
+
+    {
+        constexpr char kVS[] = R"(#version 300 es
+#extension GL_ANGLE_base_vertex_base_instance_shader_builtin : require
+uniform int gl_BaseInstance;
+void main() {
+   gl_Position = vec4(float(gl_BaseInstance), 0.0, 0.0, 1.0);
+})";
+        validateError(GL_VERTEX_SHADER, kVS, "'gl_' : reserved built-in name");
+    }
+
+    {
+        constexpr char kVS[] = R"(#version 300 es
+#extension GL_ANGLE_base_vertex_base_instance_shader_builtin : require
+void main() {
+   int gl_BaseVertex = 0;
+   gl_Position = vec4(float(gl_BaseVertex), 0.0, 0.0, 1.0);
+})";
+        validateError(GL_VERTEX_SHADER, kVS, "'gl_' : reserved built-in name");
+    }
+
+    {
+        constexpr char kVS[] = R"(#version 300 es
+#extension GL_ANGLE_base_vertex_base_instance_shader_builtin : require
+void main() {
+   int gl_BaseInstance = 0;
+   gl_Position = vec4(float(gl_BaseInstance), 0.0, 0.0, 1.0);
+})";
+        validateError(GL_VERTEX_SHADER, kVS, "'gl_' : reserved built-in name");
+    }
+}
+
+class GLSLValidationDrawIDTest : public GLSLValidationTest
+{};
+
+// Check that a user-defined "gl_DrawID" is not permitted
+TEST_P(GLSLValidationDrawIDTest, DisallowsUserDefinedGLDrawID)
+{
+    {
+        // Check that it is not permitted without the GL_ANGLE_multi_draw extension
+        constexpr char kVS[] = R"(uniform int gl_DrawID;
+void main() {
+   gl_Position = vec4(float(gl_DrawID), 0.0, 0.0, 1.0);
+})";
+        validateError(GL_VERTEX_SHADER, kVS, "'gl_' : reserved built-in name");
+    }
+
+    {
+        constexpr char kVS[] = R"(void main() {
+   int gl_DrawID = 0;
+   gl_Position = vec4(float(gl_DrawID), 0.0, 0.0, 1.0);
+})";
+        validateError(GL_VERTEX_SHADER, kVS, "'gl_' : reserved built-in name");
+    }
+
+    {
+        // Check that it is not permitted with the extension
+        constexpr char kVS[] = R"(#extension GL_ANGLE_multi_draw : require
+uniform int gl_DrawID;
+void main() {
+   gl_Position = vec4(float(gl_DrawID), 0.0, 0.0, 1.0);
+})";
+        validateError(GL_VERTEX_SHADER, kVS, "'gl_' : reserved built-in name");
+    }
+
+    {
+        constexpr char kVS[] = R"(#extension GL_ANGLE_multi_draw : require
+void main() {
+   int gl_DrawID = 0;
+   gl_Position = vec4(float(gl_DrawID), 0.0, 0.0, 1.0);
+})";
+        validateError(GL_VERTEX_SHADER, kVS, "'gl_' : reserved built-in name");
+    }
+}
+
+class GLSLValidationExtensionDirectiveTest_ES3 : public GLSLValidationTest_ES3
+{
+  public:
+    void testCompileNeedsExtensionDirective(GLenum shaderType,
+                                            const char *shaderSource,
+                                            const char *version,
+                                            const char *extension,
+                                            bool extensionTokenIsReserved)
+    {
+        {
+            std::stringstream src;
+            if (version)
+            {
+                src << version << "\n";
+            }
+            src << shaderSource;
+            const CompiledShader &shader = compile(shaderType, src.str().c_str());
+            EXPECT_FALSE(shader.success());
+            EXPECT_TRUE(shader.hasError(extensionTokenIsReserved ? "extension is disabled"
+                                                                 : "syntax error"));
+            reset();
+        }
+
+        {
+            std::stringstream src;
+            if (version)
+            {
+                src << version << "\n";
+            }
+            src << "#extension " << extension << ": disable\n" << shaderSource;
+            const CompiledShader &shader = compile(shaderType, src.str().c_str());
+            EXPECT_FALSE(shader.success());
+            EXPECT_TRUE(shader.hasError(extensionTokenIsReserved ? "extension is disabled"
+                                                                 : "syntax error"));
+            reset();
+        }
+
+        {
+            std::stringstream src;
+            if (version)
+            {
+                src << version << "\n";
+            }
+            src << "#extension " << extension << ": enable\n" << shaderSource;
+            EXPECT_TRUE(compile(shaderType, src.str().c_str()).success());
+            reset();
+        }
+
+        {
+            std::stringstream src;
+            if (version)
+            {
+                src << version << "\n";
+            }
+            src << "#extension " << extension << ": warn\n" << shaderSource;
+            const CompiledShader &shader = compile(shaderType, src.str().c_str());
+            EXPECT_TRUE(shader.success());
+            EXPECT_TRUE(shader.hasError("WARNING"));
+            EXPECT_TRUE(shader.hasError("extension is being used"));
+            reset();
+        }
+    }
+};
+
+// OES_EGL_image_external needs to be enabled in GLSL to be able to use samplerExternalOES.
+TEST_P(GLSLValidationExtensionDirectiveTest_ES3,
+       SamplerExternalOESUsageNeedsImageExtensionDirective)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_EGL_image_external"));
+
+    constexpr char kFS[] = R"(precision mediump float;
+uniform samplerExternalOES s;
+void main()
+{})";
+    testCompileNeedsExtensionDirective(GL_FRAGMENT_SHADER, kFS, nullptr,
+                                       "GL_OES_EGL_image_external", true);
+}
+
+// NV_EGL_stream_consumer_external needs to be enabled in GLSL to be able to use samplerExternalOES.
+TEST_P(GLSLValidationExtensionDirectiveTest_ES3,
+       SamplerExternalOESUsageNeedsStreamExtensionDirective)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_NV_EGL_stream_consumer_external"));
+
+    constexpr char kFS[] = R"(precision mediump float;
+uniform samplerExternalOES s;
+void main()
+{})";
+    testCompileNeedsExtensionDirective(GL_FRAGMENT_SHADER, kFS, nullptr,
+                                       "GL_NV_EGL_stream_consumer_external", true);
+}
+
+// GL_EXT_YUV_target needs to be enabled in GLSL to be able to use samplerExternal2DY2YEXT.
+TEST_P(GLSLValidationExtensionDirectiveTest_ES3,
+       SamplerExternal2DY2YEXTUsageNeedsExtensionDirective)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_YUV_target"));
+
+    constexpr char kFS[] = R"(precision mediump float;
+uniform __samplerExternal2DY2YEXT s;
+void main()
+{})";
+    // The translator does not complain about __samplerExternal2DY2YEXT used if the extension is not
+    // enabled (i.e. doesn't treat this as a reserved word).  In that case, the complaint from the
+    // compiler would be a syntax error.
+    testCompileNeedsExtensionDirective(GL_FRAGMENT_SHADER, kFS, "#version 300 es",
+                                       "GL_EXT_YUV_target", false);
+}
+
+// GL_EXT_YUV_target needs to be enabled in GLSL to be able to use layout(yuv).
+TEST_P(GLSLValidationExtensionDirectiveTest_ES3, YUVLayoutNeedsExtensionDirective)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_YUV_target"));
+
+    constexpr char kFS[] = R"(precision mediump float;
+layout(yuv) out vec4 color;
+void main()
+{})";
+    testCompileNeedsExtensionDirective(GL_FRAGMENT_SHADER, kFS, "#version 300 es",
+                                       "GL_EXT_YUV_target", true);
+}
 }  // namespace
 
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(GLSLValidationTest);
@@ -3023,3 +3302,29 @@ ANGLE_INSTANTIATE_TEST_ES31(GLSLValidationAtomicCounterTest_ES31);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GLSLValidationShaderStorageBlockTest_ES31);
 ANGLE_INSTANTIATE_TEST_ES31(GLSLValidationShaderStorageBlockTest_ES31);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GLSLValidationBaseVertexTest_ES3);
+ANGLE_INSTANTIATE_TEST(
+    GLSLValidationBaseVertexTest_ES3,
+    ES3_D3D11().enable(Feature::AlwaysEnableEmulatedMultidrawExtensions),
+    ES3_OPENGL().enable(Feature::AlwaysEnableEmulatedMultidrawExtensions),
+    ES3_OPENGLES().enable(Feature::AlwaysEnableEmulatedMultidrawExtensions),
+    ES3_VULKAN().enable(Feature::AlwaysEnableEmulatedMultidrawExtensions),
+    ES3_VULKAN_SWIFTSHADER().enable(Feature::AlwaysEnableEmulatedMultidrawExtensions),
+    ES3_METAL().enable(Feature::AlwaysEnableEmulatedMultidrawExtensions));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(WebGL2GLSLValidationBaseVertexTest);
+ANGLE_INSTANTIATE_TEST_ES3(WebGL2GLSLValidationBaseVertexTest);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GLSLValidationDrawIDTest);
+ANGLE_INSTANTIATE_TEST(
+    GLSLValidationDrawIDTest,
+    ES3_D3D11().enable(Feature::AlwaysEnableEmulatedMultidrawExtensions),
+    ES3_OPENGL().enable(Feature::AlwaysEnableEmulatedMultidrawExtensions),
+    ES3_OPENGLES().enable(Feature::AlwaysEnableEmulatedMultidrawExtensions),
+    ES3_VULKAN().enable(Feature::AlwaysEnableEmulatedMultidrawExtensions),
+    ES3_VULKAN_SWIFTSHADER().enable(Feature::AlwaysEnableEmulatedMultidrawExtensions),
+    ES3_METAL().enable(Feature::AlwaysEnableEmulatedMultidrawExtensions));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GLSLValidationExtensionDirectiveTest_ES3);
+ANGLE_INSTANTIATE_TEST_ES3(GLSLValidationExtensionDirectiveTest_ES3);
