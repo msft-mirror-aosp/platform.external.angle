@@ -5201,6 +5201,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         driverVersion =
             angle::ParseSamsungVulkanDriverVersion(mPhysicalDeviceProperties.driverVersion);
     }
+    else if (isPowerVR)
+    {
+        driverVersion =
+            angle::ParseImaginationVulkanDriverVersion(mPhysicalDeviceProperties.driverVersion);
+    }
 
     // Classify devices based on general architecture:
     //
@@ -6449,7 +6454,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // Use of dynamic rendering is disabled on older Qualcomm drivers due to driver bugs
     // (http://crbug.com/415738891).
     //
-    // Use of dynamic rendering on PowerVR devices is disabled for performance reasons
+    // Use of dynamic rendering is disabled on older PowerVR devices for performance reasons
     // (http://issuetracker.google.com/372273294).
     const bool hasLegacyDitheringV1 =
         mFeatures.supportsLegacyDithering.enabled &&
@@ -6464,7 +6469,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
             !emulatesMultisampledRenderToTexture &&
             !(isARMProprietary && driverVersion < angle::VersionTriple(52, 0, 0)) &&
             !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 801, 0)) &&
-            !isPowerVR);
+            !(isPowerVR && driverVersion < angle::VersionTriple(1, 634, 0)));
 
     // On tile-based renderers, breaking the render pass is costly.  Changing into and out of
     // framebuffer fetch causes the render pass to break so that the layout of the color attachments
