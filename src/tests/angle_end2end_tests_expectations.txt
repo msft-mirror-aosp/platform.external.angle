@@ -472,6 +472,10 @@
 
 40644833 MAC METAL NVIDIA : Texture2DBaseMaxTestES3.Fuzz545ImmutableTexRenderFeedback/* = SKIP
 
+// Skipped because these tests crash with these backends
+457495647 VULKAN : Texture2DBaseMaxTestES3.BaseExceedsMaxFboAttachAtBase/ES3_Vulkan* = SKIP
+457478042 OPENGL : Texture2DBaseMaxTestES3.BaseExceedsMaxFboAttachAtBase/ES3_OpenGL* = SKIP
+
 40644834 MAC METAL INTEL : Texture2DTest.TextureSizeCase1/* = SKIP
 
 40096847 MAC METAL INTEL : PointSpritesTest.PointSizeAboveMaxIsClamped/* = SKIP
@@ -648,6 +652,8 @@
 42264513 PIXEL4ORXL GLES : GLSLTest.NestedInoutVars2/* = SKIP
 42264513 PIXEL4ORXL GLES : GLSLTest.NestedInoutVars3/* = SKIP
 42264513 PIXEL4ORXL GLES : SimpleUniformUsageTestES3.TernarySelectAnArrayThenIndex/* = SKIP
+458082809 PIXEL4ORXL GLES : GLSLValidationExtensionDirectiveTest_ES3.Sampler2DShadow/* = SKIP
+458082810 PIXEL4ORXL GLES : GLSLValidationExtensionDirectiveTest_ES31.TextureCubeMapArray/* = SKIP
 
 42267082 PIXEL4ORXL GLES : BlobCacheTest.FragmentOutputLocationKey/* = SKIP
 42267082 PIXEL4ORXL GLES : EGLBlobCacheTest.FragmentOutputLocationKey/* = SKIP
