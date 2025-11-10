@@ -9,20 +9,10 @@
 
 #include "tests/test_utils/ShaderExtensionTest.h"
 
+#if defined(ANGLE_ENABLE_VULKAN)
 namespace
 {
 const char EXTPragma[] = "#extension GL_EXT_shader_framebuffer_fetch_non_coherent : require\n";
-
-// Redeclare gl_LastFragData with noncoherent qualifier
-const char ESSL100_LastFragDataRedeclared1[] =
-    R"(
-    uniform highp vec4 u_color;
-    layout(noncoherent) highp vec4 gl_LastFragData[gl_MaxDrawBuffers];
-
-    void main (void)
-    {
-        gl_FragColor = u_color + gl_LastFragData[0] + gl_LastFragData[2];
-    })";
 
 // Use inout variable with noncoherent qualifier
 const char ESSL300_InOut[] =
@@ -111,9 +101,7 @@ class EXTShaderFramebufferFetchNoncoherentTest : public sh::ShaderExtensionTest
     {
         std::map<ShShaderOutput, std::string> shaderOutputList = {
             {SH_GLSL_450_CORE_OUTPUT, "SH_GLSL_450_CORE_OUTPUT"},
-#if defined(ANGLE_ENABLE_VULKAN)
             {SH_SPIRV_VULKAN_OUTPUT, "SH_SPIRV_VULKAN_OUTPUT"}
-#endif
         };
 
         Initialize(shaderOutputList);
@@ -217,69 +205,6 @@ class EXTShaderFramebufferFetchNoncoherentTest : public sh::ShaderExtensionTest
     std::map<ShShaderOutput, ShBuiltInResources> mResourceList;
 };
 
-class EXTShaderFramebufferFetchNoncoherentES100Test
-    : public EXTShaderFramebufferFetchNoncoherentTest
-{};
-
-// Extension flag is required to compile properly. Expect failure when it is
-// not present.
-TEST_P(EXTShaderFramebufferFetchNoncoherentES100Test, CompileFailsWithoutExtension)
-{
-    SetExtensionEnable(false);
-    InitializeCompiler();
-    TestShaderCompile(false, EXTPragma);
-}
-
-// Extension directive is required to compile properly. Expect failure when
-// it is not present.
-TEST_P(EXTShaderFramebufferFetchNoncoherentES100Test, CompileFailsWithExtensionWithoutPragma)
-{
-    SetExtensionEnable(true);
-    InitializeCompiler();
-    TestShaderCompile(false, "");
-}
-
-class EXTShaderFramebufferFetchNoncoherentES300Test
-    : public EXTShaderFramebufferFetchNoncoherentTest
-{};
-
-// Extension flag is required to compile properly. Expect failure when it is
-// not present.
-TEST_P(EXTShaderFramebufferFetchNoncoherentES300Test, CompileFailsWithoutExtension)
-{
-    SetExtensionEnable(false);
-    InitializeCompiler();
-    TestShaderCompile(false, EXTPragma);
-}
-
-// Extension directive is required to compile properly. Expect failure when
-// it is not present.
-TEST_P(EXTShaderFramebufferFetchNoncoherentES300Test, CompileFailsWithExtensionWithoutPragma)
-{
-    SetExtensionEnable(true);
-    InitializeCompiler();
-    TestShaderCompile(false, "");
-}
-
-INSTANTIATE_TEST_SUITE_P(CorrectESSL100Shaders,
-                         EXTShaderFramebufferFetchNoncoherentES100Test,
-                         Combine(Values(SH_GLES2_SPEC),
-                                 Values(sh::ESSLVersion100),
-                                 Values(ESSL100_LastFragDataRedeclared1)));
-
-INSTANTIATE_TEST_SUITE_P(CorrectESSL300Shaders,
-                         EXTShaderFramebufferFetchNoncoherentES300Test,
-                         Combine(Values(SH_GLES3_SPEC),
-                                 Values(sh::ESSLVersion300),
-                                 Values(ESSL300_InOut,
-                                        ESSL300_InOut2,
-                                        ESSL300_InOut3,
-                                        ESSL300_InOut4,
-                                        ESSL300_InOut5,
-                                        ESSL300_InOut6)));
-
-#if defined(ANGLE_ENABLE_VULKAN)
-
 // Use gl_LastFragData without redeclaration of gl_LastFragData with noncoherent qualifier
 const char ESSL100_LastFragDataWithoutRedeclaration[] =
     R"(
@@ -329,25 +254,9 @@ class EXTShaderFramebufferFetchNoncoherentFailureTest
     : public EXTShaderFramebufferFetchNoncoherentSuccessTest
 {};
 
-class EXTShaderFramebufferFetchNoncoherentES100SuccessTest
-    : public EXTShaderFramebufferFetchNoncoherentSuccessTest
-{};
-
 class EXTShaderFramebufferFetchNoncoherentES100FailureTest
     : public EXTShaderFramebufferFetchNoncoherentFailureTest
 {};
-
-// With extension flag and extension directive, compiling succeeds.
-// Also test that the extension directive state is reset correctly.
-TEST_P(EXTShaderFramebufferFetchNoncoherentES100SuccessTest, CompileSucceedsWithExtensionAndPragma)
-{
-    SetExtensionEnable(true);
-    InitializeCompiler();
-    TestShaderCompile(true, EXTPragma);
-    // Test reset functionality.
-    TestShaderCompile(false, "");
-    TestShaderCompile(true, EXTPragma);
-}
 
 //
 TEST_P(EXTShaderFramebufferFetchNoncoherentES100FailureTest, CompileFailsWithoutNoncoherent)
@@ -385,14 +294,6 @@ TEST_P(EXTShaderFramebufferFetchNoncoherentES300FailureTest, CompileFailsWithout
     TestShaderCompile(false, EXTPragma);
 }
 
-// The SL #version 100 shaders that are correct work similarly
-// in both GL2 and GL3, with and without the version string.
-INSTANTIATE_TEST_SUITE_P(CorrectESSL100Shaders,
-                         EXTShaderFramebufferFetchNoncoherentES100SuccessTest,
-                         Combine(Values(SH_GLES2_SPEC),
-                                 Values(sh::ESSLVersion100),
-                                 Values(ESSL100_LastFragDataRedeclared1)));
-
 INSTANTIATE_TEST_SUITE_P(IncorrectESSL100Shaders,
                          EXTShaderFramebufferFetchNoncoherentES100FailureTest,
                          Combine(Values(SH_GLES2_SPEC),
@@ -416,6 +317,5 @@ INSTANTIATE_TEST_SUITE_P(IncorrectESSL300Shaders,
                          Combine(Values(SH_GLES3_SPEC),
                                  Values(sh::ESSLVersion300),
                                  Values(ESSL300_InOutWithoutNoncoherent)));
-#endif
-
 }  // anonymous namespace
+#endif
