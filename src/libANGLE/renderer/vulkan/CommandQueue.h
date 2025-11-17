@@ -209,19 +209,40 @@ class DeviceQueueMap final
 class CommandsState : angle::NonCopyable
 {
   public:
-    CommandsState(Renderer *renderer);
+    CommandsState(Renderer *renderer,
+                  ProtectionType protectionType,
+                  egl::ContextPriority contextPriority);
     ~CommandsState();
 
     void destroy(VkDevice device);
 
     angle::Result flushOutsideRPCommands(Context *context,
                                          ProtectionType protectionType,
-                                         OutsideRenderPassCommandBufferHelper **outsideRPCommands);
+                                         OutsideRenderPassCommandBufferHelper **outsideRPCommands)
+    {
+        ANGLE_TRACE_EVENT0("gpu.angle", "CommandsState::flushOutsideRPCommands");
+        std::lock_guard<angle::SimpleMutex> lock(mCmdPoolMutex);
+        ANGLE_TRY(ensurePrimaryCommandBufferValidLocked(context, protectionType));
+        ANGLE_TRY((*outsideRPCommands)->flushToPrimary(context, this, &mPrimaryCommands));
+        // Restart the command buffer.
+        return (*outsideRPCommands)->reset(context, &mSecondaryCommands);
+    }
+
     angle::Result flushRenderPassCommands(Context *context,
                                           const ProtectionType &protectionType,
                                           const RenderPass &renderPass,
                                           VkFramebuffer framebufferOverride,
-                                          RenderPassCommandBufferHelper **renderPassCommands);
+                                          RenderPassCommandBufferHelper **renderPassCommands)
+    {
+        ANGLE_TRACE_EVENT0("gpu.angle", "CommandsState::flushRenderPassCommands");
+        std::lock_guard<angle::SimpleMutex> lock(mCmdPoolMutex);
+        ANGLE_TRY(ensurePrimaryCommandBufferValidLocked(context, protectionType));
+        ANGLE_TRY((*renderPassCommands)
+                      ->flushToPrimary(context, this, &mPrimaryCommands, renderPass,
+                                       framebufferOverride));
+        // Restart the command buffer.
+        return (*renderPassCommands)->reset(context, &mSecondaryCommands);
+    }
 
     void flushImagesTransitionToForeign(
         std::vector<VkImageMemoryBarrier> &&imagesToTransitionToForeign)
@@ -251,10 +272,11 @@ class CommandsState : angle::NonCopyable
         mWaitSemaphoreStageMasks.emplace_back(waitSemaphoreStageMasks);
     }
 
-    PrimaryCommandBuffer *getPrimaryCommands() { return &mPrimaryCommands; }
-    SecondaryCommandBufferCollector *getSecondaryCommands() { return &mSecondaryCommands; }
-
     bool hasWaitSemaphoresPendingSubmission() const { return !mWaitSemaphores.empty(); }
+
+    void setPriority(egl::ContextPriority newPriority) { mPriority = newPriority; }
+    egl::ContextPriority getPriority() const { return mPriority; }
+    ProtectionType getProtectionType() const { return mProtectionType; }
 
   private:
     angle::Result ensurePrimaryCommandBufferValidLocked(ErrorContext *context,
@@ -262,6 +284,9 @@ class CommandsState : angle::NonCopyable
 
     // Command pool mutex lock shared with CommandPoolAccess
     angle::SimpleMutex &mCmdPoolMutex;
+    // This is immutable
+    const vk::ProtectionType mProtectionType;
+    egl::ContextPriority mPriority;
 
     std::vector<VkSemaphore> mWaitSemaphores;
     std::vector<VkPipelineStageFlags> mWaitSemaphoreStageMasks;
@@ -378,8 +403,6 @@ class CommandQueue : angle::NonCopyable
     bool isBusy(Renderer *renderer) const;
 
     angle::Result submitCommands(ErrorContext *context,
-                                 ProtectionType protectionType,
-                                 egl::ContextPriority priority,
                                  VkSemaphore signalSemaphore,
                                  SharedExternalFence &&externalFence,
                                  const QueueSerial &submitQueueSerial,
