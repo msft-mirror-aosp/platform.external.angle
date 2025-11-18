@@ -144,6 +144,7 @@
 447556589 WIN INTEL OPENGL : GeometryShaderTest.ImplicitSizedArrayMatchesExplicitSizedArray/* = SKIP
 447556589 WIN INTEL OPENGL : GeometryShaderTest.ImplicitSizedArrayMatchesExplicitSizedArray2/* = SKIP
 451644991 WIN INTEL OPENGL : WebGL2GLSLTest.NotInfiniteLoop/* = SKIP
+436598955 WIN D3D11 : DepthStencilFormatsTest.DepthTextureRender/ES3*D3D11 = SKIP
 
 // Failures on Intel Comet Lake S UHD Graphics 630 (8086:9bc5-31.0.101.2111)
 40644896 WIN INTEL OPENGL : D3DImageFormatConversionTest.WriteColorFunctionR8G8B8A8/* = SKIP
@@ -549,6 +550,8 @@
 42264972 ANDROID GLES : ImageTestES3.RGBXAHBImportThenUpload/* = SKIP
 42264972 ANDROID GLES : ImageTestES3.RGBXAHBImportMultipleLayers/* = SKIP
 
+436598955 ANDROID GLES : DepthStencilFormatsTest.DepthTextureRender/ES3*OpenGLES = SKIP
+
 // Unimplemented fallback path for when format is not renderable or AHB hasn't specified the GPU_FRAMEBUFFER usage.
 42264676 ANDROID VULKAN : ImageTestES3.RGBXAHBImportNoFramebufferUsage/* = SKIP
 
@@ -859,9 +862,9 @@
 42267029 PIXEL6 VULKAN : MultisampledRenderToTextureWithAdvancedBlendTest.RenderbufferLoadThenDraw/* = SKIP
 42267029 PIXEL6 VULKAN : MultiviewDrawValidationTest.ActiveTransformFeedback/* = SKIP
 42267029 PIXEL6 VULKAN : OcclusionQueriesTestES3.UnresolveNotCounted/* = SKIP
-42267029 PIXEL6 VULKAN : VulkanPerformanceCounterTest.RenderToTextureDepthStencilRenderbufferShouldNotLoad/* = SKIP
+42267029 PIXEL6 VULKAN : VulkanPerformanceCounterTest_DepthStencilLoadStoreOps.RenderToTextureDepthStencilRenderbufferShouldNotLoad/* = SKIP
 42267029 PIXEL6 VULKAN : VulkanPerformanceCounterTest.RenderToTextureDepthStencilTextureShouldNotLoad/* = SKIP
-42267029 PIXEL6 VULKAN : VulkanPerformanceCounterTest.RenderToTextureUninitializedAndUnusedDepthStencil/* = SKIP
+42267029 PIXEL6 VULKAN : VulkanPerformanceCounterTest_DepthStencilLoadStoreOps.RenderToTextureUninitializedAndUnusedDepthStencil/* = SKIP
 // New failures after AP1A.240405.002 upgrade
 336847261 PIXEL6 VULKAN : StateChangeTestES3.LineWidth/* = SKIP
 
@@ -2090,6 +2093,14 @@
 42267119 LINUX INTEL OPENGL : WEBGLVideoTextureTest.VerifySamplerVideoWEBGL/* = SKIP
 42267119 LINUX INTEL OPENGL : WEBGLVideoTextureTest.VerifySamplerVideoWEBGLAsParameter/* = SKIP
 42267119 LINUX INTEL OPENGL : WEBGLVideoTextureTest.VerifyStateManagerKnowsBindingVideoImage/* = SKIP
+
+// Linux/Nvidia GTX 1660 failures after OS/driver upgrade to Ubuntu 22.04.
+362486580 LINUX NVIDIA OPENGL : InstancingTestES31.UpdateAttribBindingByVertexAttribDivisor/* = SKIP
+362486580 LINUX NVIDIA OPENGL : LineLoopIndirectTest.UByteIndexIndirectBuffer/* = SKIP
+362486580 LINUX NVIDIA VULKAN : SixteenBppTextureTestES3.RGB5A1UploadRGB10A2/ES3_Vulkan_EnableParallelCompileAndLink_VaryingsRequireMatchingPrecisionInSpirv = SKIP
+362486580 LINUX NVIDIA VULKAN : FramebufferTestWithFormatFallback.R4G4B4A4_OutOfRangeStagedUpdateReformated/* = SKIP
+362486580 LINUX NVIDIA VULKAN : EXTBlendFuncExtendedDrawTestES31.UseProgramPipeline/* = SKIP
+362486580 LINUX NVIDIA VULKAN : EGLSurfaceTest.ResizeBeforeMakeCurrent*/* = SKIP
 
 // OpenGL/GLES failures related to GL_EXT_clear_texture
 361623543 WIN INTEL OPENGL : ClearTextureEXTTest.ClearCubeMapArray/* = SKIP
