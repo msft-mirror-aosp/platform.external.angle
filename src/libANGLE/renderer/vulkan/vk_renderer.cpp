@@ -5478,8 +5478,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(
         &mFeatures, preferMSRTSSFlagByDefault,
         mFeatures.supportsMultisampledRenderToSingleSampled.enabled &&
-            (isARMProprietary ||
-             (isQualcommProprietary && driverVersion >= angle::VersionTriple(512, 777, 0))));
+            !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 777, 0)));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsImage2dViewOf3d,
                             mImage2dViewOf3dFeatures.image2DViewOf3D == VK_TRUE);
@@ -6588,9 +6587,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // Disable on driver implementations other than ARM proprietary until the performance impact on
     // them is verified.
     ANGLE_FEATURE_CONDITION(&mFeatures, convertLowpAndMediumpFloatUniformsTo16Bits,
-                            m16BitStorageFeatures.uniformAndStorageBuffer16BitAccess == VK_TRUE &&
-                                mShaderFloat16Int8Features.shaderFloat16 == VK_TRUE &&
-                                isARMProprietary);
+                            mFeatures.supports16BitUniformAndStorageBuffer.enabled &&
+                                mFeatures.supportsShaderFloat16.enabled && isARMProprietary);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsUnifiedImageLayouts,
                             mUnifiedImageLayoutsFeatures.unifiedImageLayouts == VK_TRUE);
@@ -6633,7 +6631,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, debugClDumpCommandStream, false);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportFragmentShadingRateExtExtensions,
-                            mFeatures.supportsFragmentShadingRate.enabled);
+                            mFeatures.supportsFragmentShadingRate.enabled && !isSamsung);
 }
 
 void Renderer::appBasedFeatureOverrides(const vk::ExtensionNameList &extensions) {}
