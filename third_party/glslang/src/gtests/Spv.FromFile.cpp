@@ -86,6 +86,7 @@ using CompileUpgradeTextureToSampledTextureAndDropSamplersTest = GlslangTest<::t
 using GlslSpirvDebugInfoTest = GlslangTest<::testing::TestWithParam<std::string>>;
 using GlslNonSemanticShaderDebugInfoTest = GlslangTest<::testing::TestWithParam<std::string>>;
 using GlslNonSemanticShaderDebugInfoSpirv13Test = GlslangTest<::testing::TestWithParam<std::string>>;
+using GlslNonSemanticShaderDebugInfoVulkanLatestTest = GlslangTest<::testing::TestWithParam<std::string>>;
 
 // Compiling GLSL to SPIR-V under Vulkan semantics. Expected to successfully
 // generate SPIR-V.
@@ -285,6 +286,13 @@ TEST_P(GlslNonSemanticShaderDebugInfoSpirv13Test, FromFile)
                             "/baseResults/", false, true, true);
 }
 
+TEST_P(GlslNonSemanticShaderDebugInfoVulkanLatestTest, FromFile)
+{
+    loadFileCompileAndCheck(GlobalTestSettings.testRoot, GetParam(), Source::GLSL, Semantics::Vulkan,
+                            glslang::EShTargetVulkan_1_4, glslang::EShTargetSpv_1_6, Target::Spv, true, "",
+                            "/baseResults/", false, true, true);
+}
+
 // clang-format off
 INSTANTIATE_TEST_SUITE_P(
     Glsl, CompileVulkanToSpirvTest,
@@ -382,6 +390,9 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.bufferhandle20.frag",
         "spv.bufferhandle21.frag",
         "spv.bufferhandle22.frag",
+        "spv.bufferhandle23.frag",
+        "spv.bufferhandle24.frag",
+        "spv.bufferhandle25.frag",
         "spv.bufferhandleUvec2.frag",
         "spv.bufferhandle_Error.frag",
         "spv.builtInXFB.vert",
@@ -692,6 +703,7 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.coopmatKHR_Error.comp",
         "spv.coopmatKHR_constructor.comp",
         "spv.coopmatKHR_constructorError.comp",
+        "spv.coopmatKHR_matmuladd_Error.comp",
         "spv.coopvec.comp",
         "spv.coopvec2.comp",
         "spv.coopvecloadstore.comp",
@@ -1080,7 +1092,6 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.debuginfo.bufferref.glsl.frag",
         "spv.debuginfo.const_params.glsl.comp",
         "spv.debuginfo.scalar_types.glsl.frag",
-        "spv.debuginfo.rt_types.glsl.rgen",
         "spv.debuginfo.include.glsl.frag",
         "spv.debuginfo.multiline.glsl.frag",
         "spv.debuginfo.implicit_br.glsl.frag",
@@ -1088,6 +1099,9 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.debuginfo.continued.glsl.vert",
         "spv.debuginfo.interface_bool.glsl.comp",
         "spv.debuginfo.sampler_type.glsl.frag",
+        "spv.debuginfo.const_variables.glsl.frag",
+        "spv.debuginfo.ubo.glsl.frag",
+        "spv.debuginfo.declaration.glsl.frag",
     })),
     FileNameAsCustomTestSuffix
 );
@@ -1096,6 +1110,14 @@ INSTANTIATE_TEST_SUITE_P(
     Glsl, GlslNonSemanticShaderDebugInfoSpirv13Test,
     ::testing::ValuesIn(std::vector<std::string>({
         "spv.debuginfo.coopmatKHR.comp",
+    })),
+    FileNameAsCustomTestSuffix
+);
+
+INSTANTIATE_TEST_SUITE_P(
+    Glsl, GlslNonSemanticShaderDebugInfoVulkanLatestTest,
+    ::testing::ValuesIn(std::vector<std::string>({
+        "spv.debuginfo.rt_types.glsl.rgen",
     })),
     FileNameAsCustomTestSuffix
 );
