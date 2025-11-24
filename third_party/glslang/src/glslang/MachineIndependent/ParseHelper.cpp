@@ -43,6 +43,7 @@
 #include "Scan.h"
 
 #include <algorithm>
+#include <sys/types.h>
 
 #include "Versions.h"
 #include "preprocessor/PpContext.h"
@@ -1808,7 +1809,81 @@ void TParseContext::handleCoopMat2FunctionCall(const TSourceLoc& loc, const TFun
             // Set result type to match type of first parameter
             result->setType(result->getAsAggregate()->getSequence()[0]->getAsTyped()->getType());
         } else {
-            // For MulAdd, set result type to match type of C parameter
+            // The only remaining operation is MulAdd
+            assert(fnCandidate->getBuiltInOp() == EOpCooperativeMatrixMulAdd ||
+                   fnCandidate->getBuiltInOp() == EOpCooperativeMatrixMulAddNV);
+
+            // Validate that the matrix sizes are compatible for multiplication and addition
+            const auto &sequence = arguments->getAsAggregate()->getSequence();
+
+            using ArrayDim = const TArraySize&;
+            auto getDim = [](const TIntermSequence& seq, int idx) -> std::tuple<ArrayDim, ArrayDim, int> {
+                const auto &type = seq[idx]->getAsTyped()->getType();
+                const auto *size = type.getTypeParameters()->arraySizes;
+
+                if (type.isCoopMatNV()) {
+                    // coopmatNV don't encode usage, so provide the correct usage by default
+                    return {size->getArraySize(2), size->getArraySize(3), idx};
+                } else {
+                    assert(type.isCoopMatKHR());
+                    return {size->getArraySize(1), size->getArraySize(2), size->getDimSize(3)};
+                }
+            };
+
+            // sizes look like: [scope, rows, cols, use]
+            auto [aRows, aCols, aUse] = getDim(sequence, 0);
+            auto [bRows, bCols, bUse] = getDim(sequence, 1);
+            auto [cRows, cCols, cUse] = getDim(sequence, 2);
+
+            auto toString = [](ArrayDim dim) -> std::string {
+                std::stringstream buf;
+                if (dim.node == nullptr) {
+                    buf << dim.size;
+                } else {
+                    buf << "spec_const";
+                }
+                return buf.str();
+            };
+
+            if (aCols != bRows) {
+                auto aRowsStr = toString(aRows);
+                auto aColsStr = toString(aCols);
+                auto bRowsStr = toString(bRows);
+                auto bColsStr = toString(bCols);
+                error(loc, "cannot multiply coop matrices with incompatible sizes",
+                      sequence[0]->getAsSymbolNode()->getMangledName().c_str(),
+                      "%s x %s with %s x %s",
+                      aRowsStr.c_str(),
+                      aColsStr.c_str(),
+                      bRowsStr.c_str(),
+                      bColsStr.c_str());
+            } else if (aRows != cRows || bCols != cCols) {
+                auto aRowsStr = toString(aRows);
+                auto bColsStr = toString(bCols);
+                auto cRowsStr = toString(cRows);
+                auto cColsStr = toString(cCols);
+                error(loc, "cannot add coop matrices with incompatible sizes",
+                      sequence[2]->getAsSymbolNode()->getMangledName().c_str(),
+                      "%s x %s with %s x %s",
+                      aRowsStr.c_str(),
+                      bColsStr.c_str(),
+                      cRowsStr.c_str(),
+                      cColsStr.c_str());
+            } else if (aUse != 0) {
+                error(loc, "coop matrix A in MulAdd operation has incompatible usage property,",
+                      sequence[0]->getAsSymbolNode()->getMangledName().c_str(),
+                      "found %d, but needed 0", aUse);
+            } else if (bUse != 1) {
+                error(loc, "coop matrix B in MulAdd operation has incompatible usage property,",
+                      sequence[1]->getAsSymbolNode()->getMangledName().c_str(),
+                      "found %d, but needed 1", bUse);
+            } else if (cUse != 2) {
+                error(loc, "coop matrix C in MulAdd operation has incompatible usage property,",
+                      sequence[2]->getAsSymbolNode()->getMangledName().c_str(),
+                      "found %d, but needed 2", cUse);
+            }
+
+            // Set result type to match type of C parameter
             result->setType(result->getAsAggregate()->getSequence()[2]->getAsTyped()->getType());
         }
     }
@@ -1820,9 +1895,9 @@ static const uint32_t spv_Scope_Subgroup = 3;
 void TParseContext::handleVector2CoopMatConversionCall(const TSourceLoc& loc, const TFunction* fnCandidate,
                                                        TIntermTyped*& result, TIntermNode* arguments)
 {
-  const int CM_MatrixUseA = 0;           // == gl_MatrixUseA
-  const int CM_MatrixUseB = 1;           // == gl_MatrixUseB
-  const int CM_MatrixUseAccumulator = 2; // == gl_MatrixUseAccumulator
+  const uint32_t CM_MatrixUseA = 0;           // == gl_MatrixUseA
+  const uint32_t CM_MatrixUseB = 1;           // == gl_MatrixUseB
+  const uint32_t CM_MatrixUseAccumulator = 2; // == gl_MatrixUseAccumulator
 
   TOperator builtinOp = fnCandidate->getBuiltInOp();
 
@@ -1914,7 +1989,7 @@ void TParseContext::handleVector2CoopMatConversionCall(const TSourceLoc& loc, co
       error(loc, "cooperative matrix has unsupported scope; gl_SubgroupScope is expected", "", "");
     }
 
-    if (coopMatKHRuse < CM_MatrixUseA || coopMatKHRuse > CM_MatrixUseAccumulator) {
+    if (coopMatKHRuse > CM_MatrixUseAccumulator) {
       coopMatKHRuse = CM_MatrixUseA;
       error(loc, "cooperative matrix use must be one of gl_MatrixUseA, gl_MatrixUseB, gl_MatrixUseAccumulator",
             "", "");
@@ -1992,7 +2067,7 @@ void TParseContext::handleVector2CoopMatConversionCall(const TSourceLoc& loc, co
       error(loc, "cooperative matrix has unsupported scope; gl_SubgroupScope is expected", "", "");
     }
 
-    if (coopMatKHRuse < CM_MatrixUseA || coopMatKHRuse > CM_MatrixUseAccumulator) {
+    if (coopMatKHRuse > CM_MatrixUseAccumulator) {
       coopMatKHRuse = CM_MatrixUseA;
       error(loc, "cooperative matrix use must be one of gl_MatrixUseA, gl_MatrixUseB, gl_MatrixUseAccumulator",
             "", "");
@@ -2768,6 +2843,19 @@ void TParseContext::builtInOpCheck(const TSourceLoc& loc, const TFunction& fnCan
 
     TString featureString;
     const char* feature = nullptr;
+
+    auto checkConstantArgWithLocation = [&](int argIndex, const char* argDescription,
+                                                       const char* errMsg, int ioRTLocationSet) {
+        //ioRTLocationSet refers to grouping of locations of RT input/outputs as defined in TIntermediate::usedIoRT
+        if (!(*argp)[argIndex]->getAsConstantUnion()) {
+            error(loc, "argument must be compile-time constant", argDescription, argIndex == 10 ? "a" : "");
+        } else if (ioRTLocationSet >= 0) {
+            unsigned int location = (*argp)[argIndex]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
+            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(ioRTLocationSet, location) < 0)
+                error(loc, "with layout(location =", errMsg, "%d)", location);
+        }
+    };
+
     switch (callNode.getOp()) {
     case EOpTextureGather:
     case EOpTextureGatherOffset:
@@ -3057,108 +3145,46 @@ void TParseContext::builtInOpCheck(const TSourceLoc& loc, const TFunction& fnCan
         break;
     }
 
+
     case EOpTraceNV:
-        if (!(*argp)[10]->getAsConstantUnion())
-            error(loc, "argument must be compile-time constant", "payload number", "a");
+        checkConstantArgWithLocation(10, "payload number", nullptr, -1);
         break;
     case EOpTraceRayMotionNV:
-        if (!(*argp)[11]->getAsConstantUnion())
-            error(loc, "argument must be compile-time constant", "payload number", "a");
+        checkConstantArgWithLocation(11, "payload number", nullptr, -1);
         break;
     case EOpTraceKHR:
-        if (!(*argp)[10]->getAsConstantUnion())
-            error(loc, "argument must be compile-time constant", "payload number", "a");
-        else {
-            unsigned int location = (*argp)[10]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
-            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(0, location) < 0)
-                error(loc, "with layout(location =", "no rayPayloadEXT/rayPayloadInEXT declared", "%d)", location);
-        }
+        checkConstantArgWithLocation(10, "payload number", "no rayPayloadEXT/rayPayloadInEXT declared", 0);
         break;
     case EOpExecuteCallableNV:
-        if (!(*argp)[1]->getAsConstantUnion())
-            error(loc, "argument must be compile-time constant", "callable data number", "");
+        checkConstantArgWithLocation(1, "callable data number", nullptr, -1);
         break;
     case EOpExecuteCallableKHR:
-        if (!(*argp)[1]->getAsConstantUnion())
-            error(loc, "argument must be compile-time constant", "callable data number", "");
-        else {
-            unsigned int location = (*argp)[1]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
-            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(1, location) < 0)
-                error(loc, "with layout(location =", "no callableDataEXT/callableDataInEXT declared", "%d)", location);
-        }
+        checkConstantArgWithLocation(1, "callable data number", "no callableDataEXT/callableDataInEXT declared", 1);
         break;
 
     case EOpHitObjectTraceRayNV:
-        if (!(*argp)[11]->getAsConstantUnion())
-            error(loc, "argument must be compile-time constant", "payload number", "");
-        else {
-            unsigned int location = (*argp)[11]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
-            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(0, location) < 0)
-                error(loc, "with layout(location =", "no rayPayloadEXT/rayPayloadInEXT declared", "%d)", location);
-        }
+        checkConstantArgWithLocation(11, "payload number", "no rayPayloadEXT/rayPayloadInEXT declared", 0);
         break;
     case EOpHitObjectTraceRayMotionNV:
-        if (!(*argp)[12]->getAsConstantUnion())
-            error(loc, "argument must be compile-time constant", "payload number", "");
-        else {
-            unsigned int location = (*argp)[12]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
-            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(0, location) < 0)
-                error(loc, "with layout(location =", "no rayPayloadEXT/rayPayloadInEXT declared", "%d)", location);
-        }
+        checkConstantArgWithLocation(12, "payload number", "no rayPayloadEXT/rayPayloadInEXT declared", 0);
         break;
     case EOpHitObjectExecuteShaderNV:
-        if (!(*argp)[1]->getAsConstantUnion())
-            error(loc, "argument must be compile-time constant", "payload number", "");
-        else {
-            unsigned int location = (*argp)[1]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
-            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(0, location) < 0)
-                error(loc, "with layout(location =", "no rayPayloadEXT/rayPayloadInEXT declared", "%d)", location);
-        }
+        checkConstantArgWithLocation(1, "payload number", "no rayPayloadEXT/rayPayloadInEXT declared", 0);
         break;
     case EOpHitObjectRecordHitNV:
-        if (!(*argp)[12]->getAsConstantUnion())
-            error(loc, "argument must be compile-time constant", "hitobjectattribute number", "");
-        else {
-            unsigned int location = (*argp)[12]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
-            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(2, location) < 0)
-                error(loc, "with layout(location =", "no hitObjectAttributeNV declared", "%d)", location);
-        }
+        checkConstantArgWithLocation(12, "hitobjectattribute number", "no hitObjectAttributeNV declared", 2);
         break;
     case EOpHitObjectRecordHitMotionNV:
-        if (!(*argp)[13]->getAsConstantUnion())
-            error(loc, "argument must be compile-time constant", "hitobjectattribute number", "");
-        else {
-            unsigned int location = (*argp)[13]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
-            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(2, location) < 0)
-                error(loc, "with layout(location =", "no hitObjectAttributeNV declared", "%d)", location);
-        }
+        checkConstantArgWithLocation(13, "hitobjectattribute number", "no hitObjectAttributeNV declared", 2);
         break;
     case EOpHitObjectRecordHitWithIndexNV:
-        if (!(*argp)[11]->getAsConstantUnion())
-            error(loc, "argument must be compile-time constant", "hitobjectattribute number", "");
-        else {
-            unsigned int location = (*argp)[11]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
-            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(2, location) < 0)
-                error(loc, "with layout(location =", "no hitObjectAttributeNV declared", "%d)", location);
-        }
+        checkConstantArgWithLocation(11, "hitobjectattribute number", "no hitObjectAttributeNV declared", 2);
         break;
     case EOpHitObjectRecordHitWithIndexMotionNV:
-        if (!(*argp)[12]->getAsConstantUnion())
-            error(loc, "argument must be compile-time constant", "hitobjectattribute number", "");
-        else {
-            unsigned int location = (*argp)[12]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
-            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(2, location) < 0)
-                error(loc, "with layout(location =", "no hitObjectAttributeNV declared", "%d)", location);
-        }
+        checkConstantArgWithLocation(12, "hitobjectattribute number", "no hitObjectAttributeNV declared", 2);
         break;
     case EOpHitObjectGetAttributesNV:
-        if (!(*argp)[1]->getAsConstantUnion())
-            error(loc, "argument must be compile-time constant", "hitobjectattribute number", "");
-        else {
-            unsigned int location = (*argp)[1]->getAsConstantUnion()->getAsConstantUnion()->getConstArray()[0].getUConst();
-            if (!extensionTurnedOn(E_GL_EXT_spirv_intrinsics) && intermediate.checkLocationRT(2, location) < 0)
-                error(loc, "with layout(location =", "no hitObjectAttributeNV declared", "%d)", location);
-        }
+        checkConstantArgWithLocation(1, "hitobjectattribute number", "no hitObjectAttributeNV declared", 2);
         break;
 
     case EOpRayQueryGetIntersectionType:
@@ -4819,11 +4845,22 @@ void TParseContext::accStructCheck(const TSourceLoc& loc, const TType& type, con
 
 }
 
+void TParseContext::hitObjectEXTCheck(const TSourceLoc & loc, const TType & type, const TString & identifier)
+{
+    if (type.getBasicType() == EbtStruct && containsFieldWithBasicType(type, EbtHitObjectEXT)) {
+        error(loc, "struct is not allowed to contain hitObjectEXT:", type.getTypeName().c_str(), identifier.c_str());
+    } else if (type.getBasicType() == EbtHitObjectEXT) {
+        TStorageQualifier qualifier = type.getQualifier().storage;
+        if (qualifier != EvqGlobal && qualifier != EvqTemporary) {
+            error(loc, "hitObjectEXT can only be declared in global or function scope with no storage qualifier:", "hitObjectEXT", identifier.c_str());
+        }
+    }
+}
 void TParseContext::hitObjectNVCheck(const TSourceLoc & loc, const TType & type, const TString & identifier)
 {
-    if (type.getBasicType() == EbtStruct && containsFieldWithBasicType(type, EbtHitObjectNV)) {
+    if (type.getBasicType() == EbtStruct && ( containsFieldWithBasicType(type, EbtHitObjectNV))) {
         error(loc, "struct is not allowed to contain hitObjectNV:", type.getTypeName().c_str(), identifier.c_str());
-    } else if (type.getBasicType() == EbtHitObjectNV) {
+    } else if ((type.getBasicType() == EbtHitObjectNV)) {
         TStorageQualifier qualifier = type.getQualifier().storage;
         if (qualifier != EvqGlobal && qualifier != EvqTemporary) {
             error(loc, "hitObjectNV can only be declared in global or function scope with no storage qualifier:", "hitObjectNV", identifier.c_str());
@@ -6397,9 +6434,9 @@ void TParseContext::inductiveLoopCheck(const TSourceLoc& loc, TIntermNode* init,
     inductiveLoopIds.insert(loopIndex);
 
     // condition's form must be "loop-index relational-operator constant-expression"
-    bool badCond = ! loop->getTest();
+    bool badCond = ! loop->getTestExpr();
     if (! badCond) {
-        TIntermBinary* binaryCond = loop->getTest()->getAsBinaryNode();
+        TIntermBinary* binaryCond = loop->getTestExpr()->getAsBinaryNode();
         badCond = ! binaryCond;
         if (! badCond) {
             switch (binaryCond->getOp()) {
@@ -6497,6 +6534,9 @@ void TParseContext::finish()
 
     if (parsingBuiltins)
         return;
+
+    // Forward builtin alias to AST for later use
+    intermediate.setBuiltinAliasLookup(symbolTable.collectBuiltinAlias());
 
     // Check on array indexes for ES 2.0 (version 100) limitations.
     for (size_t i = 0; i < needsIndexLimitationChecking.size(); ++i)
@@ -6799,8 +6839,10 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
         }
         for (TLayoutDepth depth = (TLayoutDepth)(EldNone + 1); depth < EldCount; depth = (TLayoutDepth)(depth+1)) {
             if (id == TQualifier::getLayoutDepthString(depth)) {
-                requireProfile(loc, ECoreProfile | ECompatibilityProfile, "depth layout qualifier");
-                profileRequires(loc, ECoreProfile | ECompatibilityProfile, 420, nullptr, "depth layout qualifier");
+                const char* feature = "depth layout qualifier";
+                requireProfile(loc, ECoreProfile | ECompatibilityProfile | EEsProfile, feature);
+                profileRequires(loc, ECoreProfile | ECompatibilityProfile, 420, E_GL_ARB_conservative_depth, feature);
+                profileRequires(loc, EEsProfile, 0, E_GL_EXT_conservative_depth, feature);
                 publicType.shaderQualifiers.layoutDepth = depth;
                 return;
             }
@@ -6889,6 +6931,10 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
             } else if (id == "hitobjectshaderrecordnv") {
                 requireExtensions(loc, 1, &E_GL_NV_shader_invocation_reorder, "hitobject shader record NV");
                 publicType.qualifier.layoutHitObjectShaderRecordNV = true;
+                return;
+            } else if (id == "hitobjectshaderrecordext") {
+                requireExtensions(loc, 1, &E_GL_EXT_shader_invocation_reorder, "hitobject shader record EXT");
+                publicType.qualifier.layoutHitObjectShaderRecordEXT = true;
                 return;
             }
 
@@ -7405,6 +7451,8 @@ void TParseContext::mergeObjectLayoutQualifiers(TQualifier& dst, const TQualifie
         if (src.layoutHitObjectShaderRecordNV)
             dst.layoutHitObjectShaderRecordNV = true;
         dst.layoutTileAttachmentQCOM |= src.layoutTileAttachmentQCOM;
+        if (src.layoutHitObjectShaderRecordEXT)
+            dst.layoutHitObjectShaderRecordEXT = true;
     }
 }
 
@@ -7571,6 +7619,7 @@ void TParseContext::layoutTypeCheck(const TSourceLoc& loc, const TType& type)
         case EvqCallableData:
         case EvqCallableDataIn:
         case EvqHitObjectAttrNV:
+        case EvqHitObjectAttrEXT:
         case EvqSpirvStorageClass:
             break;
         case EvqTileImageEXT:
@@ -8968,7 +9017,7 @@ TIntermNode* TParseContext::declareVariable(const TSourceLoc& loc, TString& iden
     if (initializer) {
         if (type.getBasicType() == EbtRayQuery) {
             error(loc, "ray queries can only be initialized by using the rayQueryInitializeEXT intrinsic:", "=", identifier.c_str());
-        } else if (type.getBasicType() == EbtHitObjectNV) {
+        } else if ((type.getBasicType() == EbtHitObjectNV) || (type.getBasicType() == EbtHitObjectEXT)) {
             error(loc, "hit objects cannot be initialized using initializers", "=", identifier.c_str());
         }
 
@@ -9068,6 +9117,7 @@ TIntermNode* TParseContext::declareVariable(const TSourceLoc& loc, TString& iden
     atomicUintCheck(loc, type, identifier);
     accStructCheck(loc, type, identifier);
     hitObjectNVCheck(loc, type, identifier);
+    hitObjectEXTCheck(loc, type, identifier);
     checkAndResizeMeshViewDim(loc, type, /*isBlockMember*/ false);
     if (type.getQualifier().storage == EvqConst && type.containsReference()) {
         error(loc, "variables with reference type can't have qualifier 'const'", "qualifier", "");
@@ -9172,7 +9222,22 @@ TIntermNode* TParseContext::declareVariable(const TSourceLoc& loc, TString& iden
     // fix up
     fixOffset(loc, *symbol);
 
-    return initNode;
+    // TODO: The decl AST is turned on based on debug info right now. We should expose it as an explicit option.
+    if (intermediate.getDebugInfo()) {
+        TVariable* variable = symbol->getAsVariable();
+        if (variable) {
+            auto decl = new TIntermVariableDecl(intermediate.addSymbol(*variable, loc), initNode);
+            decl->setLoc(loc);
+            return decl;
+        }
+        else {
+            // We ignore builtins redeclarations
+            return nullptr;
+        }
+    }
+    else {
+        return initNode;
+    }
 }
 
 // Pick up global defaults from the provide global defaults into dst.
@@ -10093,9 +10158,9 @@ void TParseContext::updateBindlessQualifier(TType& memberType)
 }
 
 //
-// Do everything needed to add an interface block.
+// Do everything needed to add an interface block. Returns the declarator node if there's an instance declaration.
 //
-void TParseContext::declareBlock(const TSourceLoc& loc, TTypeList& typeList, const TString* instanceName,
+TIntermNode* TParseContext::declareBlock(const TSourceLoc& loc, TTypeList& typeList, const TString* instanceName,
     TArraySizes* arraySizes)
 {
     if (spvVersion.vulkan > 0 && spvVersion.vulkanRelaxed)
@@ -10161,7 +10226,7 @@ void TParseContext::declareBlock(const TSourceLoc& loc, TTypeList& typeList, con
     // do all the rest.
     if (! symbolTable.atBuiltInLevel() && builtInName(*blockName)) {
         redeclareBuiltinBlock(loc, typeList, *blockName, instanceName, arraySizes);
-        return;
+        return nullptr;
     }
 
     // Not a redeclaration of a built-in; check that all names are user names.
@@ -10327,7 +10392,7 @@ void TParseContext::declareBlock(const TSourceLoc& loc, TTypeList& typeList, con
             }
         }
         if (!instanceName) {
-            return;
+            return nullptr;
         }
     } else {
         //
@@ -10350,11 +10415,11 @@ void TParseContext::declareBlock(const TSourceLoc& loc, TTypeList& typeList, con
             if (existingName->getType().getBasicType() == EbtBlock) {
                 if (existingName->getType().getQualifier().storage == blockType.getQualifier().storage) {
                     error(loc, "Cannot reuse block name within the same interface:", blockName->c_str(), blockType.getStorageQualifierString());
-                    return;
+                    return nullptr;
                 }
             } else {
                 error(loc, "block name cannot redefine a non-block name", blockName->c_str(), "");
-                return;
+                return nullptr;
             }
         }
     }
@@ -10371,7 +10436,7 @@ void TParseContext::declareBlock(const TSourceLoc& loc, TTypeList& typeList, con
         else
             error(loc, "block instance name redefinition", variable.getName().c_str(), "");
 
-        return;
+        return nullptr;
     }
 
     // Check for general layout qualifier errors
@@ -10386,6 +10451,17 @@ void TParseContext::declareBlock(const TSourceLoc& loc, TTypeList& typeList, con
 
     // Save it in the AST for linker use.
     trackLinkage(variable);
+
+    TIntermAggregate* declNode = nullptr;
+    if (intermediate.getDebugInfo()) {
+        auto blockDeclNode = new TIntermVariableDecl(intermediate.addSymbol(variable, loc), nullptr);
+        blockDeclNode->setLoc(loc);
+
+        // We have to wrap the declaration with a sequence to fit the same processing logic with variables.
+        declNode = new TIntermAggregate(EOpSequence);
+        declNode->getSequence().push_back(blockDeclNode);
+    }
+    return declNode;
 }
 
 //
@@ -10473,6 +10549,10 @@ void TParseContext::blockStageIoCheck(const TSourceLoc& loc, const TQualifier& q
     case EvqHitObjectAttrNV:
         profileRequires(loc, ~EEsProfile, 460, E_GL_NV_shader_invocation_reorder, "hitObjectAttributeNV block");
         requireStage(loc, (EShLanguageMask)(EShLangRayGenMask | EShLangClosestHitMask | EShLangMissMask), "hitObjectAttributeNV block");
+        break;
+    case EvqHitObjectAttrEXT:
+        profileRequires(loc, ~EEsProfile, 460, E_GL_EXT_shader_invocation_reorder, "hitObjectAttributeEXT block");
+        requireStage(loc, (EShLanguageMask)(EShLangRayGenMask | EShLangClosestHitMask | EShLangMissMask), "hitObjectAttributeEXT block");
         break;
     default:
         error(loc, "only uniform, buffer, in, or out blocks are supported", blockName->c_str(), "");

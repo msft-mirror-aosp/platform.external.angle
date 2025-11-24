@@ -429,8 +429,6 @@ class Renderer : angle::NonCopyable
     void cleanupPendingSubmissionGarbage();
 
     angle::Result submitCommands(vk::ErrorContext *context,
-                                 vk::ProtectionType protectionType,
-                                 egl::ContextPriority contextPriority,
                                  const vk::Semaphore *signalSemaphore,
                                  const vk::SharedExternalFence *externalFence,
                                  const QueueSerial &submitQueueSerial,
@@ -536,7 +534,8 @@ class Renderer : angle::NonCopyable
         return mEnabledDeviceExtensions;
     }
 
-    VkDeviceSize getPreferedBufferBlockSize(uint32_t memoryTypeIndex) const;
+    VkDeviceSize getPreferredInitialBufferBlockSize(uint32_t memoryTypeIndex) const;
+    VkDeviceSize getPreferredLargeBufferBlockSize(uint32_t memoryTypeIndex) const;
 
     size_t getDefaultBufferAlignment() const { return mDefaultBufferAlignment; }
 
@@ -973,6 +972,7 @@ class Renderer : angle::NonCopyable
     vk::ImageMemorySuballocator mImageMemorySuballocator;
 
     vk::MemoryProperties mMemoryProperties;
+    VkDeviceSize mPreferredInitialBufferBlockSize;
     VkDeviceSize mPreferredLargeHeapBlockSize;
 
     // The default alignment for BufferVk object

@@ -1137,7 +1137,9 @@ template void CommandBufferHelperCommon::flushSetEventsImpl<VulkanSecondaryComma
     Context *context,
     VulkanSecondaryCommandBuffer *commandBuffer);
 
-void CommandBufferHelperCommon::executeBarriers(Renderer *renderer, CommandsState *commandsState)
+void CommandBufferHelperCommon::executeBarriers(Renderer *renderer,
+                                                CommandsState *commandsState,
+                                                PrimaryCommandBuffer *primaryCommands)
 {
     // Add ANI semaphore to the command submission.
     if (mAcquireNextImageSemaphore.valid())
@@ -1146,8 +1148,8 @@ void CommandBufferHelperCommon::executeBarriers(Renderer *renderer, CommandsStat
                                         kSwapchainAcquireImageWaitStageFlags);
     }
 
-    mPipelineBarriers.execute(renderer, commandsState->getPrimaryCommands());
-    mEventBarriers.execute(renderer, commandsState->getPrimaryCommands());
+    mPipelineBarriers.execute(renderer, primaryCommands);
+    mEventBarriers.execute(renderer, primaryCommands);
 }
 
 void CommandBufferHelperCommon::addCommandDiagnosticsCommon(std::ostringstream *out)
@@ -1252,8 +1254,10 @@ void OutsideRenderPassCommandBufferHelper::collectRefCountedEventsGarbage(
     }
 }
 
-angle::Result OutsideRenderPassCommandBufferHelper::flushToPrimary(Context *context,
-                                                                   CommandsState *commandsState)
+angle::Result OutsideRenderPassCommandBufferHelper::flushToPrimary(
+    Context *context,
+    CommandsState *commandsState,
+    PrimaryCommandBuffer *primaryCommands)
 {
     ANGLE_TRACE_EVENT0("gpu.angle", "OutsideRenderPassCommandBufferHelper::flushToPrimary");
     ASSERT(!empty());
@@ -1261,21 +1265,20 @@ angle::Result OutsideRenderPassCommandBufferHelper::flushToPrimary(Context *cont
     Renderer *renderer = context->getRenderer();
 
     // Commands that are added to primary before beginRenderPass command
-    executeBarriers(renderer, commandsState);
+    executeBarriers(renderer, commandsState, primaryCommands);
 
     ANGLE_TRY(endCommandBuffer(context));
     ASSERT(mIsCommandBufferEnded);
-    mCommandBuffer.executeCommands(commandsState->getPrimaryCommands());
+    mCommandBuffer.executeCommands(primaryCommands);
 
     // Call VkCmdSetEvent to track the completion of this renderPass.
-    flushSetEventsImpl(context, commandsState->getPrimaryCommands());
+    flushSetEventsImpl(context, primaryCommands);
 
     // Proactively reset all released events before ending command buffer.
-    context->getRenderer()->getRefCountedEventRecycler()->resetEvents(
-        context, mQueueSerial, commandsState->getPrimaryCommands());
+    context->getRenderer()->getRefCountedEventRecycler()->resetEvents(context, mQueueSerial,
+                                                                      primaryCommands);
 
-    // Restart the command buffer.
-    return reset(context, commandsState->getSecondaryCommands());
+    return angle::Result::Continue;
 }
 
 angle::Result OutsideRenderPassCommandBufferHelper::endCommandBuffer(ErrorContext *context)
@@ -2322,6 +2325,7 @@ void RenderPassCommandBufferHelper::invalidateRenderPassStencilAttachment(
 
 angle::Result RenderPassCommandBufferHelper::flushToPrimary(Context *context,
                                                             CommandsState *commandsState,
+                                                            PrimaryCommandBuffer *primaryCommands,
                                                             const RenderPass &renderPass,
                                                             VkFramebuffer framebufferOverride)
 {
@@ -2336,10 +2340,9 @@ angle::Result RenderPassCommandBufferHelper::flushToPrimary(Context *context,
 
     ANGLE_TRACE_EVENT0("gpu.angle", "RenderPassCommandBufferHelper::flushToPrimary");
     ASSERT(mRenderPassStarted);
-    PrimaryCommandBuffer *primary = commandsState->getPrimaryCommands();
 
     // Commands that are added to primary before beginRenderPass command
-    executeBarriers(renderer, commandsState);
+    executeBarriers(renderer, commandsState, primaryCommands);
 
     constexpr VkSubpassContents kSubpassContents =
         ExecutesInline() ? VK_SUBPASS_CONTENTS_INLINE
@@ -2347,7 +2350,7 @@ angle::Result RenderPassCommandBufferHelper::flushToPrimary(Context *context,
 
     if (!renderPass.valid())
     {
-        mRenderPassDesc.beginRendering(context, primary, mRenderArea, kSubpassContents,
+        mRenderPassDesc.beginRendering(context, primaryCommands, mRenderArea, kSubpassContents,
                                        mFramebuffer.getUnpackedImageViews(), mAttachmentOps,
                                        mClearValues, mFramebuffer.getLayers());
     }
@@ -2367,7 +2370,7 @@ angle::Result RenderPassCommandBufferHelper::flushToPrimary(Context *context,
         }
 
         mRenderPassDesc.beginRenderPass(
-            context, primary, renderPass,
+            context, primaryCommands, renderPass,
             framebufferOverride ? framebufferOverride : mFramebuffer.getFramebuffer().getHandle(),
             mRenderArea, kSubpassContents, mClearValues,
             mFramebuffer.isImageless() ? &attachmentBeginInfo : nullptr);
@@ -2379,14 +2382,14 @@ angle::Result RenderPassCommandBufferHelper::flushToPrimary(Context *context,
         if (subpass > 0)
         {
             ASSERT(!context->getFeatures().preferDynamicRendering.enabled);
-            primary->nextSubpass(kSubpassContents);
+            primaryCommands->nextSubpass(kSubpassContents);
         }
-        mCommandBuffers[subpass].executeCommands(primary);
+        mCommandBuffers[subpass].executeCommands(primaryCommands);
     }
 
     if (!renderPass.valid())
     {
-        primary->endRendering();
+        primaryCommands->endRendering();
 
         if (mImageOptimizeForPresent != nullptr)
         {
@@ -2399,22 +2402,21 @@ angle::Result RenderPassCommandBufferHelper::flushToPrimary(Context *context,
             mImageOptimizeForPresent->setCurrentImageAccess(renderer,
                                                             mImageOptimizeForPresentOriginalLayout);
             mImageOptimizeForPresent->recordWriteBarrierOneOff(renderer, ImageAccess::Present,
-                                                               primary, nullptr);
+                                                               primaryCommands, nullptr);
             mImageOptimizeForPresent               = nullptr;
             mImageOptimizeForPresentOriginalLayout = ImageAccess::Undefined;
         }
     }
     else
     {
-        primary->endRenderPass();
+        primaryCommands->endRenderPass();
     }
 
     // Now issue VkCmdSetEvents to primary command buffer
     ASSERT(mRefCountedEvents.empty());
-    mVkEventArray.flushSetEvents(primary);
+    mVkEventArray.flushSetEvents(primaryCommands);
 
-    // Restart the command buffer.
-    return reset(context, commandsState->getSecondaryCommands());
+    return angle::Result::Continue;
 }
 
 void RenderPassCommandBufferHelper::addColorResolveAttachment(size_t colorIndexGL,
@@ -3020,6 +3022,8 @@ BufferPool::BufferPool()
       mUsage(0),
       mHostVisible(false),
       mSize(0),
+      mInitialSize(0),
+      mPreferredSize(0),
       mMemoryTypeIndex(0),
       mTotalMemorySize(0),
       mNumberOfNewBuffersNeededSinceLastPrune(0)
@@ -3030,29 +3034,23 @@ BufferPool::BufferPool(BufferPool &&other)
       mUsage(other.mUsage),
       mHostVisible(other.mHostVisible),
       mSize(other.mSize),
+      mInitialSize(other.mInitialSize),
+      mPreferredSize(other.mPreferredSize),
       mMemoryTypeIndex(other.mMemoryTypeIndex)
 {}
 
 void BufferPool::initWithFlags(Renderer *renderer,
                                vma::VirtualBlockCreateFlags flags,
                                VkBufferUsageFlags usage,
-                               VkDeviceSize initialSize,
                                uint32_t memoryTypeIndex,
                                VkMemoryPropertyFlags memoryPropertyFlags)
 {
     mVirtualBlockCreateFlags = flags;
     mUsage                   = usage;
     mMemoryTypeIndex         = memoryTypeIndex;
-    if (initialSize)
-    {
-        // Should be power of two
-        ASSERT(gl::isPow2(initialSize));
-        mSize = initialSize;
-    }
-    else
-    {
-        mSize = renderer->getPreferedBufferBlockSize(memoryTypeIndex);
-    }
+    mInitialSize             = renderer->getPreferredInitialBufferBlockSize(memoryTypeIndex);
+    mPreferredSize           = renderer->getPreferredLargeBufferBlockSize(memoryTypeIndex);
+    mSize                    = mInitialSize;
     mHostVisible = ((memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0);
     mBufferBlocks.reserve(32);
 }
@@ -3134,9 +3132,12 @@ VkResult BufferPool::allocateNewBuffer(ErrorContext *context, VkDeviceSize sizeI
     // First ensure we are not exceeding the heapSize to avoid the validation error.
     VK_RESULT_CHECK(sizeInBytes <= heapSize, VK_ERROR_OUT_OF_DEVICE_MEMORY);
 
-    // Double the size until meet the requirement. This also helps reducing the fragmentation. Since
+    // Double the size until the requirement is met. This also helps reduce fragmentation. Since
     // this is global pool, we have less worry about memory waste.
-    VkDeviceSize newSize = mSize;
+    // If this is the first buffer block allocation from an empty pool, the initial size is used.
+    // However, the preferred size will be used for future blocks in the same pool.
+    ASSERT(mInitialSize <= mPreferredSize);
+    VkDeviceSize newSize = mBufferBlocks.empty() ? mInitialSize : mPreferredSize;
     while (newSize < sizeInBytes)
     {
         newSize <<= 1;
@@ -3278,7 +3279,7 @@ VkResult BufferPool::allocateBuffer(ErrorContext *context,
     while (!mEmptyBufferBlocks.empty())
     {
         std::unique_ptr<BufferBlock> &block = mEmptyBufferBlocks.back();
-        if (block->getMemorySize() < mSize)
+        if (block->getMemorySize() < mSize || block->getMemorySize() < alignedSize)
         {
             mTotalMemorySize -= block->getMemorySize();
             block->destroy(context->getRenderer());

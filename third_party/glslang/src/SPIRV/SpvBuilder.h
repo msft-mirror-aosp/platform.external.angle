@@ -208,10 +208,20 @@ public:
 
     // Maps the given OpType Id to a Non-Semantic DebugType Id.
     Id getDebugType(Id type) {
-        if (emitNonSemanticShaderDebugInfo) {
-            return debugId[type];
+        if (auto it = debugTypeIdLookup.find(type); it != debugTypeIdLookup.end()) {
+            return it->second;
         }
-        return 0;
+        
+        return NoType;
+    }
+
+    // Maps the given OpFunction Id to a Non-Semantic DebugFunction Id.
+    Id getDebugFunction(Id func) {
+        if (auto it = debugFuncIdLookup.find(func); it != debugFuncIdLookup.end()) {
+            return it->second;
+        }
+        
+        return NoResult;
     }
 
     // For creating new types (will return old type if the requested one was already made).
@@ -284,6 +294,8 @@ public:
     Id makeRayQueryType();
     // hitObjectNV type
     Id makeHitObjectNVType();
+    // hitObjectEXT type
+    Id makeHitObjectEXTType();
 
     // For querying about types.
     Id getTypeId(Id resultId) const { return module.getTypeId(resultId); }
@@ -510,6 +522,10 @@ public:
     // Create block terminator instruction for statements that have input operands
     // such as OpEmitMeshTasksEXT
     void makeStatementTerminator(spv::Op opcode, const std::vector<Id>& operands, const char* name);
+
+    // Create a global/local constant. Because OpConstant is automatically emitted by getting the constant
+    // ids, this function only handles debug info.
+    void createConstVariable(Id type, const char* name, Id constant, bool isGlobal);
 
     // Create a global or function local or IO variable.
     Id createVariable(Decoration precision, StorageClass storageClass, Id type, const char* name = nullptr,
@@ -1006,6 +1022,8 @@ protected:
     Block* buildPoint;
     Id uniqueId;
     Function* entryPointFunction;
+    // This tracks the current function being built, or nullptr if not in a function.
+    Function const* currentFunction { nullptr };
     bool generatingOpCodeForSpecConst;
     bool useReplicatedComposites { false };
     AccessChain accessChain;
@@ -1050,8 +1068,11 @@ protected:
     // map from include file name ids to their contents
     std::map<spv::Id, const std::string*> includeFiles;
 
-    // map from core id to debug id
-    std::map <spv::Id, spv::Id> debugId;
+    // maps from OpTypeXXX id to DebugTypeXXX id
+    std::unordered_map<spv::Id, spv::Id> debugTypeIdLookup;
+
+    // maps from OpFunction id to DebugFunction id
+    std::unordered_map<spv::Id, spv::Id> debugFuncIdLookup;
 
     // map from file name string id to DebugSource id
     std::unordered_map<spv::Id, spv::Id> debugSourceId;
