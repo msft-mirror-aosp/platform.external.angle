@@ -95,7 +95,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r28_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-22-init-14273-gea10026b-2,android\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-22-init-14273-gea10026b-3,android\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -2847,7 +2847,6 @@ cc_genrule {
         "src/common/platform_helpers.cpp",
         "src/common/platform_helpers.h",
         "src/common/span.h",
-        "src/common/span_util.h",
         "src/common/string_utils.cpp",
         "src/common/string_utils.h",
         "src/common/system_utils.cpp",
