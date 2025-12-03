@@ -449,8 +449,10 @@
 440536251 MAC METAL AMD : GLSLValidationTest_ES3.ManySamplerFieldsInStructComplex/* = SKIP
 443101808 MAC METAL AMD : SimpleUniformTestES3.BoolInArray/* = SKIP
 409867243 MAC METAL : Texture2DTestES3.RGB565RenderAndReadIntoRGB565PBO/* = SKIP
-448658625 MAC METAL : GLSLTest_ES3.SwitchConstantFoldWithVariables/* = SKIP
-448658625 IOS METAL : GLSLTest_ES3.SwitchConstantFoldWithVariables/* = SKIP
+448658625 METAL : GLSLTest_ES3.SwitchConstantFoldWithVariables/* = SKIP
+464927523 METAL : GLSLTest_ES3_PackUnpackEmulation.PackHalf2x16/* = SKIP
+464927523 METAL : GLSLTest_ES3_PackUnpackEmulation.PackSnorm2x16/* = SKIP
+464927523 METAL : GLSLTest_ES3_PackUnpackEmulation.PackUnorm2x16/* = SKIP
 
 // The workaround is not intended to be enabled in this configuration so
 // skip it as the failure is likely a driver bug.
@@ -474,7 +476,6 @@
 40644833 MAC METAL NVIDIA : Texture2DBaseMaxTestES3.Fuzz545ImmutableTexRenderFeedback/* = SKIP
 
 // Skipped because these tests crash with these backends
-457495647 VULKAN : Texture2DBaseMaxTestES3.BaseExceedsMaxFboAttachAtBase/ES3_Vulkan* = SKIP
 457478042 OPENGL : Texture2DBaseMaxTestES3.BaseExceedsMaxFboAttachAtBase/ES3_OpenGL* = SKIP
 
 40644834 MAC METAL INTEL : Texture2DTest.TextureSizeCase1/* = SKIP
@@ -526,6 +527,8 @@
 448658631 WIN D3D11 : GLSLTestLoops.ForContinueInSwitchComplex/* = SKIP
 448658631 WIN D3D11 : GLSLTest_ES3.SwitchConstantFold/* = SKIP
 448658631 WIN D3D11 : GLSLTest_ES3.SwitchConstantFoldWithVariables/* = SKIP
+465068844 WIN D3D11 : GLSLTest_ES3_InitShaderVariables.NameLookup/* = SKIP
+465068844 WIN D3D11 : GLSLTest_ES3_InitShaderVariables.UnnamedOutParamInPrototype* = SKIP
 
 // Android
 42264624 ANDROID GLES : GLSLTest_ES3.InitGlobalComplexConstant/* = SKIP
@@ -878,6 +881,9 @@
 378404998 PIXEL6 VULKAN : VulkanPerformanceCounterTest_ES31.ColorMaskedFramebufferFetchDrawThenClear/* = SKIP
 330697097 PIXEL6 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachments/* = SKIP
 42266019 PIXEL6 VULKAN : VulkanPerformanceCounterTest_DepthStencilLoadStoreOps.MultisampleDepthStencilResolveSeparately/* = SKIP
+
+465140993 PIXEL6 VULKAN : GLSLTest_ES3_PackUnpackEmulation.PackHalf2x16/* = SKIP
+465140993 PIXEL6 VULKAN : GLSLTest_ES3_PackUnpackEmulation.PackSnorm2x16/* = SKIP
 
 // Some Metal tests fail on iOS Intel simulator
 40096874 IOS METAL : CubeMapTextureTest.SampleCoordinateTransformGrad/* = SKIP
@@ -1506,6 +1512,8 @@
 410630704 SAMSUNG GALAXYS24EXYNOS GLES : VulkanImageTest.DeviceVulkan/* = SKIP
 410630704 SAMSUNG GALAXYS24EXYNOS GLES : VulkanImageTest.HasVulkanImageExtensions/* = SKIP
 410630704 SAMSUNG GALAXYS24EXYNOS GLES : VulkanExternalImageTestES31.UninitializedOnGLImportAndStorageWrite/* = SKIP
+465357680 SAMSUNG GALAXYS24EXYNOS VULKAN : StateChangeTestES3.PrimitiveRestart/ES3_Vulkan_NoSupportsExtendedDynamicState2* = SKIP
+465357680 SAMSUNG GALAXYS24EXYNOS VULKAN : StateChangeTestES3.PrimitiveRestart/ES3_Vulkan_NoUsePrimitiveRestartEnableDynamicState = SKIP
 
 // Additional Xclipse failures on latest public
 410630704 SAMSUNG GALAXYS24EXYNOS GLES : AdvancedBlendTest.AdvancedBlendDisabledAndThenEnabledKHR/* = SKIP
@@ -2185,9 +2193,6 @@
 
 406827038 SWIFTSHADER : GLSLTest_ES3.DenormFloatsToIntValues/* = SKIP
 406827038 PIXEL6 VULKAN : GLSLTest_ES3.DenormFloatsToIntValues/* = SKIP
-
-404581995 ANDROID PIXEL4ORXL   : EGLDisplayTestES3.GetPlatformDisplayAndroidValidation/* = SKIP
-404581995 ANDROID GALAXYS22    : EGLDisplayTestES3.GetPlatformDisplayAndroidValidation/* = SKIP
 
 351867710 NVIDIA VULKAN : CopyImageTestES31.CompressedToNorm16/* = SKIP
 351867710 NVIDIA VULKAN : CopyImageTestES31.Norm16ToCompressed/* = SKIP

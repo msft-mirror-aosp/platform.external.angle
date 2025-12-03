@@ -752,6 +752,12 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
+    FeatureInfo usePrimitiveTopologyDynamicState = {
+        "usePrimitiveTopologyDynamicState",
+        FeatureCategory::VulkanWorkarounds,
+        &members,
+    };
+
     FeatureInfo useDepthTestEnableDynamicState = {
         "useDepthTestEnableDynamicState",
         FeatureCategory::VulkanWorkarounds,
@@ -1286,6 +1292,12 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
+    FeatureInfo isVertexSyncDeferred = {
+        "isVertexSyncDeferred",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
     FeatureInfo recycleVkEvent = {
         "recycleVkEvent",
         FeatureCategory::VulkanFeatures,
@@ -1619,6 +1631,18 @@ struct FeaturesVk : FeatureSetBase
     FeatureInfo dropDepthStencilClearOnInvalidate = {
         "dropDepthStencilClearOnInvalidate",
         FeatureCategory::VulkanWorkarounds,
+        &members,
+    };
+
+    FeatureInfo supportsTileMemoryHeap = {
+        "supportsTileMemoryHeap",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo simulateTileMemoryForTesting = {
+        "simulateTileMemoryForTesting",
+        FeatureCategory::VulkanFeatures,
         &members,
     };
 
