@@ -170,6 +170,7 @@
 445764650 VULKAN : DrawBuffersTest.FirstAndLast/* = SKIP
 445764650 VULKAN : DrawBuffersTest.FirstHalfNULL/* = SKIP
 445764650 VULKAN : DrawBuffersTest.Gaps/* = SKIP
+445764650 VULKAN : EGLBufferAgeTest.ValidateDamageRegion/* = SKIP
 445764650 VULKAN : EXTMultisampleCompatibilityTest.DrawAlphaOneAndResolve/* = SKIP
 445764650 VULKAN : ExternalBufferTestES31.BufferDoesNotLeakAHB/* = SKIP
 445764650 VULKAN : ExternalBufferTestES31.BufferSubData/* = SKIP
@@ -193,6 +194,8 @@
 445764650 VULKAN : FramebufferTest_ES31.ClearColorMorePrecisionThanFBOFormatShouldNotApplyDithering/* = SKIP
 445764650 VULKAN : FramebufferTest_ES31.CreateNoAttachmentFBOWithDifferentSize/* = SKIP
 445764650 VULKAN : FramebufferTest_ES31.DepthStencilResolveThenDrawWithoutResolve/* = SKIP
+445764650 VULKAN : FramebufferTest_ES31.DepthStencilResolveThenDrawWithoutResolveThenDrawWithResolve/* = SKIP
+445764650 VULKAN : FramebufferTest_ES31.MultisampleDepthStencilResolveMultipleTimesWithDrawInBetween/* = SKIP
 445764650 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachments/* = SKIP
 445764650 VULKAN : FramebufferTest_ES31.RenderingLimitToDefaultFBOSizeWithNoAttachments/* = SKIP
 445764650 VULKAN : GLSLTest.CommaTestNoRedundantStatements/* = SKIP
@@ -219,6 +222,10 @@
 445764650 VULKAN : ImageTest.SourceCubeAndSameTargetTextureWithEachCubeFace/* = SKIP
 445764650 VULKAN : ImageTest.SourceCubeTarget2D/* = SKIP
 445764650 VULKAN : ImageTest.SourceCubeTarget2D_Colorspace/* = SKIP
+445764650 VULKAN : ImageTestES3.AHBDrawFlushAndAttachAnotherTextureBeforeReadBack/* = SKIP
+445764650 VULKAN : ImageTestES3.AHBDrawFlushAndDetachBeforeReadBack/* = SKIP
+445764650 VULKAN : ImageTestES3.AHBDrawFlushAndSwitchToDefaultFBOBeforeReadBack/* = SKIP
+445764650 VULKAN : ImageTestES3.AHBDrawFlushAppliedBeforeReadBack/* = SKIP
 445764650 VULKAN : ImageTestES3.ProgramWithBothExternalY2YAndExternalOESSampler/* = SKIP
 445764650 VULKAN : ImageTestES3.RGBAHBUploadDataColorspace/* = SKIP
 445764650 VULKAN : ImageTestES3.RGBXAHBImportNoFramebufferUsage/* = SKIP
