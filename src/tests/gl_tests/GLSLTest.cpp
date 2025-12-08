@@ -21017,6 +21017,82 @@ void main()
     ASSERT_GL_NO_ERROR();
 }
 
+// Make sure unnamed `out` function parameters are initialized correctly.
+TEST_P(GLSLTest_ES3_InitShaderVariables, UnnamedOutParamInPrototype)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision highp float;
+out vec4 o;
+void f(out float, out float);
+void main()
+{
+    o = vec4(0.5);
+    // o.g is reset to 0 because of the forceInitShaderVariables feature
+    f(o.r, o.g);
+}
+void f(out float r, out float)
+{
+    r = 1.0;
+}
+)";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(255, 0, 127, 127), 1);
+}
+
+// Same as UnnamedOutParamInPrototype, but with nested calls.
+TEST_P(GLSLTest_ES3_InitShaderVariables, UnnamedOutParamInPrototype2)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision highp float;
+out vec4 o;
+void f(out float, out float);
+void g(out float a, out float b)
+{
+    f(a, b);
+}
+void main()
+{
+    o = vec4(0.75);
+    // o.g is reset to 0 because of the forceInitShaderVariables feature
+    g(o.r, o.g);
+}
+void f(out float r, out float)
+{
+    r = 0.5;
+}
+)";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(127, 0, 191, 191), 1);
+}
+
+// Same as UnnamedOutParamInPrototype, but with a non-void function.
+TEST_P(GLSLTest_ES3_InitShaderVariables, UnnamedOutParamInPrototype3)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision highp float;
+out vec4 o;
+float f(out float r, out float)
+{
+    r = 0.75;
+    return 0.25;
+}
+void main()
+{
+    o = vec4(0.5);
+    float z = f(o.r, o.g);
+    o.z = z;
+}
+)";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(191, 0, 63, 127), 1);
+}
+
 // Test that lowp and mediump varyings can be correctly matched between VS and FS.
 TEST_P(GLSLTest, LowpMediumpVarying)
 {
@@ -21628,11 +21704,170 @@ void main()
 )";
 
     ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
-    drawQuad(program, essl3_shaders::PositionAttrib(), 0.0);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0);
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
     ASSERT_GL_NO_ERROR();
 }
 
+// Tests pack/unpack emulation in the shader translator.
+class GLSLTest_ES3_PackUnpackEmulation : public GLSLTest_ES3
+{
+  protected:
+    void testUnsignedInt(GLuint program, uint32_t expect);
+    void testFloat(GLuint program, float r, float g, float b, float a);
+};
+
+void GLSLTest_ES3_PackUnpackEmulation::testUnsignedInt(GLuint program, uint32_t expect)
+{
+    GLTexture color;
+    glBindTexture(GL_TEXTURE_2D, color);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32I, 1, 1);
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color, 0);
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    EXPECT_GL_NO_ERROR();
+
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.0);
+    EXPECT_EQ(expect, static_cast<uint32_t>(GetFirstIntPixelRedValue()));
+    EXPECT_GL_NO_ERROR();
+}
+
+void GLSLTest_ES3_PackUnpackEmulation::testFloat(GLuint program, float r, float g, float b, float a)
+{
+    GLTexture color;
+    glBindTexture(GL_TEXTURE_2D, color);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, 1, 1);
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color, 0);
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    EXPECT_GL_NO_ERROR();
+
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.0);
+    EXPECT_PIXEL_32F_NEAR(0, 0, r, g, b, a, 1e-6);
+    EXPECT_GL_NO_ERROR();
+}
+
+// Verify correct emulation of packSnorm2x16
+TEST_P(GLSLTest_ES3_PackUnpackEmulation, PackSnorm2x16)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision highp float;
+precision highp int;
+uniform vec2 u;
+out uvec4 color;
+void main()
+{
+   uint v = packSnorm2x16(u);
+   color = uvec4(v, 0, 0, 0);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    glUseProgram(program);
+    glUniform2f(glGetUniformLocation(program, "u"), 4096.0 / 32767.0, -8192.0 / 32767.0);
+    testUnsignedInt(program, 0xE000'1000);
+}
+
+// Verify correct emulation of unpackSnorm2x16
+TEST_P(GLSLTest_ES3_PackUnpackEmulation, UnpackSnorm2x16)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision highp float;
+precision highp int;
+uniform uint u;
+out vec4 color;
+void main()
+{
+   vec2 v = unpackSnorm2x16(u);
+   color = vec4(v, 0.0, 0.0);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    glUseProgram(program);
+    glUniform1ui(glGetUniformLocation(program, "u"), 0xE0001000);
+    testFloat(program, 4096.0 / 32767.0, -8192.0 / 32767.0, 0, 0);
+}
+
+// Verify correct emulation of packUnorm2x16
+TEST_P(GLSLTest_ES3_PackUnpackEmulation, PackUnorm2x16)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision highp float;
+precision highp int;
+uniform vec2 u;
+out uvec4 color;
+void main()
+{
+   uint v = packUnorm2x16(u);
+   color = uvec4(v, 0, 0, 0);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    glUseProgram(program);
+    glUniform2f(glGetUniformLocation(program, "u"), 64.0 / 65535.0, 16384.0 / 65535.0);
+    testUnsignedInt(program, 0x4000'0040);
+}
+
+// Verify correct emulation of unpackSnorm2x16
+TEST_P(GLSLTest_ES3_PackUnpackEmulation, UnpackUnorm2x16)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision highp float;
+precision highp int;
+uniform uint u;
+out vec4 color;
+void main()
+{
+   vec2 v = unpackUnorm2x16(u);
+   color = vec4(v, 0.0, 0.0);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    glUseProgram(program);
+    glUniform1ui(glGetUniformLocation(program, "u"), 0x4000'0040);
+    testFloat(program, 64.0 / 65535.0, 16384.0 / 65535.0, 0, 0);
+}
+
+// Verify correct emulation of packHalf2x16
+TEST_P(GLSLTest_ES3_PackUnpackEmulation, PackHalf2x16)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision highp float;
+precision highp int;
+uniform vec2 u;
+out uvec4 color;
+void main()
+{
+    uint v = packHalf2x16(u);
+    color = uvec4(v, 0, 0, 0);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    glUseProgram(program);
+    glUniform2f(glGetUniformLocation(program, "u"), 47.03125, -20.6875);
+    testUnsignedInt(program, 0xCD2C'51E1);
+}
+
+// Verify correct emulation of unpackHalf2x16
+TEST_P(GLSLTest_ES3_PackUnpackEmulation, UnpackHalf2x16)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision highp float;
+precision highp int;
+uniform uint u;
+out vec4 color;
+void main()
+{
+    vec2 v = unpackHalf2x16(u);
+    color = vec4(v, 0.0, 0.0);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    glUseProgram(program);
+    glUniform1ui(glGetUniformLocation(program, "u"), 0xCD2C'51E1);
+    testFloat(program, 47.03125, -20.6875, 0, 0);
+}
 }  // anonymous namespace
 
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND_ES31_AND_ES32(
@@ -21680,6 +21915,10 @@ ANGLE_INSTANTIATE_TEST_ES31_AND(
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GLSLTest_ES3_InitShaderVariables);
 ANGLE_INSTANTIATE_TEST(
     GLSLTest_ES3_InitShaderVariables,
+    ES3_D3D11().enable(Feature::ForceInitShaderVariables),
+    ES3_OPENGL().enable(Feature::ForceInitShaderVariables),
+    ES3_OPENGLES().enable(Feature::ForceInitShaderVariables),
+    ES3_METAL().enable(Feature::ForceInitShaderVariables),
     ES3_VULKAN().enable(Feature::ForceInitShaderVariables),
     ES3_VULKAN().disable(Feature::SupportsSPIRV14).enable(Feature::ForceInitShaderVariables));
 
@@ -21688,3 +21927,12 @@ ANGLE_INSTANTIATE_TEST(
     GLSLTest_ES31_InitShaderVariables,
     ES31_VULKAN().enable(Feature::ForceInitShaderVariables),
     ES31_VULKAN().disable(Feature::SupportsSPIRV14).enable(Feature::ForceInitShaderVariables));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GLSLTest_ES3_PackUnpackEmulation);
+ANGLE_INSTANTIATE_TEST(GLSLTest_ES3_PackUnpackEmulation,
+                       ES3_D3D11(),
+                       ES3_OPENGL(),
+                       ES3_OPENGL().enable(Feature::EmitMaxGlsl400ForTesting),
+                       ES3_OPENGLES(),
+                       ES3_METAL(),
+                       ES3_VULKAN());

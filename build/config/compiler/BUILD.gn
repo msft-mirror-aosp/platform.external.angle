@@ -613,13 +613,6 @@ config("compiler") {
     }
   }
 
-  # Fuchsia-specific compiler flags setup.
-  # ------------------------------------
-  if (is_fuchsia) {
-    # Enable LLD's balanced partitioning for ordering function sections.
-    ldflags += [ "-Wl,--bp-compression-sort=function" ]
-  }
-
   if (is_chromeos_device && current_toolchain == default_toolchain) {
     # Flags added automatically by ChromeOS's custom toolchain that are
     # not already added elsewhere in the configuration. Add these here,
@@ -1909,6 +1902,7 @@ config("libcxx_module") {
       # is not a config mismatch.
       # For example, compiling libcxx without -Wfoo and then having another
       # target which uses it declare -Wfoo should not be an error
+      "-Xclang",
       "-fmodules-disable-diagnostic-validation",
 
       # Needed to allow using builtin modules when the headers are
