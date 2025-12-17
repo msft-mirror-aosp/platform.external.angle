@@ -52,6 +52,8 @@
 454016926 VULKAN : GLSLTest.FunctionArgumentEvalOrderOverloaded/* = SKIP
 454016926 VULKAN : GLSLTest.TernaryModifiesVariableInSameStatement/* = SKIP
 457495647 VULKAN : Texture2DBaseMaxTestES3.BaseExceedsMaxFboAttachAtBase/* = SKIP
+465140993 VULKAN : GLSLTest_ES3_PackUnpackEmulation.PackSnorm2x16/* = SKIP
+465140993 VULKAN : GLSLTest_ES3_PackUnpackEmulation.PackHalf2x16/* = SKIP
 
 //
 // Failures with ANGLE as the system driver
