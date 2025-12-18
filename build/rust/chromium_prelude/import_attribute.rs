@@ -5,32 +5,32 @@
 use proc_macro2::Span;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
-use syn::{parse_macro_input, Error, Ident, Lit, Token};
+use syn::punctuated::Punctuated;
+use syn::{parse_macro_input, Error, Ident, Lit, Token, Visibility};
 
 #[proc_macro]
 pub fn import(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let imports = parse_macro_input!(input as ImportList).imports;
+    // TODO: consider using `Token[,]` here, because `rustfmt` may have an
+    // easier time with `chromium::import!(... , ... , ...)`.
+    type ImportList = Punctuated<Import, Token![;]>;
+    let imports = parse_macro_input!(input with ImportList::parse_terminated);
 
     let mut stream = proc_macro2::TokenStream::new();
     for i in imports {
-        let public = &i.reexport;
+        let visibility = &i.visibility;
         let mangled_crate_name = &i.target.mangled_crate_name;
         let name = i.alias.as_ref().unwrap_or(&i.target.gn_name);
         stream.extend(quote! {
-          #public extern crate #mangled_crate_name as #name;
+          #visibility extern crate #mangled_crate_name as #name;
         });
     }
     stream.into()
 }
 
-struct ImportList {
-    imports: Vec<Import>,
-}
-
 struct Import {
     target: GnTarget,
     alias: Option<Ident>,
-    reexport: Option<Token![pub]>,
+    visibility: Option<Visibility>,
 }
 
 struct GnTarget {
@@ -82,48 +82,41 @@ impl GnTarget {
     }
 }
 
-impl Parse for ImportList {
+impl Parse for Import {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut imports: Vec<Import> = Vec::new();
+        let visibility = Visibility::parse(input).ok();
 
-        while !input.is_empty() {
-            let reexport = <Token![pub]>::parse(input).ok();
+        let str_span = input.span();
 
-            let str_span = input.span();
-
-            let target = match Lit::parse(input) {
-                Err(_) => {
-                    return Err(Error::new(str_span, "expected a GN path as a string literal"));
-                }
-                Ok(Lit::Str(label)) => match GnTarget::parse(&label.value(), str_span) {
-                    Ok(target) => target,
-                    Err(e) => {
-                        return Err(Error::new(
-                            str_span,
-                            format!("invalid GN path {}: {}", quote::quote! {#label}, e),
-                        ));
-                    }
-                },
-                Ok(lit) => {
+        let target = match Lit::parse(input) {
+            Err(_) => {
+                return Err(Error::new(str_span, "expected a GN path as a string literal"));
+            }
+            Ok(Lit::Str(label)) => match GnTarget::parse(&label.value(), str_span) {
+                Ok(target) => target,
+                Err(e) => {
                     return Err(Error::new(
                         str_span,
-                        format!(
-                            "expected a GN path as string literal, found '{}' literal",
-                            quote::quote! {#lit}
-                        ),
+                        format!("invalid GN path {}: {}", quote::quote! {#label}, e),
                     ));
                 }
-            };
-            let alias = match <Token![as]>::parse(input) {
-                Ok(_) => Some(Ident::parse(input)?),
-                Err(_) => None,
-            };
-            <syn::Token![;]>::parse(input)?;
+            },
+            Ok(lit) => {
+                return Err(Error::new(
+                    str_span,
+                    format!(
+                        "expected a GN path as string literal, found '{}' literal",
+                        quote::quote! {#lit}
+                    ),
+                ));
+            }
+        };
+        let alias = match <Token![as]>::parse(input) {
+            Ok(_) => Some(Ident::parse(input)?),
+            Err(_) => None,
+        };
 
-            imports.push(Import { target, alias, reexport });
-        }
-
-        Ok(Self { imports })
+        Ok(Import { target, alias, visibility })
     }
 }
 
