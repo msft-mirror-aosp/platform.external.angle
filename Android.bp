@@ -7114,20 +7114,15 @@ cc_defaults {
 
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_string_view",
-    srcs: [
-        "third_party/abseil-cpp/absl/strings/string_view.cc",
-    ],
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "buildtools_third_party_libc++_all_modules",
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
-        "third_party_abseil_cpp_absl_base_base",
         "third_party_abseil_cpp_absl_base_config",
         "third_party_abseil_cpp_absl_base_core_headers",
         "third_party_abseil_cpp_absl_base_nullability",
-        "third_party_abseil_cpp_absl_base_throw_delegate",
     ],
     local_include_dirs: [
         "",
