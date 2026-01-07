@@ -945,9 +945,8 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
     }
     mValidateASTOptions.validateNoStatementsAfterBranch = true;
 
-    // We need to generate globals early if we have non constant initializers enabled
-    bool initializeLocalsAndGlobals =
-        compileOptions.initializeUninitializedLocals && !IsOutputHLSL(getOutputType());
+    // We need to generate globals early if we have non constant initializers enabled.
+    bool initializeLocalsAndGlobals    = compileOptions.initializeUninitializedLocals;
     bool canUseLoopsToInitialize       = !compileOptions.dontUseLoopsToInitializeVariables;
     bool enableNonConstantInitializers = IsExtensionEnabled(
         mExtensionBehavior, TExtension::EXT_shader_non_constant_global_initializers);
@@ -1230,6 +1229,16 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
     }
 
     collectVariables(root);
+    const bool hlslFragmentOutputsNeedInit =
+        IsOutputHLSL(mOutputType) && mShaderType == GL_FRAGMENT_SHADER &&
+        (compileOptions.initOutputVariables || compileOptions.initFragmentOutputVariables);
+    if (hlslFragmentOutputsNeedInit)
+    {
+        for (sh::ShaderVariable &outputVariable : mOutputVariables)
+        {
+            outputVariable.active = true;
+        }
+    }
 
     if (compileOptions.useUnusedStandardSharedBlocks)
     {
@@ -1262,10 +1271,13 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
     // For the MSL output, keep the inactive fragment outputs, but remove them otherwise.
     if (compileOptions.removeInactiveVariables)
     {
-        if (!RemoveInactiveInterfaceVariables(this, root, &getSymbolTable(), getAttributes(),
-                                              getInputVaryings(), getOutputVariables(),
-                                              getUniforms(), getInterfaceBlocks(),
-                                              mOutputType != SH_MSL_METAL_OUTPUT))
+        const bool keepInactiveFragmentOutputsForInit = hlslFragmentOutputsNeedInit;
+        const bool removeFragmentOutputs =
+            mOutputType != SH_MSL_METAL_OUTPUT && !keepInactiveFragmentOutputsForInit;
+
+        if (!RemoveInactiveInterfaceVariables(
+                this, root, &getSymbolTable(), getAttributes(), getInputVaryings(),
+                getOutputVariables(), getUniforms(), getInterfaceBlocks(), removeFragmentOutputs))
         {
             return false;
         }
@@ -1587,7 +1599,6 @@ void TCompiler::setResourceString()
         << ":MaxCombinedAtomicCounterBuffers:" << mResources.MaxCombinedAtomicCounterBuffers
         << ":MaxAtomicCounterBufferSize:" << mResources.MaxAtomicCounterBufferSize
         << ":MaxGeometryUniformComponents:" << mResources.MaxGeometryUniformComponents
-        << ":MaxGeometryUniformBlocks:" << mResources.MaxGeometryUniformBlocks
         << ":MaxGeometryInputComponents:" << mResources.MaxGeometryInputComponents
         << ":MaxGeometryOutputComponents:" << mResources.MaxGeometryOutputComponents
         << ":MaxGeometryOutputVertices:" << mResources.MaxGeometryOutputVertices
@@ -1595,7 +1606,6 @@ void TCompiler::setResourceString()
         << ":MaxGeometryTextureImageUnits:" << mResources.MaxGeometryTextureImageUnits
         << ":MaxGeometryAtomicCounterBuffers:" << mResources.MaxGeometryAtomicCounterBuffers
         << ":MaxGeometryAtomicCounters:" << mResources.MaxGeometryAtomicCounters
-        << ":MaxGeometryShaderStorageBlocks:" << mResources.MaxGeometryShaderStorageBlocks
         << ":MaxGeometryShaderInvocations:" << mResources.MaxGeometryShaderInvocations
         << ":MaxGeometryImageUniforms:" << mResources.MaxGeometryImageUniforms
         << ":MaxClipDistances" << mResources.MaxClipDistances
