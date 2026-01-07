@@ -16,6 +16,8 @@
 #include "GLSLANG/ShaderLang.h"
 
 #include "common/PackedEnums.h"
+#include "common/span.h"
+#include "common/unsafe_buffers.h"
 #include "compiler/translator/Compiler.h"
 #include "compiler/translator/InitializeGlobals.h"
 #include "compiler/translator/length_limits.h"
@@ -255,9 +257,6 @@ void InitBuiltInResources(ShBuiltInResources *resources)
     resources->MaxCullDistances                = 8;
     resources->MaxCombinedClipAndCullDistances = 8;
 
-    // Disable highp precision in fragment shader by default.
-    resources->FragmentPrecisionHigh = 0;
-
     // GLSL ES 3.0 constants.
     resources->MaxVertexOutputVectors  = 16;
     resources->MaxFragmentInputVectors = 15;
@@ -432,7 +431,9 @@ bool Compile(const ShHandle handle,
     TCompiler *compiler = GetCompilerFromHandle(handle);
     ASSERT(compiler);
 
-    return compiler->compile(shaderStrings, numStrings, compileOptions);
+    // SAFETY: required from caller across this exposed API.
+    return compiler->compile(ANGLE_UNSAFE_BUFFERS(angle::Span(shaderStrings, numStrings)),
+                             compileOptions);
 }
 
 void ClearResults(const ShHandle handle)
@@ -501,7 +502,10 @@ bool GetShaderBinary(const ShHandle handle,
     TCompiler *compiler = GetCompilerFromHandle(handle);
     ASSERT(compiler);
 
-    return compiler->getShaderBinary(handle, shaderStrings, numStrings, compileOptions, binaryOut);
+    // SAFETY: required from caller across this exposed API.
+    return compiler->getShaderBinary(handle,
+                                     ANGLE_UNSAFE_BUFFERS(angle::Span(shaderStrings, numStrings)),
+                                     compileOptions, binaryOut);
 }
 
 const std::map<std::string, std::string> *GetNameHashingMap(const ShHandle handle)
