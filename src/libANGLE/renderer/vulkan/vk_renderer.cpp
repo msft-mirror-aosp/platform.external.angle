@@ -333,8 +333,6 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-VkImportMemoryFdInfoKHR-handleType-00667",
     // http://anglebug.com/42266904
     "VUID-VkImportMemoryWin32HandleInfoKHR-handleType-00658",
-    // https://anglebug.com/42266920
-    "VUID-vkCmdEndDebugUtilsLabelEXT-commandBuffer-01912",
     // https://anglebug.com/42266947
     "VUID-VkPipelineVertexInputStateCreateInfo-pNext-pNext",
     // https://issuetracker.google.com/319228278
@@ -4396,6 +4394,10 @@ void Renderer::initDeviceExtensionEntryPoints()
     if (mFeatures.supportsMaintenance5.enabled)
     {
         InitMaintenance5Functions(mDevice);
+    }
+    if (mFeatures.supportsTileMemoryHeap.enabled)
+    {
+        InitTileMemoryHeapFunctions(mDevice);
     }
     // Extensions promoted to Vulkan 1.2
     {
