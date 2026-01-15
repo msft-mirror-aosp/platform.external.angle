@@ -354,6 +354,8 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDraw-None-09549",
     // https://anglebug.com/470128354
     "VUID-vkCmdEndQuery-None-07007",
+    // https://anglebug.com/475549551
+    "VUID-VkGraphicsPipelineCreateInfo-renderPass-09652",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -400,9 +402,9 @@ constexpr const char *kSkippedMessagesWithVulkanSecondaryCommandBuffer[] = {
     "VUID-vkCmdWaitEvents-srcStageMask-parameter",
 };
 
-// http://issuetracker.google.com/447633563 VVL appears not aware of existence of tile memory heap.
+// http://issuetracker.google.com/447633563 VVL appears not aware of VkCmdBindTileMemory.
 constexpr const char *kSkippedMessagesWithTileMemoryHeap[] = {
-    "VUID-vkBindImageMemory-memory-01047",
+    "VUID-vkCmdDraw-commandBuffer-10746",
 };
 
 // When using Vulkan secondary command buffers, the command buffer is begun with the current
