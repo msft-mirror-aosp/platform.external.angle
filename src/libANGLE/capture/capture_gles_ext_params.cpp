@@ -2138,265 +2138,6 @@ void CaptureBindUniformLocationCHROMIUM_name(const State &glState,
     CaptureString(name, paramCapture);
 }
 
-void CaptureMatrixLoadfCHROMIUM_matrix(const State &glState,
-                                       bool isCallValid,
-                                       GLenum matrixMode,
-                                       const GLfloat *matrix,
-                                       ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CapturePathCommandsCHROMIUM_commands(const State &glState,
-                                          bool isCallValid,
-                                          PathID path,
-                                          GLsizei numCommands,
-                                          const GLubyte *commands,
-                                          GLsizei numCoords,
-                                          GLenum coordType,
-                                          const void *coords,
-                                          ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CapturePathCommandsCHROMIUM_coords(const State &glState,
-                                        bool isCallValid,
-                                        PathID path,
-                                        GLsizei numCommands,
-                                        const GLubyte *commands,
-                                        GLsizei numCoords,
-                                        GLenum coordType,
-                                        const void *coords,
-                                        ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureGetPathParameterfvCHROMIUM_value(const State &glState,
-                                             bool isCallValid,
-                                             PathID path,
-                                             GLenum pname,
-                                             GLfloat *value,
-                                             ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureGetPathParameterivCHROMIUM_value(const State &glState,
-                                             bool isCallValid,
-                                             PathID path,
-                                             GLenum pname,
-                                             GLint *value,
-                                             ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureCoverFillPathInstancedCHROMIUM_paths(const State &glState,
-                                                 bool isCallValid,
-                                                 GLsizei numPath,
-                                                 GLenum pathNameType,
-                                                 const void *paths,
-                                                 PathID pathBase,
-                                                 GLenum coverMode,
-                                                 GLenum transformType,
-                                                 const GLfloat *transformValues,
-                                                 ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureCoverFillPathInstancedCHROMIUM_transformValues(const State &glState,
-                                                           bool isCallValid,
-                                                           GLsizei numPath,
-                                                           GLenum pathNameType,
-                                                           const void *paths,
-                                                           PathID pathBase,
-                                                           GLenum coverMode,
-                                                           GLenum transformType,
-                                                           const GLfloat *transformValues,
-                                                           ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureCoverStrokePathInstancedCHROMIUM_paths(const State &glState,
-                                                   bool isCallValid,
-                                                   GLsizei numPath,
-                                                   GLenum pathNameType,
-                                                   const void *paths,
-                                                   PathID pathBase,
-                                                   GLenum coverMode,
-                                                   GLenum transformType,
-                                                   const GLfloat *transformValues,
-                                                   ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureCoverStrokePathInstancedCHROMIUM_transformValues(const State &glState,
-                                                             bool isCallValid,
-                                                             GLsizei numPath,
-                                                             GLenum pathNameType,
-                                                             const void *paths,
-                                                             PathID pathBase,
-                                                             GLenum coverMode,
-                                                             GLenum transformType,
-                                                             const GLfloat *transformValues,
-                                                             ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureStencilStrokePathInstancedCHROMIUM_paths(const State &glState,
-                                                     bool isCallValid,
-                                                     GLsizei numPath,
-                                                     GLenum pathNameType,
-                                                     const void *paths,
-                                                     PathID pathBase,
-                                                     GLint reference,
-                                                     GLuint mask,
-                                                     GLenum transformType,
-                                                     const GLfloat *transformValues,
-                                                     ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureStencilStrokePathInstancedCHROMIUM_transformValues(const State &glState,
-                                                               bool isCallValid,
-                                                               GLsizei numPath,
-                                                               GLenum pathNameType,
-                                                               const void *paths,
-                                                               PathID pathBase,
-                                                               GLint reference,
-                                                               GLuint mask,
-                                                               GLenum transformType,
-                                                               const GLfloat *transformValues,
-                                                               ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureStencilFillPathInstancedCHROMIUM_paths(const State &glState,
-                                                   bool isCallValid,
-                                                   GLsizei numPaths,
-                                                   GLenum pathNameType,
-                                                   const void *paths,
-                                                   PathID pathBase,
-                                                   GLenum fillMode,
-                                                   GLuint mask,
-                                                   GLenum transformType,
-                                                   const GLfloat *transformValues,
-                                                   ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureStencilFillPathInstancedCHROMIUM_transformValues(const State &glState,
-                                                             bool isCallValid,
-                                                             GLsizei numPaths,
-                                                             GLenum pathNameType,
-                                                             const void *paths,
-                                                             PathID pathBase,
-                                                             GLenum fillMode,
-                                                             GLuint mask,
-                                                             GLenum transformType,
-                                                             const GLfloat *transformValues,
-                                                             ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureStencilThenCoverFillPathInstancedCHROMIUM_paths(const State &glState,
-                                                            bool isCallValid,
-                                                            GLsizei numPaths,
-                                                            GLenum pathNameType,
-                                                            const void *paths,
-                                                            PathID pathBase,
-                                                            GLenum fillMode,
-                                                            GLuint mask,
-                                                            GLenum coverMode,
-                                                            GLenum transformType,
-                                                            const GLfloat *transformValues,
-                                                            ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureStencilThenCoverFillPathInstancedCHROMIUM_transformValues(
-    const State &glState,
-    bool isCallValid,
-    GLsizei numPaths,
-    GLenum pathNameType,
-    const void *paths,
-    PathID pathBase,
-    GLenum fillMode,
-    GLuint mask,
-    GLenum coverMode,
-    GLenum transformType,
-    const GLfloat *transformValues,
-    ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureStencilThenCoverStrokePathInstancedCHROMIUM_paths(const State &glState,
-                                                              bool isCallValid,
-                                                              GLsizei numPaths,
-                                                              GLenum pathNameType,
-                                                              const void *paths,
-                                                              PathID pathBase,
-                                                              GLint reference,
-                                                              GLuint mask,
-                                                              GLenum coverMode,
-                                                              GLenum transformType,
-                                                              const GLfloat *transformValues,
-                                                              ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureStencilThenCoverStrokePathInstancedCHROMIUM_transformValues(
-    const State &glState,
-    bool isCallValid,
-    GLsizei numPaths,
-    GLenum pathNameType,
-    const void *paths,
-    PathID pathBase,
-    GLint reference,
-    GLuint mask,
-    GLenum coverMode,
-    GLenum transformType,
-    const GLfloat *transformValues,
-    ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
-void CaptureBindFragmentInputLocationCHROMIUM_name(const State &glState,
-                                                   bool isCallValid,
-                                                   ShaderProgramID programs,
-                                                   GLint location,
-                                                   const GLchar *name,
-                                                   ParamCapture *paramCapture)
-{
-    CaptureString(name, paramCapture);
-}
-
-void CaptureProgramPathFragmentInputGenCHROMIUM_coeffs(const State &glState,
-                                                       bool isCallValid,
-                                                       ShaderProgramID program,
-                                                       GLint location,
-                                                       GLenum genMode,
-                                                       GLint components,
-                                                       const GLfloat *coeffs,
-                                                       ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
 void CaptureBindFragDataLocationEXT_name(const State &glState,
                                          bool isCallValid,
                                          ShaderProgramID program,
@@ -4139,16 +3880,6 @@ void CaptureEGLImageTargetTexStorageEXT_attrib_list(const State &glState,
     UNIMPLEMENTED();
 }
 
-void CaptureEGLImageTargetTextureStorageEXT_attrib_list(const State &glState,
-                                                        bool isCallValid,
-                                                        GLuint texture,
-                                                        egl::ImageID image,
-                                                        const GLint *attrib_list,
-                                                        angle::ParamCapture *paramCapture)
-{
-    UNIMPLEMENTED();
-}
-
 void CaptureTexStorageMemFlags2DANGLE_imageCreateInfoPNext(const State &glState,
                                                            bool isCallValid,
                                                            TextureType targetPacked,
@@ -4484,12 +4215,16 @@ void CaptureGetFramebufferPixelLocalStorageParameterfvANGLE_params(
     GLfloat *params,
     angle::ParamCapture *paramCapture)
 {
+    size_t numParams = 1;
     switch (pname)
     {
         case GL_PIXEL_LOCAL_CLEAR_VALUE_FLOAT_ANGLE:
-            CaptureGetParameter(glState, pname, sizeof(GLfloat) * 4, paramCapture);
+        case GL_PIXEL_LOCAL_CLEAR_VALUE_INT_ANGLE:
+        case GL_PIXEL_LOCAL_CLEAR_VALUE_UNSIGNED_INT_ANGLE:
+            numParams = 4;
             break;
     }
+    paramCapture->readBufferSizeBytes = sizeof(GLfloat) * numParams;
 }
 
 void CaptureGetFramebufferPixelLocalStorageParameterivANGLE_params(
@@ -4500,19 +4235,16 @@ void CaptureGetFramebufferPixelLocalStorageParameterivANGLE_params(
     GLint *params,
     angle::ParamCapture *paramCapture)
 {
+    size_t numParams = 1;
     switch (pname)
     {
-        case GL_PIXEL_LOCAL_FORMAT_ANGLE:
-        case GL_PIXEL_LOCAL_TEXTURE_NAME_ANGLE:
-        case GL_PIXEL_LOCAL_TEXTURE_LEVEL_ANGLE:
-        case GL_PIXEL_LOCAL_TEXTURE_LAYER_ANGLE:
-            CaptureGetParameter(glState, pname, sizeof(GLint), paramCapture);
-            break;
+        case GL_PIXEL_LOCAL_CLEAR_VALUE_FLOAT_ANGLE:
         case GL_PIXEL_LOCAL_CLEAR_VALUE_INT_ANGLE:
         case GL_PIXEL_LOCAL_CLEAR_VALUE_UNSIGNED_INT_ANGLE:
-            CaptureGetParameter(glState, pname, sizeof(GLint) * 4, paramCapture);
+            numParams = 4;
             break;
     }
+    paramCapture->readBufferSizeBytes = sizeof(GLint) * numParams;
 }
 
 void CaptureGetFramebufferPixelLocalStorageParameterfvRobustANGLE_length(
@@ -4538,7 +4270,8 @@ void CaptureGetFramebufferPixelLocalStorageParameterfvRobustANGLE_params(
     GLfloat *params,
     angle::ParamCapture *paramCapture)
 {
-    CaptureGetParameter(glState, pname, sizeof(GLfloat) * bufSize, paramCapture);
+    CaptureGetFramebufferPixelLocalStorageParameterfvANGLE_params(glState, isCallValid, plane,
+                                                                  pname, params, paramCapture);
 }
 
 void CaptureGetFramebufferPixelLocalStorageParameterivRobustANGLE_length(
@@ -4564,7 +4297,8 @@ void CaptureGetFramebufferPixelLocalStorageParameterivRobustANGLE_params(
     GLint *params,
     angle::ParamCapture *paramCapture)
 {
-    CaptureGetParameter(glState, pname, sizeof(GLint) * bufSize, paramCapture);
+    CaptureGetFramebufferPixelLocalStorageParameterivANGLE_params(glState, isCallValid, plane,
+                                                                  pname, params, paramCapture);
 }
 
 void CaptureFramebufferFoveationConfigQCOM_providedFeatures(const State &glState,
