@@ -7258,6 +7258,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_base_config",
         "third_party_abseil_cpp_absl_base_core_headers",
         "third_party_abseil_cpp_absl_base_endian",
+        "third_party_abseil_cpp_absl_numeric_bits",
     ],
     local_include_dirs: [
         "",
