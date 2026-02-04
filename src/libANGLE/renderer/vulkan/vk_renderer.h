@@ -775,6 +775,8 @@ class Renderer : angle::NonCopyable
                       const angle::FeatureOverrides &featureOverrides,
                       UseVulkanSwapchain useVulkanSwapchain,
                       angle::NativeWindowSystem nativeWindowSystem);
+    void initOpenCLFeatures(const vk::ExtensionNameList &extensions,
+                            const angle::FeatureOverrides &featureOverrides);
     void appBasedFeatureOverrides(const vk::ExtensionNameList &extensions);
     // TODO (b/372694741): Remove once run-time control is supported.
     void appBasedFeatureOverridesAndroidDesktop(const vk::ExtensionNameList &extensions);
