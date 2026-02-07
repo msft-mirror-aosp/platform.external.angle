@@ -78,6 +78,7 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
     private static final String ANGLE_DRIVER_NAME = "angle";
     private static final String SETTINGS_GLOBAL_DRIVER_PKGS = "angle_gl_driver_selection_pkgs";
     private static final String SETTINGS_GLOBAL_DRIVER_VALUES = "angle_gl_driver_selection_values";
+    private static final String FEATURE_PC = "android.hardware.type.pc";
 
     ITestDevice mDevice;
     private long mStartTime;
@@ -197,6 +198,16 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
 
     private boolean isVirtualDevice() throws DeviceNotAvailableException {
         return Objects.equals(mDevice.getProperty("ro.hardware.virtual_device"), "1");
+    }
+
+    private boolean isHandheld(ITestDevice device) throws DeviceNotAvailableException {
+        // "Handheld" is defined as NOT being any other specific form factor.
+        return !com.android.compatibility.common.util.FeatureUtil.isTV(device)
+                && !com.android.compatibility.common.util.FeatureUtil.isWatch(device)
+                && !com.android.compatibility.common.util.FeatureUtil.isAutomotive(device)
+                && !com.android.compatibility.common.util.FeatureUtil.isXrHeadset(device)
+                && !com.android.compatibility.common.util.FeatureUtil.hasSystemFeature(
+                        device, FEATURE_PC);
     }
 
     private Path getDeviceFilePath(String filename) {
@@ -413,6 +424,12 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
         if (isVirtualDevice()) {
             CLog.i("Skipping invocation: Running on a virtual device");
             listener.invocationSkipped(new SkipReason("Skip test on virtual devices", ""));
+            return;
+        }
+
+        if (!isHandheld(mDevice)) {
+            CLog.i("Skipping invocation: device is not handheld.");
+            listener.invocationSkipped(new SkipReason("Device is not handheld", ""));
             return;
         }
 
