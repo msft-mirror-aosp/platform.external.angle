@@ -53,6 +53,8 @@ fn vs_main(in: VertexInput) -> VertexOutput {
 struct ClearParamsUniforms
 {
     float clearColor[4];
+    float clearDepth;
+    float padding[3];
 };
 
 const char *GetWgslTextureComponentTypeFromGlComponent(GLenum componentType)
@@ -228,17 +230,13 @@ webgpu::ShaderModuleHandle UtilsWgpu::getClearShaderModule(ContextWgpu *context,
 
     const bool hasColorOutputs = key.actualColorFormats.size() != 0;
 
-    constexpr char kUniformStructName[]     = "clearUniforms";
-    constexpr char kUniformColorFieldName[] = "color";
-
     ss << R"(struct ClearUniforms {
-  )" << kUniformColorFieldName
-       << R"( : vec4<f32>,
+    color : vec4<f32>,
+    depth : f32,
 };
 
 @group(0) @binding(0)
-var<uniform> )"
-       << kUniformStructName << R"( : ClearUniforms;
+var<uniform> clearUniforms : ClearUniforms;
 
 // Vertex shader just draws the whole screen with one triangle
 @vertex
@@ -248,7 +246,7 @@ fn vs_main(@builtin(vertex_index) vertex_index : u32) -> @builtin(position) vec4
         vec2<f32>(3.0, -1.0),
         vec2<f32>(-1.0, 3.0)
     );
-    return vec4<f32>(pos[vertex_index], 0.0, 1.0);
+    return vec4<f32>(pos[vertex_index], clearUniforms.depth, 1.0);
 })";
 
     if (hasColorOutputs)
@@ -273,13 +271,18 @@ fn vs_main(@builtin(vertex_index) vertex_index : u32) -> @builtin(position) vec4
                 ss << ", ";
             }
             const angle::Format &dstColorFormat = angle::Format::Get(key.actualColorFormats[i]);
+
             // If the intended format does NOT have alpha bits, but the actual format DOES have
             // alpha bits, set the alpha bits in the actual format to be 1.
             if (!key.intendedColorFormatHasAlphaBits[i] && dstColorFormat.alphaBits != 0)
             {
+                // TODO(anglebug.com/474131922):
+                // dEQP-GLES2.functional.fbo.render.stencil_clear.tex2d_rgb_stencil_index8 is
+                // failing and so is
+                // dEQP-GLES2.functional.fbo.render.stencil_clear.rbo_rgb565_stencil_index8.
                 ss << "vec4<" << GetWgslTextureComponentTypeFromFormat(dstColorFormat)
                    << ">(bitcast<vec3<" << GetWgslTextureComponentTypeFromFormat(dstColorFormat)
-                   << ">>(" << kUniformStructName << "." << kUniformColorFieldName << ".rgb), 1)";
+                   << ">>(clearUniforms.color.rgb), 1)";
             }
             else
             {
@@ -287,7 +290,7 @@ fn vs_main(@builtin(vertex_index) vertex_index : u32) -> @builtin(position) vec4
                 // The output may have a component type that isn't f32, but the uniform will always
                 // be f32. Just bitcast like C++ does.
                 ss << "bitcast<vec4<" << GetWgslTextureComponentTypeFromFormat(dstColorFormat)
-                   << ">>(" << kUniformStructName << "." << kUniformColorFieldName << ")";
+                   << ">>(clearUniforms.color)";
             }
         }
         ss << ");\n";
@@ -447,6 +450,32 @@ angle::Result UtilsWgpu::getClearPipeline(ContextWgpu *context,
     bglDesc.entryCount                    = 1;
     bglDesc.entries                       = &bglEntry;
 
+    WGPUDepthStencilState depthStencilState     = WGPU_DEPTH_STENCIL_STATE_INIT;
+    WGPUDepthStencilState *depthStencilStatePtr = nullptr;
+    if (key.depthStencilFormat.has_value())
+    {
+        depthStencilStatePtr = &depthStencilState;
+
+        depthStencilState.format =
+            webgpu::GetWgpuTextureFormatFromFormatID(key.depthStencilFormat.value());
+
+        // Enable depth writing if clearing depth. The vertex shader will set the depth value.
+        depthStencilState.depthWriteEnabled = static_cast<WGPUOptionalBool>(key.clearDepth);
+        depthStencilState.depthCompare      = WGPUCompareFunction_Always;
+
+        if (key.clearStencil)
+        {
+            depthStencilState.stencilFront.compare = WGPUCompareFunction_Always;
+            depthStencilState.stencilBack.compare  = WGPUCompareFunction_Always;
+            // Defaults to "keep", set it "replace" in order to replace the stencil value if
+            // clearing stencil.
+            depthStencilState.stencilFront.passOp = WGPUStencilOperation_Replace;
+            depthStencilState.stencilBack.passOp  = WGPUStencilOperation_Replace;
+
+            depthStencilState.stencilWriteMask = key.stencilWriteMask.value();
+        }
+    }
+
     CachedPipeline newPipeline;
 
     WGPURenderPipelineDescriptor pipelineDesc = WGPU_RENDER_PIPELINE_DESCRIPTOR_INIT;
@@ -476,6 +505,8 @@ angle::Result UtilsWgpu::getClearPipeline(ContextWgpu *context,
     fragmentState.targets     = wgpuColorTargetStates.data();
 
     pipelineDesc.fragment = &fragmentState;
+
+    pipelineDesc.depthStencil = depthStencilStatePtr;
 
     WGPUDevice device         = context->getDevice().get();
     const DawnProcTable *wgpu = webgpu::GetProcs(context);
@@ -524,10 +555,18 @@ angle::Result UtilsWgpu::clear(ContextWgpu *context, ClearParams params)
             enabledDrawBuffer, params.colorMasks));
     }
 
+    if (params.clearDepthValue || params.clearStencilValue)
+    {
+        key.depthStencilFormat = params.depthStencilTarget->getImage()->getActualFormatID();
+        key.clearDepth         = params.clearDepthValue.has_value();
+        key.clearStencil       = params.clearStencilValue.has_value();
+        key.stencilWriteMask   = params.stencilWriteMask;
+    }
+
     const CachedPipeline *cachedPipeline = nullptr;
     ANGLE_TRY(getClearPipeline(context, key, &cachedPipeline));
 
-    // Upload the clear color to a new GPU buffer for use as a uniform.
+    // Upload the clear color and depth clear value to a new GPU buffer for use as a uniform.
     // TODO(anglebug.com/474131922): cache this. Treat like program uniforms and use dynamic offset.
     webgpu::BufferHelper clearParamsUniformBuffer;
 
@@ -543,6 +582,7 @@ angle::Result UtilsWgpu::clear(ContextWgpu *context, ClearParams params)
         memcpy(&bufferData->clearColor,
                params.clearColorValue.value_or(gl::ColorF(0.0, 0.0, 0.0, 0.0)).data(),
                sizeof(bufferData->clearColor)));
+    bufferData->clearDepth = params.clearDepthValue.value_or(0.0);
 
     ANGLE_TRY(clearParamsUniformBuffer.unmap());
 
@@ -576,6 +616,40 @@ angle::Result UtilsWgpu::clear(ContextWgpu *context, ClearParams params)
         renderPassDesc.colorAttachments.push_back(colorAttachment);
     }
 
+    if (params.depthStencilTarget)
+    {
+        ASSERT(params.clearDepthValue || params.clearStencilValue);
+
+        webgpu::PackedRenderPassDepthStencilAttachment depthStencilAttachment;
+
+        depthStencilAttachment.view = params.depthStencilTarget->getTextureView();
+
+        if (params.clearDepthValue)
+        {
+            depthStencilAttachment.depthReadOnly = false;
+            depthStencilAttachment.depthLoadOp   = WGPULoadOp_Load;
+            depthStencilAttachment.depthStoreOp  = WGPUStoreOp_Store;
+        }
+        else
+        {
+            depthStencilAttachment.depthReadOnly = true;
+        }
+
+        if (params.clearStencilValue)
+        {
+            depthStencilAttachment.stencilReadOnly = false;
+            depthStencilAttachment.stencilLoadOp   = WGPULoadOp_Load;
+
+            depthStencilAttachment.stencilStoreOp = WGPUStoreOp_Store;
+        }
+        else
+        {
+            depthStencilAttachment.stencilReadOnly = true;
+        }
+
+        renderPassDesc.depthStencilAttachment = std::move(depthStencilAttachment);
+    }
+
     ANGLE_TRY(context->endRenderPass(webgpu::RenderPassClosureReason::ClearWithDraw));
     ANGLE_TRY(context->startRenderPass(renderPassDesc));
 
@@ -586,6 +660,10 @@ angle::Result UtilsWgpu::clear(ContextWgpu *context, ClearParams params)
                               params.clearArea.height, /*minDepth=*/0, /*maxDepth=*/1);
     commandBuffer.setScissorRect(params.clearArea.x, params.clearArea.y, params.clearArea.width,
                                  params.clearArea.height);
+    if (params.clearStencilValue.has_value())
+    {
+        commandBuffer.setStencilReference(params.clearStencilValue.value());
+    }
     commandBuffer.draw(3, 1, 0, 0);
 
     ANGLE_TRY(context->endRenderPass(webgpu::RenderPassClosureReason::ClearWithDraw));
