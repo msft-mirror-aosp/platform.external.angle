@@ -95,7 +95,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r28_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-23-init-2224-g5bd8dadb-1,android\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-23-init-2224-g5bd8dadb-3,android\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -3732,6 +3732,7 @@ cc_genrule {
         "src/libANGLE/renderer/vulkan/DisplayVk.cpp",
         "src/libANGLE/renderer/vulkan/DisplayVk.h",
         "src/libANGLE/renderer/vulkan/DisplayVk_api.h",
+        "src/libANGLE/renderer/vulkan/DriverUniforms.h",
         "src/libANGLE/renderer/vulkan/FenceNVVk.cpp",
         "src/libANGLE/renderer/vulkan/FenceNVVk.h",
         "src/libANGLE/renderer/vulkan/FramebufferVk.cpp",

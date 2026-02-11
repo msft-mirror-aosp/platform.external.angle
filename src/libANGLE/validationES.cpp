@@ -2579,13 +2579,6 @@ bool ValidateGetQueryivRobustANGLE(const Context *context,
                                    const GLsizei *length,
                                    const GLint *params)
 {
-    if ((context->getClientVersion() < ES_3_0) && !context->getExtensions().disjointTimerQueryEXT &&
-        !context->getExtensions().occlusionQueryBooleanEXT)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kEntryPointBaseUnsupported);
-        return false;
-    }
-
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
     {
         return false;
@@ -2678,12 +2671,6 @@ bool ValidateGetQueryObjectivRobustANGLE(const Context *context,
                                          const GLsizei *length,
                                          const GLint *params)
 {
-    if (!context->getExtensions().disjointTimerQueryEXT)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExtensionNotEnabled);
-        return false;
-    }
-
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
     {
         return false;
@@ -2723,13 +2710,6 @@ bool ValidateGetQueryObjectuivRobustANGLE(const Context *context,
                                           const GLsizei *length,
                                           const GLuint *params)
 {
-    if ((context->getClientVersion() < ES_3_0) && !context->getExtensions().disjointTimerQueryEXT &&
-        !context->getExtensions().occlusionQueryBooleanEXT)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kEntryPointBaseUnsupported);
-        return false;
-    }
-
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
     {
         return false;
@@ -2769,12 +2749,6 @@ bool ValidateGetQueryObjecti64vRobustANGLE(const Context *context,
                                            const GLsizei *length,
                                            const GLint64 *params)
 {
-    if (!context->getExtensions().disjointTimerQueryEXT)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExtensionNotEnabled);
-        return false;
-    }
-
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
     {
         return false;
@@ -2814,12 +2788,6 @@ bool ValidateGetQueryObjectui64vRobustANGLE(const Context *context,
                                             const GLsizei *length,
                                             const GLuint64 *params)
 {
-    if (!context->getExtensions().disjointTimerQueryEXT)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExtensionNotEnabled);
-        return false;
-    }
-
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
     {
         return false;
@@ -2961,7 +2929,7 @@ bool ValidateStateQuery(const Context *context,
                         angle::EntryPoint entryPoint,
                         GLenum pname,
                         const void *data,
-                        unsigned int *outNumParams)
+                        GLsizei *outNumParams)
 {
     if (data == nullptr)
     {
@@ -2970,7 +2938,8 @@ bool ValidateStateQuery(const Context *context,
     }
 
     GLenum nativeType;
-    if (!context->getQueryParameterInfo(pname, &nativeType, outNumParams))
+    unsigned int numParams;
+    if (!context->getQueryParameterInfo(pname, &nativeType, &numParams))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidPname);
         return false;
@@ -3100,6 +3069,11 @@ bool ValidateStateQuery(const Context *context,
             break;
     }
 
+    if (outNumParams != nullptr)
+    {
+        *outNumParams = numParams;
+    }
+
     return true;
 }
 
@@ -3140,12 +3114,6 @@ bool ValidateGetInteger64vRobustANGLE(const Context *context,
                                       const GLsizei *length,
                                       const GLint64 *data)
 {
-    if ((context->getClientVersion() < ES_3_0) && !context->getExtensions().disjointTimerQueryEXT)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kEntryPointBaseUnsupported);
-        return false;
-    }
-
     return ValidateRobustStateQuery(context, entryPoint, pname, paramCount, data);
 }
 
@@ -3155,11 +3123,13 @@ bool ValidateRobustStateQuery(const Context *context,
                               GLsizei paramCount,
                               const void *data)
 {
-    unsigned int numParams;
+    // Make sure ValidateStateQuery sets numParams
+    GLsizei numParams = std::numeric_limits<GLsizei>::max();
     if (!ValidateStateQuery(context, entryPoint, pname, data, &numParams))
     {
         return false;
     }
+    ASSERT(numParams != std::numeric_limits<GLsizei>::max());
 
     if (!ValidateRobustParamCount(context, entryPoint, paramCount, numParams))
     {
@@ -4796,12 +4766,6 @@ bool ValidateGetUniformuivRobustANGLE(const Context *context,
         return false;
     }
 
-    if (context->getClientVersion() < ES_3_0)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
-        return false;
-    }
-
     GLsizei writeLength = 0;
 
     // bufSize is validated in ValidateSizedGetUniform
@@ -5209,7 +5173,7 @@ bool ValidateGetBufferPointervBase(const Context *context,
 
     if (!context->isValidBufferBinding(target))
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTypes);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTarget);
         return false;
     }
 
@@ -5246,7 +5210,7 @@ bool ValidateUnmapBufferBase(const Context *context,
 {
     if (!context->isValidBufferBinding(target))
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTypes);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTarget);
         return false;
     }
 
@@ -5270,7 +5234,7 @@ bool ValidateMapBufferRangeBase(const Context *context,
 {
     if (!context->isValidBufferBinding(target))
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTypes);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTarget);
         return false;
     }
 
@@ -5396,7 +5360,7 @@ bool ValidateFlushMappedBufferRangeBase(const Context *context,
 
     if (!context->isValidBufferBinding(target))
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTypes);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTarget);
         return false;
     }
 
@@ -5868,7 +5832,7 @@ bool ValidateGetBufferParameterivRobustANGLE(const Context *context,
 
     GLsizei numParams = 0;
 
-    if (!ValidateGetBufferParameterBase(context, entryPoint, target, pname, false, &numParams))
+    if (!ValidateGetBufferParameterBase(context, entryPoint, target, pname, &numParams))
     {
         return false;
     }
@@ -5890,12 +5854,6 @@ bool ValidateGetBufferParameteri64vRobustANGLE(const Context *context,
                                                const GLsizei *length,
                                                const GLint64 *params)
 {
-    if (context->getClientVersion() < ES_3_0)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
-        return false;
-    }
-
     GLsizei numParams = 0;
 
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
@@ -5903,7 +5861,7 @@ bool ValidateGetBufferParameteri64vRobustANGLE(const Context *context,
         return false;
     }
 
-    if (!ValidateGetBufferParameterBase(context, entryPoint, target, pname, false, &numParams))
+    if (!ValidateGetBufferParameterBase(context, entryPoint, target, pname, &numParams))
     {
         return false;
     }
@@ -6300,12 +6258,6 @@ bool ValidateGetSamplerParameterfvRobustANGLE(const Context *context,
                                               const GLsizei *length,
                                               const GLfloat *params)
 {
-    if (context->getClientVersion() < ES_3_0)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
-        return false;
-    }
-
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
     {
         return false;
@@ -6335,12 +6287,6 @@ bool ValidateGetSamplerParameterivRobustANGLE(const Context *context,
                                               const GLsizei *length,
                                               const GLint *params)
 {
-    if (context->getClientVersion() < ES_3_0)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
-        return false;
-    }
-
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
     {
         return false;
@@ -6369,12 +6315,6 @@ bool ValidateSamplerParameterfvRobustANGLE(const Context *context,
                                            GLsizei bufSize,
                                            const GLfloat *params)
 {
-    if (context->getClientVersion() < ES_3_0)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
-        return false;
-    }
-
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
     {
         return false;
@@ -6390,12 +6330,6 @@ bool ValidateSamplerParameterivRobustANGLE(const Context *context,
                                            GLsizei bufSize,
                                            const GLint *params)
 {
-    if (context->getClientVersion() < ES_3_0)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
-        return false;
-    }
-
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
     {
         return false;
@@ -6501,12 +6435,6 @@ bool ValidateGetVertexAttribIivRobustANGLE(const Context *context,
                                            const GLsizei *length,
                                            const GLint *params)
 {
-    if (context->getClientVersion() < ES_3_0)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
-        return false;
-    }
-
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
     {
         return false;
@@ -6537,12 +6465,6 @@ bool ValidateGetVertexAttribIuivRobustANGLE(const Context *context,
                                             const GLsizei *length,
                                             const GLuint *params)
 {
-    if (context->getClientVersion() < ES_3_0)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
-        return false;
-    }
-
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
     {
         return false;
@@ -6574,12 +6496,6 @@ bool ValidateGetActiveUniformBlockivRobustANGLE(const Context *context,
                                                 const GLsizei *length,
                                                 const GLint *params)
 {
-    if (context->getClientVersion() < ES_3_0)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
-        return false;
-    }
-
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
     {
         return false;
@@ -6612,12 +6528,6 @@ bool ValidateGetInternalformativRobustANGLE(const Context *context,
                                             const GLsizei *length,
                                             const GLint *params)
 {
-    if (context->getClientVersion() < ES_3_0)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kES3Required);
-        return false;
-    }
-
     if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
     {
         return false;
@@ -6667,7 +6577,6 @@ bool ValidateGetBufferParameterBase(const Context *context,
                                     angle::EntryPoint entryPoint,
                                     BufferBinding target,
                                     GLenum pname,
-                                    bool pointerVersion,
                                     GLsizei *numParams)
 {
     if (numParams)
@@ -6677,7 +6586,7 @@ bool ValidateGetBufferParameterBase(const Context *context,
 
     if (!context->isValidBufferBinding(target))
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTypes);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidBufferTarget);
         return false;
     }
 
@@ -6711,14 +6620,6 @@ bool ValidateGetBufferParameterBase(const Context *context,
                 !extensions.mapBufferRangeEXT)
             {
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
-                return false;
-            }
-            break;
-
-        case GL_BUFFER_MAP_POINTER:
-            if (!pointerVersion)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidMapPointerQuery);
                 return false;
             }
             break;
