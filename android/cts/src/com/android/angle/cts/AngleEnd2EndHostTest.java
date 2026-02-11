@@ -427,13 +427,13 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
             return;
         }
 
-        if (!isHandheld(mDevice)) {
-            CLog.i("Skipping invocation: device is not handheld.");
-            listener.invocationSkipped(new SkipReason("Device is not handheld", ""));
-            return;
-        }
-
         if (!isAngleDefaultDriver()) {
+            if (!isHandheld(mDevice)) {
+                CLog.i("Skipping invocation: device is not handheld.");
+                listener.invocationSkipped(new SkipReason("Device is not handheld", ""));
+                return;
+            }
+
             if (mSkipApiLevelCheck
                     || PropertyUtil.getVsrApiLevel(mDevice) >= MINIMUM_VENDOR_API_LEVEL) {
                 if (!selectAngleAsGlDriver()) {
