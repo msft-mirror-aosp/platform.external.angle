@@ -10,6 +10,10 @@
 #ifndef LIBANGLE_RENDERER_VULKAN_DRIVER_UNIFORMS_H_
 #define LIBANGLE_RENDERER_VULKAN_DRIVER_UNIFORMS_H_
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
+
 #include "GLSLANG/ShaderLang.h"
 #include "common/PackedEnums.h"
 #include "common/angleutils.h"
@@ -82,19 +86,33 @@ void UpdateAtomicCounterBufferOffset(vk::Renderer *renderer,
 class GraphicsDriverUniforms
 {
   public:
-    GraphicsDriverUniforms()
+    GraphicsDriverUniforms(vk::Renderer *renderer)
+        : mAllDirtyBits({DIRTY_BIT_ATOMIC_COUNTER_BUFFER, DIRTY_BIT_DEPTH_RANGE,
+                         DIRTY_BIT_RENDER_AREA, DIRTY_BIT_FLIP_XY, DIRTY_BIT_MISC})
     {
-        std::ranges::fill(mUniformData.acbBufferOffsets, 0);
         std::ranges::fill(mUniformData.depthRange, 0.0f);
         mUniformData.renderArea = 0;
         mUniformData.flipXY     = 0;
-        mUniformData.dither     = 0;
         mUniformData.uint32Misc = 0;
+        mUniformData.dither     = 0;
+        std::ranges::fill(mUniformData.acbBufferOffsets, 0);
+
+        if (renderer->getFeatures().emulateDithering.enabled)
+        {
+            mAllDirtyBits.set(DIRTY_BIT_EMULATED_DITHER_CONTROL);
+        }
+        if (renderer->getFeatures().emulateTransformFeedback.enabled)
+        {
+            mAllDirtyBits.set(DIRTY_BIT_EMULATED_TRANSFORM_FEEDBACK);
+        }
+
+        mDirtyBits = mAllDirtyBits;
     }
 
     void updateDepthRange(float nearPlane, float farPlane)
     {
         mUniformData.depthRange = {nearPlane, farPlane};
+        mDirtyBits.set(DIRTY_BIT_DEPTH_RANGE);
     }
 
     void updateRenderArea(int width, int height)
@@ -108,6 +126,7 @@ class GraphicsDriverUniforms
         SetBitField(renderAreaWidth, width);
         SetBitField(renderAreaHeight, height);
         mUniformData.renderArea = renderAreaHeight << 16 | renderAreaWidth;
+        mDirtyBits.set(DIRTY_BIT_RENDER_AREA);
     }
 
     void updateflipXY(SurfaceRotation rotation,
@@ -146,11 +165,13 @@ class GraphicsDriverUniforms
         }
 
         mUniformData.flipXY = MakeFlipUniform(flipX, flipY, viewportFlipped);
+        mDirtyBits.set(DIRTY_BIT_FLIP_XY);
 
         const uint32_t swapXY = IsRotatedAspectRatio(rotation);
         SetBitField(mUniformData.misc.swapXY, swapXY);
         SetBitField(mUniformData.misc.numSamples, numSamples);
         SetBitField(mUniformData.misc.layeredFramebuffer, layeredFramebuffer);
+        mDirtyBits.set(DIRTY_BIT_MISC);
     }
 
     void updateAtomicCounterBufferOffset(vk::Renderer *renderer,
@@ -159,49 +180,102 @@ class GraphicsDriverUniforms
     {
         UpdateAtomicCounterBufferOffset(renderer, atomicCounterBufferCount, atomicCounterBuffers,
                                         mUniformData.acbBufferOffsets);
+        mDirtyBits.set(DIRTY_BIT_ATOMIC_COUNTER_BUFFER);
     }
 
     void updateEmulatedDitherControl(uint32_t emulatedDitherControl)
     {
         mUniformData.dither = emulatedDitherControl;
+        mDirtyBits.set(DIRTY_BIT_EMULATED_DITHER_CONTROL);
     }
 
     void updateAdvancedBlendEquation(uint32_t advancedBlendEquation)
     {
         SetBitField(mUniformData.misc.advancedBlendEquation, advancedBlendEquation);
+        mDirtyBits.set(DIRTY_BIT_MISC);
     }
 
     void updateEnabledClipDistances(uint32_t enabledClipDistances)
     {
         SetBitField(mUniformData.misc.clipDistancesEnabledMask, enabledClipDistances);
+        mDirtyBits.set(DIRTY_BIT_MISC);
     }
 
     void updateTransformDepth(uint32_t transformDepth)
     {
         SetBitField(mUniformData.misc.transformDepth, transformDepth);
+        mDirtyBits.set(DIRTY_BIT_MISC);
     }
+
+    std::array<int32_t, 4> &updateTransformFeedbackData(int32_t xfbVerticesPerInstance)
+    {
+        mUniformData.xfbVerticesPerInstance = xfbVerticesPerInstance;
+        mDirtyBits.set(DIRTY_BIT_EMULATED_TRANSFORM_FEEDBACK);
+
+        return mUniformData.xfbBufferOffsets;
+    }
+
+    void setAllDirtyBits() { mDirtyBits = mAllDirtyBits; }
 
     // Update push constant driver uniforms.
     void pushConstants(vk::Renderer *renderer,
                        const vk::PipelineLayout &pipelineLayout,
                        vk::RenderPassCommandBuffer *commandBuffer)
     {
+        if (mDirtyBits.none())
+        {
+            return;
+        }
+
+        static constexpr std::array<uint32_t, DirtyBitType::EnumCount + 1> kPushConstantOffsets = {
+            offsetof(struct UniformData, depthRange),
+            offsetof(struct UniformData, renderArea),
+            offsetof(struct UniformData, flipXY),
+            offsetof(struct UniformData, misc),
+            offsetof(struct UniformData, dither),
+            offsetof(struct UniformData, acbBufferOffsets),
+            offsetof(struct UniformData, xfbBufferOffsets),
+            sizeof(struct UniformData)};
+
+        // Push constant data from first dirty bit to the last dirty bit
+        DirtyBitType firstDirtyBit = mDirtyBits.first();
+        DirtyBitType lastDirtyBit  = mDirtyBits.last();
+        uint32_t offset            = kPushConstantOffsets[firstDirtyBit];
+        uint32_t size              = kPushConstantOffsets[lastDirtyBit + 1] - offset;
+        void *data                 = reinterpret_cast<uint8_t *>(&mUniformData) + offset;
+
         commandBuffer->pushConstants(pipelineLayout, renderer->getSupportedVulkanShaderStageMask(),
-                                     0, sizeof(mUniformData), &mUniformData);
+                                     offset, size, data);
+        mDirtyBits.reset();
     }
 
-    uint32_t getUniformDataSize() const { return sizeof(mUniformData); }
     uint32_t getRenderArea() const { return mUniformData.renderArea; }
 
+    static uint32_t GetMaxUniformDataSize(vk::Renderer *renderer)
+    {
+        return renderer->getFeatures().emulateTransformFeedback.enabled
+                   ? sizeof(struct UniformData)
+                   : offsetof(struct UniformData, xfbBufferOffsets);
+    }
+
   private:
+    enum DirtyBitType : uint8_t
+    {
+        DIRTY_BIT_DEPTH_RANGE,
+        DIRTY_BIT_RENDER_AREA,
+        DIRTY_BIT_FLIP_XY,
+        DIRTY_BIT_MISC,
+        DIRTY_BIT_EMULATED_DITHER_CONTROL,
+        DIRTY_BIT_ATOMIC_COUNTER_BUFFER,
+        DIRTY_BIT_EMULATED_TRANSFORM_FEEDBACK,
+
+        EnumCount
+    };
+    using DirtyBits = angle::PackedEnumBitSet<DirtyBitType>;
+
     ANGLE_ENABLE_STRUCT_PADDING_WARNINGS
     struct UniformData
     {
-        // Contain packed 8-bit values for atomic counter buffer offsets.  These offsets are within
-        // Vulkan's minStorageBufferOffsetAlignment limit and are used to support unaligned offsets
-        // allowed in GL.
-        std::array<uint32_t, 2> acbBufferOffsets;
-
         // .x is near, .y is far
         std::array<float, 2> depthRange;
 
@@ -210,9 +284,6 @@ class GraphicsDriverUniforms
 
         // Packed vec4 of snorm8
         uint32_t flipXY;
-
-        // Only the lower 16 bits used
-        uint32_t dither;
 
         // Packing information for driver uniform's misc field:
         union
@@ -259,6 +330,19 @@ class GraphicsDriverUniforms
             } misc;
             uint32_t uint32Misc;
         };
+
+        // Only the lower 16 bits used
+        uint32_t dither;
+
+        // Contain packed 8-bit values for atomic counter buffer offsets.  These offsets are within
+        // Vulkan's minStorageBufferOffsetAlignment limit and are used to support unaligned offsets
+        // allowed in GL.
+        std::array<uint32_t, 2> acbBufferOffsets;
+
+        // Only used when transform feedback is emulated.
+        std::array<int32_t, 4> xfbBufferOffsets;
+        int32_t xfbVerticesPerInstance;
+        int32_t padding[3];
     } UniformData;
     ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
 
@@ -269,23 +353,19 @@ class GraphicsDriverUniforms
                       sh::vk::kDriverUniformsMiscEnabledClipPlanesMask,
                   "Not enough bits for enabled clip planes");
 
-    struct UniformData mUniformData;
-};
+    // Driver uniforms are updated using push constants and Vulkan spec guarantees universal support
+    // for 128 bytes worth of push constants. For maximum compatibility ensure
+    // GraphicsDriverUniforms plus extended size are within that limit.
+    static_assert(sizeof(UniformData) <= 128, "Only 128 bytes are guaranteed for push constants");
 
-// Only used when transform feedback is emulated.
-struct XFBEmulationGraphicsDriverUniforms
-{
-    std::array<int32_t, 4> xfbBufferOffsets;
-    int32_t xfbVerticesPerInstance;
-    int32_t padding[3];
+    struct UniformData mUniformData;
+
+    // Track which constant is dirty
+    DirtyBits mDirtyBits;
+    // All possible dirty bits. Note that depends on feature bit, it may not be all bits in the
+    // DirtyBits.
+    DirtyBits mAllDirtyBits;
 };
-static_assert(sizeof(XFBEmulationGraphicsDriverUniforms) % (sizeof(uint32_t) * 4) == 0,
-              "GraphicsDriverUniformsExtended should be 16bytes aligned");
-// Driver uniforms are updated using push constants and Vulkan spec guarantees universal support for
-// 128 bytes worth of push constants. For maximum compatibility ensure
-// GraphicsDriverUniforms plus extended size are within that limit.
-static_assert(sizeof(GraphicsDriverUniforms) + sizeof(XFBEmulationGraphicsDriverUniforms) <= 128,
-              "Only 128 bytes are guaranteed for push constants");
 
 struct ComputeDriverUniforms
 {
