@@ -1867,7 +1867,21 @@
 42266907 WGPU : AttributeLayoutNonIndexed.Test/* = SKIP
 42266907 WGPU : BindUniformLocationTest.Compositor/* = SKIP
 42266907 WGPU : BlendPackedTest.RGB565/* = SKIP
-42266907 WGPU : BlitFramebufferANGLETest.* = SKIP
+42266907 WGPU : BlitFramebufferANGLETest.BlitColorToDefault/* = SKIP
+42266907 WGPU : BlitFramebufferANGLETest.BlitColorWithFlip/* = SKIP
+42266907 WGPU : BlitFramebufferANGLETest.ReverseColorBlit/* = SKIP
+42266907 WGPU : BlitFramebufferANGLETest.ScissoredBlit/* = SKIP
+42266907 WGPU : BlitFramebufferANGLETest.ReverseScissoredBlit/* = SKIP
+42266907 WGPU : BlitFramebufferANGLETest.OversizedBlit/* = SKIP
+42266907 WGPU : BlitFramebufferANGLETest.ReverseOversizedBlit/* = SKIP
+42266907 WGPU : BlitFramebufferANGLETest.BlitWithDepthUserToDefault/* = SKIP
+42266907 WGPU : BlitFramebufferANGLETest.BlitWithDepthDefaultToUser/* = SKIP
+42266907 WGPU : BlitFramebufferANGLETest.BlitPartialColor/* = SKIP
+42266907 WGPU : BlitFramebufferANGLETest.BlitDifferentSizes/* = SKIP
+42266907 WGPU : BlitFramebufferANGLETest.BlitStencil/* = SKIP
+42266907 WGPU : BlitFramebufferANGLETest.BlitWithMissingAttachments/* = SKIP
+42266907 WGPU : SimpleStateChangeTest.TexSubImageOnTextureBoundToFrambuffer/* = SKIP
+42266907 WGPU : SRGBFramebufferDefaultLinearTest.Blit*LinearFbo/* = SKIP
 42266907 WGPU : DebugMarkerTest.Rendering/* = SKIP
 42266907 WGPU : DepthStencilFormatsTest.DepthBuffer16/* = SKIP
 42266907 WGPU : DepthStencilTest.StencilOnlyEmulatedWithPacked/* = SKIP
@@ -2098,9 +2112,11 @@
 42267119 LINUX INTEL OPENGL : WEBGLVideoTextureTest.VerifyStateManagerKnowsBindingVideoImage/* = SKIP
 
 // Linux/Nvidia GTX 1660 failures after OS/driver upgrade to Ubuntu 22.04.
+362486580 LINUX NVIDIA OPENGL : EXTBlendFuncExtendedDrawTestES3.FragmentOutputLocationsInShader/* = SKIP
 362486580 LINUX NVIDIA OPENGL : InstancingTestES31.UpdateAttribBindingByVertexAttribDivisor/* = SKIP
 362486580 LINUX NVIDIA OPENGL : LineLoopIndirectTest.TwoIndirectDrawsShareIndexBuffer/* = SKIP
 362486580 LINUX NVIDIA OPENGL : LineLoopIndirectTest.UByteIndexIndirectBuffer/* = SKIP
+362486580 LINUX NVIDIA OPENGL : LineLoopIndirectTest.UShortIndexIndirectBuffer/* = SKIP
 362486580 LINUX NVIDIA OPENGL : LineLoopIndirectTest.UseAsUBOThenUpdateThenUByteIndexIndirectBuffer/* = SKIP
 362486580 LINUX NVIDIA OPENGL : MultiDrawIndirectTest.MultiDrawArraysIndirect/* = SKIP
 362486580 LINUX NVIDIA OPENGL : MultiDrawIndirectTest.MultiDrawElementsIndirect/* = SKIP

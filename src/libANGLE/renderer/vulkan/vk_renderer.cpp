@@ -754,6 +754,19 @@ constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessagesWithMSRTTEmulation[] 
          "old_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL",
          "new_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL",
      }},
+    // http://anglebug.com/485227776
+    {"SYNC-HAZARD-READ-AFTER-WRITE",
+     false,
+     {
+         "message_type = RenderPassResolveError",
+         "access = "
+         "VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT(VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT)",
+         "prior_access = "
+         "VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT(VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_"
+         "BIT)",
+         "command = vkCmdEndRenderPass",
+         "prior_command = vkCmdBeginRenderPass",
+     }},
 };
 
 enum class DebugMessageReport
@@ -6684,8 +6697,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     }
 
     // Check if VK implementation needs to strip-out non-semantic reflection info from shader module
-    // (Default is to assume not supported)
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsShaderNonSemanticInfo, false);
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsShaderNonSemanticInfo,
+        ExtensionFound(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME, deviceExtensionNames));
 
     // Don't expose these 2 extensions on Samsung devices -
     // 1. ANGLE_rgbx_internal_format

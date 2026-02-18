@@ -2681,6 +2681,11 @@ void Context::getBufferParameterivRobust(BufferBinding target,
                                          GLint *params)
 {
     getBufferParameteriv(target, pnamePacked, params);
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
 void Context::getFramebufferAttachmentParameteriv(GLenum target,
@@ -5912,21 +5917,26 @@ void Context::compressedCopyTexture(TextureID sourceId, TextureID destId)
     ANGLE_CONTEXT_TRY(destTexture->copyCompressedTexture(this, sourceTexture));
 }
 
-void Context::getBufferPointerv(BufferBinding target, GLenum pname, void **params)
+void Context::getBufferPointerv(BufferBinding targetPacked, GLenum pname, void **params)
 {
-    Buffer *buffer = mState.getTargetBuffer(target);
-    ASSERT(buffer);
-
-    QueryBufferPointerv(buffer, pname, params);
+    const Buffer *buffer = mState.getTargetBuffer(targetPacked);
+    ASSERT(buffer != nullptr);
+    ASSERT(pname == GL_BUFFER_MAP_POINTER);
+    *params = buffer->getMapPointer();
 }
 
-void Context::getBufferPointervRobust(BufferBinding target,
+void Context::getBufferPointervRobust(BufferBinding targetPacked,
                                       GLenum pname,
                                       GLsizei paramCount,
                                       GLsizei *length,
                                       void **params)
 {
-    getBufferPointerv(target, pname, params);
+    getBufferPointerv(targetPacked, pname, params);
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
 void *Context::mapBuffer(BufferBinding target, GLenum access)
@@ -6154,6 +6164,11 @@ void Context::getVertexAttribPointervRobust(GLuint index,
                                             void **pointer)
 {
     getVertexAttribPointerv(index, pname, pointer);
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
 void Context::debugMessageControl(GLenum source,
@@ -6470,16 +6485,9 @@ void Context::getMultisamplefv(GLenum pname, GLuint index, GLfloat *val)
     // According to spec 3.1 Table 20.49: Framebuffer Dependent Values,
     // the sample position should be queried by DRAW_FRAMEBUFFER.
     ANGLE_CONTEXT_TRY(mState.syncDirtyObject(this, GL_DRAW_FRAMEBUFFER, Command::GetMultisample));
-    const Framebuffer *framebuffer = mState.getDrawFramebuffer();
 
-    switch (pname)
-    {
-        case GL_SAMPLE_POSITION:
-            ANGLE_CONTEXT_TRY(framebuffer->getSamplePosition(this, index, val));
-            break;
-        default:
-            UNREACHABLE();
-    }
+    ASSERT(pname == GL_SAMPLE_POSITION);
+    ANGLE_CONTEXT_TRY(mState.getDrawFramebuffer()->getSamplePosition(this, index, val));
 }
 
 void Context::getMultisamplefvRobust(GLenum pname,
@@ -6488,7 +6496,13 @@ void Context::getMultisamplefvRobust(GLenum pname,
                                      GLsizei *length,
                                      GLfloat *val)
 {
-    UNIMPLEMENTED();
+    getMultisamplefv(pname, index, val);
+
+    if (length != nullptr)
+    {
+        ASSERT(pname == GL_SAMPLE_POSITION);
+        *length = 2;
+    }
 }
 
 void Context::renderbufferStorage(GLenum target,
@@ -7377,36 +7391,54 @@ void Context::getShaderSource(ShaderProgramID shader,
     shaderObject->getSource(bufsize, length, source);
 }
 
-void Context::getUniformfv(ShaderProgramID program, UniformLocation location, GLfloat *params)
+void Context::getUniformfv(ShaderProgramID programPacked,
+                           UniformLocation locationPacked,
+                           GLfloat *params)
 {
-    Program *programObject = getProgramResolveLink(program);
-    ASSERT(programObject);
-    programObject->getExecutable().getUniformfv(this, location, params);
+    getUniformfvRobust(programPacked, locationPacked, 0, nullptr, params);
 }
 
-void Context::getUniformfvRobust(ShaderProgramID program,
-                                 UniformLocation location,
+void Context::getUniformfvRobust(ShaderProgramID programPacked,
+                                 UniformLocation locationPacked,
                                  GLsizei bufSize,
                                  GLsizei *length,
                                  GLfloat *params)
 {
-    getUniformfv(program, location, params);
+    const Program *programObject = getProgramResolveLink(programPacked);
+    ASSERT(programObject != nullptr);
+    const ProgramExecutable &executable = programObject->getExecutable();
+
+    executable.getUniformfv(this, locationPacked, params);
+
+    if (length != nullptr)
+    {
+        *length = VariableComponentCount(executable.getUniformByLocation(locationPacked).getType());
+    }
 }
 
-void Context::getUniformiv(ShaderProgramID program, UniformLocation location, GLint *params)
+void Context::getUniformiv(ShaderProgramID programPacked,
+                           UniformLocation locationPacked,
+                           GLint *params)
 {
-    Program *programObject = getProgramResolveLink(program);
-    ASSERT(programObject);
-    programObject->getExecutable().getUniformiv(this, location, params);
+    getUniformivRobust(programPacked, locationPacked, 0, nullptr, params);
 }
 
-void Context::getUniformivRobust(ShaderProgramID program,
-                                 UniformLocation location,
+void Context::getUniformivRobust(ShaderProgramID programPacked,
+                                 UniformLocation locationPacked,
                                  GLsizei bufSize,
                                  GLsizei *length,
                                  GLint *params)
 {
-    getUniformiv(program, location, params);
+    const Program *programObject = getProgramResolveLink(programPacked);
+    ASSERT(programObject != nullptr);
+    const ProgramExecutable &executable = programObject->getExecutable();
+
+    executable.getUniformiv(this, locationPacked, params);
+
+    if (length != nullptr)
+    {
+        *length = VariableComponentCount(executable.getUniformByLocation(locationPacked).getType());
+    }
 }
 
 GLint Context::getUniformLocation(ShaderProgramID program, const GLchar *name)
@@ -7807,19 +7839,29 @@ void Context::resumeTransformFeedback()
     onActiveTransformFeedbackChange();
 }
 
-void Context::getUniformuiv(ShaderProgramID program, UniformLocation location, GLuint *params)
+void Context::getUniformuiv(ShaderProgramID programPacked,
+                            UniformLocation locationPacked,
+                            GLuint *params)
 {
-    const Program *programObject = getProgramResolveLink(program);
-    programObject->getExecutable().getUniformuiv(this, location, params);
+    getUniformuivRobust(programPacked, locationPacked, 0, nullptr, params);
 }
 
-void Context::getUniformuivRobust(ShaderProgramID program,
-                                  UniformLocation location,
+void Context::getUniformuivRobust(ShaderProgramID programPacked,
+                                  UniformLocation locationPacked,
                                   GLsizei bufSize,
                                   GLsizei *length,
                                   GLuint *params)
 {
-    getUniformuiv(program, location, params);
+    const Program *programObject = getProgramResolveLink(programPacked);
+    ASSERT(programObject != nullptr);
+    const ProgramExecutable &executable = programObject->getExecutable();
+
+    executable.getUniformuiv(this, locationPacked, params);
+
+    if (length != nullptr)
+    {
+        *length = VariableComponentCount(executable.getUniformByLocation(locationPacked).getType());
+    }
 }
 
 GLint Context::getFragDataLocation(ShaderProgramID program, const GLchar *name)
@@ -7994,6 +8036,11 @@ void Context::getBufferParameteri64vRobust(BufferBinding target,
                                            GLint64 *params)
 {
     getBufferParameteri64v(target, pnamePacked, params);
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
 void Context::genSamplers(GLsizei count, SamplerID *samplers)
@@ -8468,37 +8515,28 @@ void Context::getTranslatedShaderSource(ShaderProgramID shader,
     shaderObject->getTranslatedSourceWithDebugInfo(this, bufsize, length, source);
 }
 
-void Context::getnUniformfv(ShaderProgramID program,
-                            UniformLocation location,
+void Context::getnUniformfv(ShaderProgramID programPacked,
+                            UniformLocation locationPacked,
                             GLsizei bufSize,
                             GLfloat *params)
 {
-    Program *programObject = getProgramResolveLink(program);
-    ASSERT(programObject);
-
-    programObject->getExecutable().getUniformfv(this, location, params);
+    getUniformfvRobust(programPacked, locationPacked, bufSize, nullptr, params);
 }
 
-void Context::getnUniformiv(ShaderProgramID program,
-                            UniformLocation location,
+void Context::getnUniformiv(ShaderProgramID programPacked,
+                            UniformLocation locationPacked,
                             GLsizei bufSize,
                             GLint *params)
 {
-    Program *programObject = getProgramResolveLink(program);
-    ASSERT(programObject);
-
-    programObject->getExecutable().getUniformiv(this, location, params);
+    getUniformivRobust(programPacked, locationPacked, bufSize, nullptr, params);
 }
 
-void Context::getnUniformuiv(ShaderProgramID program,
-                             UniformLocation location,
+void Context::getnUniformuiv(ShaderProgramID programPacked,
+                             UniformLocation locationPacked,
                              GLsizei bufSize,
                              GLuint *params)
 {
-    Program *programObject = getProgramResolveLink(program);
-    ASSERT(programObject);
-
-    programObject->getExecutable().getUniformuiv(this, location, params);
+    getUniformuivRobust(programPacked, locationPacked, bufSize, nullptr, params);
 }
 
 GLboolean Context::isFenceNV(FenceNVID fence) const
