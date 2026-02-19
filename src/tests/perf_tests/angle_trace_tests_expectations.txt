@@ -13,6 +13,9 @@
 42266627 PIXEL6 NATIVE : respawnables = SKIP
 42266034 LINUX SWIFTSHADER : star_wars_kotor = SKIP
 
+// This trace is missing clouds due to precision diffs between stages
+183647942 ANDROID ARM : minecraft = SKIP
+
 267953710 GALAXYS22 : cod_mobile = SKIP
 267953710 GALAXYS22 : dota_underlords = SKIP
 267953710 GALAXYS22 : marvel_snap = SKIP
@@ -97,6 +100,7 @@
 42267118 LINUX INTEL NATIVE : zombie_smasher = SKIP
 42267118 LINUX INTEL NATIVE : passmark_simple = SKIP
 42267118 LINUX INTEL NATIVE : passmark_simple_multiview = SKIP
+42267118 LINUX INTEL NATIVE : dr_parking_4 = SKIP
 362801312 LINUX INTEL NATIVE : passmark_complex = SKIP
 448110252 LINUX INTEL NATIVE : puzzle_and_dragons = SKIP
 378666645 LINUX INTEL VULKAN : octopath_traveler = SKIP
@@ -132,6 +136,7 @@
 448110252 WIN INTEL NATIVE : puzzle_and_dragons = SKIP
 459511105 WIN INTEL NATIVE : love_and_deepspace = SKIP
 42267118 WIN INTEL NATIVE : passmark_simple_multiview = SKIP
+42267118 WIN INTEL NATIVE : dr_parking_4 = SKIP
 40096690 WIN INTEL VULKAN : manhattan_10 = SKIP
 42266346 WIN INTEL VULKAN : black_desert_mobile = SKIP
 42266346 WIN INTEL VULKAN : the_gardens_between = SKIP
