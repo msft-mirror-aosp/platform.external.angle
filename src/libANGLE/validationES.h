@@ -416,14 +416,13 @@ bool ValidateDrawInstancedANGLE(const Context *context, angle::EntryPoint entryP
 
 bool ValidateGetUniformBase(const Context *context,
                             angle::EntryPoint entryPoint,
-                            ShaderProgramID program,
-                            UniformLocation location);
+                            ShaderProgramID programPacked,
+                            UniformLocation locationPacked);
 bool ValidateSizedGetUniform(const Context *context,
                              angle::EntryPoint entryPoint,
-                             ShaderProgramID program,
-                             UniformLocation location,
-                             GLsizei bufSize,
-                             GLsizei *length);
+                             ShaderProgramID programPacked,
+                             UniformLocation locationPacked,
+                             GLsizei bufSize);
 
 bool ValidateDiscardFramebufferBase(const Context *context,
                                     angle::EntryPoint entryPoint,
@@ -458,10 +457,9 @@ bool ValidateDrawBuffersBase(const Context *context,
 
 bool ValidateGetBufferPointervBase(const Context *context,
                                    angle::EntryPoint entryPoint,
-                                   BufferBinding target,
+                                   BufferBinding targetPacked,
                                    GLenum pname,
-                                   GLsizei *length,
-                                   void *const *params);
+                                   GLsizei *outNumParams);
 bool ValidateUnmapBufferBase(const Context *context,
                              angle::EntryPoint entryPoint,
                              BufferBinding target);
@@ -508,7 +506,7 @@ bool ValidateGetBufferParameterBase(const Context *context,
                                     angle::EntryPoint entryPoint,
                                     BufferBinding targetPacked,
                                     BufferParam pnamePacked,
-                                    GLsizei *numParams);
+                                    GLsizei *outNumParams);
 
 bool ValidateGetProgramivBase(const Context *context,
                               angle::EntryPoint entryPoint,
@@ -549,6 +547,12 @@ bool ValidateGetVertexAttribBase(const Context *context,
                                  GLenum pname,
                                  GLsizei *length,
                                  bool pointer);
+
+bool ValidateGetVertexAttribPointerBase(const Context *context,
+                                        angle::EntryPoint entryPoint,
+                                        GLuint index,
+                                        GLenum pname,
+                                        GLsizei *outNumParams);
 
 ANGLE_INLINE bool ValidateVertexFormat(const PrivateState &privateState,
                                        ErrorSet *errors,
@@ -801,7 +805,8 @@ bool ValidateGetMultisamplefvBase(const Context *context,
                                   angle::EntryPoint entryPoint,
                                   GLenum pname,
                                   GLuint index,
-                                  const GLfloat *val);
+                                  GLsizei *outNumParams);
+
 bool ValidateSampleMaskiBase(const PrivateState &state,
                              ErrorSet *errors,
                              angle::EntryPoint entryPoint,

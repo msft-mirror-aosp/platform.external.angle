@@ -824,8 +824,7 @@ bool ValidateGetnUniformfvKHR(const Context *context,
         return false;
     }
 
-    return ValidateSizedGetUniform(context, entryPoint, programPacked, locationPacked, bufSize,
-                                   nullptr);
+    return ValidateSizedGetUniform(context, entryPoint, programPacked, locationPacked, bufSize);
 }
 
 bool ValidateGetnUniformivKHR(const Context *context,
@@ -841,8 +840,13 @@ bool ValidateGetnUniformivKHR(const Context *context,
         return false;
     }
 
-    return ValidateSizedGetUniform(context, entryPoint, programPacked, locationPacked, bufSize,
-                                   nullptr);
+    // TODO(anglebug.com/484215148): Remove this check once CTS is fixed.
+    if (ANGLE_UNLIKELY(bufSize < 0))
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kNegativeBufSize);
+        return false;
+    }
+    return ValidateSizedGetUniform(context, entryPoint, programPacked, locationPacked, bufSize);
 }
 
 bool ValidateGetnUniformuivKHR(const Context *context,
@@ -860,8 +864,13 @@ bool ValidateGetnUniformuivKHR(const Context *context,
         return false;
     }
 
-    return ValidateSizedGetUniform(context, entryPoint, programPacked, locationPacked, bufSize,
-                                   nullptr);
+    // TODO(anglebug.com/484215148): Remove this check once CTS is fixed.
+    if (ANGLE_UNLIKELY(bufSize < 0))
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kNegativeBufSize);
+        return false;
+    }
+    return ValidateSizedGetUniform(context, entryPoint, programPacked, locationPacked, bufSize);
 }
 
 bool ValidateReadnPixelsKHR(const Context *context,
