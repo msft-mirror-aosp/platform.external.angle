@@ -7567,43 +7567,6 @@ cc_defaults {
 }
 
 cc_defaults {
-    name: "third_party_abseil_cpp_absl_base_internal_throw_delegate",
-    srcs: [
-        "third_party/abseil-cpp/absl/base/internal/throw_delegate.cc",
-    ],
-    defaults: [
-        "angle_common_auto_cflags",
-        "angle_common_library_cflags",
-        "buildtools_third_party_libc++_all_modules",
-        "buildtools_third_party_libc++_custom_headers",
-        "buildtools_third_party_libc++_libcxx_headers",
-        "third_party_abseil_cpp_absl_base_config",
-        "third_party_abseil_cpp_absl_base_raw_logging_internal",
-    ],
-    local_include_dirs: [
-        "",
-        "third_party/abseil-cpp/",
-    ],
-    cflags: [
-        "-DABSL_ALLOCATOR_NOTHROW=1",
-        "-Wno-c++11-narrowing",
-        "-Wno-exit-time-destructors",
-        "-Wno-unsafe-buffer-usage-in-static-sized-array",
-        "-Wno-unused-but-set-variable",
-        "-Wno-unused-variable",
-    ],
-    sdk_version: "current",
-    stl: "libc++_static",
-    arch: {
-        arm64: {
-            cflags: [
-                "-D__ARM_NEON__=1",
-            ],
-        },
-    },
-}
-
-cc_defaults {
     name: "third_party_abseil_cpp_absl_base_throw_delegate",
     srcs: [
         "third_party/abseil-cpp/absl/base/throw_delegate.cc",
@@ -7615,7 +7578,6 @@ cc_defaults {
         "buildtools_third_party_libc++_custom_headers",
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_config",
-        "third_party_abseil_cpp_absl_base_internal_throw_delegate",
         "third_party_abseil_cpp_absl_base_raw_logging_internal",
     ],
     local_include_dirs: [
