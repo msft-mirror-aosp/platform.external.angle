@@ -20,6 +20,7 @@ angle_translator_ir_sources = [
   "src/output/legacy.rs",
   "src/transform.rs",
   "src/transform/astify.rs",
+  "src/transform/broadcast_fragcolor.rs",
   "src/transform/clamp_point_size.rs",
   "src/transform/dealias.rs",
   "src/transform/emulate_instanced_multiview.rs",
@@ -33,8 +34,11 @@ angle_translator_ir_sources = [
   "src/transform/sort_uniforms.rs",
   "src/traverser.rs",
   "src/util.rs",
-  "src/validator.rs",
 ]
+
+if (angle_assert_always_on) {
+  angle_translator_ir_sources += [ "src/validator.rs" ]
+}
 
 if (angle_ir) {
   config("gen_src_include") {
@@ -54,6 +58,14 @@ if (angle_ir) {
       "src/compile.rs",
       "src/output/legacy.rs",
     ]
+
+    # dcheck_always_on automatically sets -Cdebug-assertions, but ANGLE builds
+    # could technically set that to false but enable asserts via
+    # angle_assert_always_on.
+    rustflags = []
+    if (angle_assert_always_on) {
+      rustflags += [ "-Cdebug-assertions" ]
+    }
 
     configs += [
       "$angle_root:internal_config",
