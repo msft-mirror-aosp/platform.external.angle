@@ -416,3 +416,139 @@ pub fn is_precision_applicable_to_type(ir_meta: &IRMeta, type_id: TypeId) -> boo
     }
     matches!(base_type_id, TYPE_ID_FLOAT | TYPE_ID_INT | TYPE_ID_UINT)
 }
+
+// Helper to walk back the instructions starting from an id, in search of some origin.
+//
+// For example, if a transformation encounters `OpLoad id` and wants to find out if `id`
+// corresponds to a uniform, it has to look into the `id`.  If it's a variable, it can check its
+// properties directly, but if it's a register it has to find out what instruction produces it.
+// For example, it could be `AccessArrayElement base index`, in which case it has to recursively
+// repeat this process until it arrives at the base variable.
+//
+// Also noteworthy is that this helper simplifies transformation by letting them generally be
+// oblivious to `Alias` instructions as it automatically skips over them.
+//
+// The callbacks must return `None` if recursion needs to stop, or `Some(id)` to continue
+// exploring.
+pub fn trace_back<State, InspectConstant, InspectVariable, InspectRegister>(
+    ir_meta: &IRMeta,
+    state: &mut State,
+    id: Id,
+    inspect_constant: &mut InspectConstant,
+    inspect_variable: &mut InspectVariable,
+    inspect_register: &mut InspectRegister,
+) where
+    InspectConstant: FnMut(&mut State, ConstantId) -> Option<Id>,
+    InspectVariable: FnMut(&mut State, VariableId) -> Option<Id>,
+    InspectRegister: FnMut(&mut State, RegisterId, &OpCode) -> Option<Id>,
+{
+    let mut id = id;
+    loop {
+        match id {
+            Id::Constant(constant_id) => {
+                if let Some(to_inspect) = inspect_constant(state, constant_id) {
+                    id = to_inspect;
+                } else {
+                    break;
+                }
+            }
+            Id::Variable(variable_id) => {
+                if let Some(to_inspect) = inspect_variable(state, variable_id) {
+                    id = to_inspect;
+                } else {
+                    break;
+                }
+            }
+            Id::Register(register_id) => {
+                let instruction = ir_meta.get_instruction(register_id);
+                // Automatically skip over `Alias` instructions.
+                if let OpCode::Alias(alias_id) = instruction.op {
+                    id = alias_id.id;
+                } else if let Some(to_inspect) =
+                    inspect_register(state, register_id, &instruction.op)
+                {
+                    id = to_inspect;
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// Transformations may need to know when variables are read from or written to.  Since read and
+// write can be done in a number of instructions, this helper can be used to avoid having to
+// enumerate all of them.
+pub fn inspect_pointer_access<State, OnRead, OnWrite, OnReadWrite>(
+    ir_meta: &IRMeta,
+    state: &mut State,
+    opcode: &OpCode,
+    on_read: &OnRead,
+    on_write: &OnWrite,
+    on_read_write: &OnReadWrite,
+) where
+    OnRead: Fn(&mut State, TypedId),
+    OnWrite: Fn(&mut State, TypedId),
+    OnReadWrite: Fn(&mut State, TypedId),
+{
+    match opcode {
+        // Read accesses
+        &OpCode::Load(pointer)
+        | &OpCode::Binary(BinaryOpCode::AtomicAdd, pointer, _)
+        | &OpCode::Binary(BinaryOpCode::AtomicMin, pointer, _)
+        | &OpCode::Binary(BinaryOpCode::AtomicMax, pointer, _)
+        | &OpCode::Binary(BinaryOpCode::AtomicAnd, pointer, _)
+        | &OpCode::Binary(BinaryOpCode::AtomicOr, pointer, _)
+        | &OpCode::Binary(BinaryOpCode::AtomicXor, pointer, _)
+        | &OpCode::Binary(BinaryOpCode::AtomicExchange, pointer, _) => {
+            on_read(state, pointer);
+        }
+
+        // Write accesses
+        &OpCode::Store(pointer, _)
+        | &OpCode::Binary(BinaryOpCode::Modf, _, pointer)
+        | &OpCode::Binary(BinaryOpCode::Frexp, _, pointer) => {
+            on_write(state, pointer);
+        }
+        OpCode::BuiltIn(BuiltInOpCode::UaddCarry, args)
+        | OpCode::BuiltIn(BuiltInOpCode::UsubBorrow, args) => {
+            on_write(state, args[2]);
+        }
+        OpCode::BuiltIn(BuiltInOpCode::UmulExtended, args)
+        | OpCode::BuiltIn(BuiltInOpCode::ImulExtended, args) => {
+            on_write(state, args[3]);
+            on_write(state, args[2]);
+        }
+
+        // Read/write access
+        &OpCode::Unary(UnaryOpCode::PrefixIncrement, pointer)
+        | &OpCode::Unary(UnaryOpCode::PrefixDecrement, pointer)
+        | &OpCode::Unary(UnaryOpCode::PostfixIncrement, pointer)
+        | &OpCode::Unary(UnaryOpCode::PostfixDecrement, pointer) => {
+            on_read_write(state, pointer);
+        }
+
+        // Calls could read or write from variables depending on the parameter direction.
+        &OpCode::Call(function_id, ref args) => {
+            let param_directions =
+                ir_meta.get_function(function_id).params.iter().map(|param| param.direction);
+            args.iter().zip(param_directions).for_each(|(&arg, direction)| {
+                // `out` and `inout` parameters are always pointers.
+                match direction {
+                    FunctionParamDirection::Input => {
+                        if ir_meta.get_type(arg.type_id).is_pointer() {
+                            on_read(state, arg);
+                        }
+                    }
+                    FunctionParamDirection::InputOutput => {
+                        on_read_write(state, arg);
+                    }
+                    FunctionParamDirection::Output => {
+                        on_write(state, arg);
+                    }
+                };
+            });
+        }
+        _ => {}
+    };
+}

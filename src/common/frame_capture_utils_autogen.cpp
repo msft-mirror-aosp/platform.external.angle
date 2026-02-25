@@ -494,6 +494,10 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
             WriteParamValueReplay<ParamType::TSemaphoreIDPointer>(
                 os, call, param.value.SemaphoreIDPointerVal);
             break;
+        case ParamType::TShaderParameter:
+            WriteParamValueReplay<ParamType::TShaderParameter>(os, call,
+                                                               param.value.ShaderParameterVal);
+            break;
         case ParamType::TShaderProgramID:
             WriteParamValueReplay<ParamType::TShaderProgramID>(os, call,
                                                                param.value.ShaderProgramIDVal);
@@ -565,6 +569,10 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
         case ParamType::TUniformBlockIndex:
             WriteParamValueReplay<ParamType::TUniformBlockIndex>(os, call,
                                                                  param.value.UniformBlockIndexVal);
+            break;
+        case ParamType::TUniformBlockParameter:
+            WriteParamValueReplay<ParamType::TUniformBlockParameter>(
+                os, call, param.value.UniformBlockParameterVal);
             break;
         case ParamType::TUniformLocation:
             WriteParamValueReplay<ParamType::TUniformLocation>(os, call,
@@ -1166,6 +1174,8 @@ const char *ParamTypeToString(ParamType paramType)
             return "const GLuint *";
         case ParamType::TSemaphoreIDPointer:
             return "GLuint *";
+        case ParamType::TShaderParameter:
+            return "GLenum";
         case ParamType::TShaderProgramID:
             return "GLuint";
         case ParamType::TShaderProgramIDConstPointer:
@@ -1205,6 +1215,8 @@ const char *ParamTypeToString(ParamType paramType)
         case ParamType::TTransformFeedbackIDPointer:
             return "GLuint *";
         case ParamType::TUniformBlockIndex:
+            return "GLenum";
+        case ParamType::TUniformBlockParameter:
             return "GLenum";
         case ParamType::TUniformLocation:
             return "GLenum";

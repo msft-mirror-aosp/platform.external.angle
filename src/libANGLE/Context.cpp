@@ -7265,25 +7265,30 @@ void Context::getIntegervRobust(GLenum pname, GLsizei paramCount, GLsizei *lengt
     }
 }
 
-void Context::getProgramiv(ShaderProgramID program, GLenum pname, GLint *params)
+void Context::getProgramiv(ShaderProgramID programPacked, GLenum pname, GLint *params)
 {
     // Don't resolve link if checking the link completion status.
-    Program *programObject = getProgramNoResolveLink(program);
+    Program *programObject = getProgramNoResolveLink(programPacked);
     if (!isContextLost() && pname != GL_COMPLETION_STATUS_KHR)
     {
-        programObject = getProgramResolveLink(program);
+        programObject = getProgramResolveLink(programPacked);
     }
-    ASSERT(programObject);
+    ASSERT(programObject != nullptr);
     QueryProgramiv(this, programObject, pname, params);
 }
 
-void Context::getProgramivRobust(ShaderProgramID program,
+void Context::getProgramivRobust(ShaderProgramID programPacked,
                                  GLenum pname,
                                  GLsizei paramCount,
                                  GLsizei *length,
                                  GLint *params)
 {
-    getProgramiv(program, pname, params);
+    getProgramiv(programPacked, pname, params);
+
+    if (length != nullptr)
+    {
+        *length = (pname == GL_COMPUTE_WORK_GROUP_SIZE) ? 3 : 1;
+    }
 }
 
 void Context::getProgramPipelineiv(ProgramPipelineID pipeline, GLenum pname, GLint *params)
@@ -7340,24 +7345,29 @@ void Context::getProgramPipelineInfoLog(ProgramPipelineID pipeline,
     }
 }
 
-void Context::getShaderiv(ShaderProgramID shader, GLenum pname, GLint *params)
+void Context::getShaderiv(ShaderProgramID shaderPacked, ShaderParameter pnamePacked, GLint *params)
 {
     Shader *shaderObject = nullptr;
     if (!isContextLost())
     {
-        shaderObject = getShaderNoResolveCompile(shader);
-        ASSERT(shaderObject);
+        shaderObject = getShaderNoResolveCompile(shaderPacked);
+        ASSERT(shaderObject != nullptr);
     }
-    QueryShaderiv(this, shaderObject, pname, params);
+    QueryShaderiv(this, shaderObject, pnamePacked, params);
 }
 
-void Context::getShaderivRobust(ShaderProgramID shader,
-                                GLenum pname,
+void Context::getShaderivRobust(ShaderProgramID shaderPacked,
+                                ShaderParameter pnamePacked,
                                 GLsizei paramCount,
                                 GLsizei *length,
                                 GLint *params)
 {
-    getShaderiv(shader, pname, params);
+    getShaderiv(shaderPacked, pnamePacked, params);
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
 void Context::getShaderInfoLog(ShaderProgramID shader,
@@ -7975,23 +7985,24 @@ GLuint Context::getUniformBlockIndex(ShaderProgramID program, const GLchar *unif
     return programObject->getExecutable().getUniformBlockIndex(uniformBlockName);
 }
 
-void Context::getActiveUniformBlockiv(ShaderProgramID program,
-                                      UniformBlockIndex uniformBlockIndex,
-                                      GLenum pname,
+void Context::getActiveUniformBlockiv(ShaderProgramID programPacked,
+                                      UniformBlockIndex uniformBlockIndexPacked,
+                                      UniformBlockParameter pnamePacked,
                                       GLint *params)
 {
-    const Program *programObject = getProgramResolveLink(program);
-    QueryActiveUniformBlockiv(programObject, uniformBlockIndex, pname, params);
+    const Program *programObject = getProgramResolveLink(programPacked);
+    QueryActiveUniformBlockiv(programObject, uniformBlockIndexPacked, pnamePacked, nullptr, params);
 }
 
-void Context::getActiveUniformBlockivRobust(ShaderProgramID program,
-                                            UniformBlockIndex uniformBlockIndex,
-                                            GLenum pname,
+void Context::getActiveUniformBlockivRobust(ShaderProgramID programPacked,
+                                            UniformBlockIndex uniformBlockIndexPacked,
+                                            UniformBlockParameter pnamePacked,
                                             GLsizei paramCount,
                                             GLsizei *length,
                                             GLint *params)
 {
-    getActiveUniformBlockiv(program, uniformBlockIndex, pname, params);
+    const Program *programObject = getProgramResolveLink(programPacked);
+    QueryActiveUniformBlockiv(programObject, uniformBlockIndexPacked, pnamePacked, length, params);
 }
 
 void Context::getActiveUniformBlockName(ShaderProgramID program,

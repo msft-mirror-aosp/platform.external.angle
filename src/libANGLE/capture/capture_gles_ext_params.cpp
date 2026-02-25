@@ -780,7 +780,7 @@ void CaptureGetRenderbufferParameterivRobustANGLE_params(const State &glState,
 
 void CaptureGetShaderivRobustANGLE_length(const State &glState,
                                           ShaderProgramID shader,
-                                          GLenum pname,
+                                          ShaderParameter pnamePacked,
                                           GLsizei paramCount,
                                           GLsizei *length,
                                           GLint *params,
@@ -791,13 +791,13 @@ void CaptureGetShaderivRobustANGLE_length(const State &glState,
 
 void CaptureGetShaderivRobustANGLE_params(const State &glState,
                                           ShaderProgramID shader,
-                                          GLenum pname,
+                                          ShaderParameter pnamePacked,
                                           GLsizei paramCount,
                                           GLsizei *length,
                                           GLint *params,
                                           ParamCapture *paramCapture)
 {
-    CaptureGetShaderiv_params(glState, shader, pname, params, paramCapture);
+    CaptureGetShaderiv_params(glState, shader, pnamePacked, params, paramCapture);
 }
 
 void CaptureGetTexParameterfvRobustANGLE_length(const State &glState,
@@ -1406,9 +1406,9 @@ void CaptureGetUniformuivRobustANGLE_params(const State &glState,
 }
 
 void CaptureGetActiveUniformBlockivRobustANGLE_length(const State &glState,
-                                                      ShaderProgramID program,
-                                                      UniformBlockIndex uniformBlockIndex,
-                                                      GLenum pname,
+                                                      ShaderProgramID programPacked,
+                                                      UniformBlockIndex uniformBlockIndexPacked,
+                                                      UniformBlockParameter pnamePacked,
                                                       GLsizei paramCount,
                                                       GLsizei *length,
                                                       GLint *params,
@@ -1418,9 +1418,9 @@ void CaptureGetActiveUniformBlockivRobustANGLE_length(const State &glState,
 }
 
 void CaptureGetActiveUniformBlockivRobustANGLE_params(const State &glState,
-                                                      ShaderProgramID program,
-                                                      UniformBlockIndex uniformBlockIndex,
-                                                      GLenum pname,
+                                                      ShaderProgramID programPacked,
+                                                      UniformBlockIndex uniformBlockIndexPacked,
+                                                      UniformBlockParameter pnamePacked,
                                                       GLsizei paramCount,
                                                       GLsizei *length,
                                                       GLint *params,

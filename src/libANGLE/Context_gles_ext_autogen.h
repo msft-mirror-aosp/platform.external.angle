@@ -495,8 +495,8 @@
                             GLsizei *length, GLint *params);                                       \
     void getRenderbufferParameterivRobust(GLenum target, GLenum pname, GLsizei paramCount,         \
                                           GLsizei *length, GLint *params);                         \
-    void getShaderivRobust(ShaderProgramID shaderPacked, GLenum pname, GLsizei paramCount,         \
-                           GLsizei *length, GLint *params);                                        \
+    void getShaderivRobust(ShaderProgramID shaderPacked, ShaderParameter pnamePacked,              \
+                           GLsizei paramCount, GLsizei *length, GLint *params);                    \
     void getTexParameterfvRobust(TextureType targetPacked, GLenum pname, GLsizei paramCount,       \
                                  GLsizei *length, GLfloat *params);                                \
     void getTexParameterivRobust(TextureType targetPacked, GLenum pname, GLsizei paramCount,       \
@@ -561,9 +561,9 @@
                                    GLsizei *length, GLuint *params);                               \
     void getUniformuivRobust(ShaderProgramID programPacked, UniformLocation locationPacked,        \
                              GLsizei bufSize, GLsizei *length, GLuint *params);                    \
-    void getActiveUniformBlockivRobust(ShaderProgramID programPacked,                              \
-                                       UniformBlockIndex uniformBlockIndexPacked, GLenum pname,    \
-                                       GLsizei paramCount, GLsizei *length, GLint *params);        \
+    void getActiveUniformBlockivRobust(                                                            \
+        ShaderProgramID programPacked, UniformBlockIndex uniformBlockIndexPacked,                  \
+        UniformBlockParameter pnamePacked, GLsizei paramCount, GLsizei *length, GLint *params);    \
     void getInteger64vRobust(GLenum pname, GLsizei paramCount, GLsizei *length, GLint64 *data);    \
     void getInteger64i_vRobust(GLenum target, GLuint index, GLsizei paramCount, GLsizei *length,   \
                                GLint64 *data);                                                     \

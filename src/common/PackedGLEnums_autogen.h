@@ -466,6 +466,25 @@ QueryType FromGLenum<QueryType>(GLenum from);
 GLenum ToGLenum(QueryType from);
 std::ostream &operator<<(std::ostream &os, QueryType value);
 
+enum class ShaderParameter : uint8_t
+{
+    ShaderType                   = 0,
+    DeleteStatus                 = 1,
+    CompileStatus                = 2,
+    InfoLogLength                = 3,
+    ShaderSourceLength           = 4,
+    CompletionStatus             = 5,
+    TranslatedShaderSourceLength = 6,
+
+    InvalidEnum = 7,
+    EnumCount   = 7,
+};
+
+template <>
+ShaderParameter FromGLenum<ShaderParameter>(GLenum from);
+GLenum ToGLenum(ShaderParameter from);
+std::ostream &operator<<(std::ostream &os, ShaderParameter value);
+
 enum class ShaderType : uint8_t
 {
     Vertex         = 0,
@@ -699,6 +718,25 @@ template <>
 TilingMode FromGLenum<TilingMode>(GLenum from);
 GLenum ToGLenum(TilingMode from);
 std::ostream &operator<<(std::ostream &os, TilingMode value);
+
+enum class UniformBlockParameter : uint8_t
+{
+    Binding                    = 0,
+    DataSize                   = 1,
+    NameLength                 = 2,
+    ActiveUniforms             = 3,
+    ActiveUniformIndices       = 4,
+    ReferencedByVertexShader   = 5,
+    ReferencedByFragmentShader = 6,
+
+    InvalidEnum = 7,
+    EnumCount   = 7,
+};
+
+template <>
+UniformBlockParameter FromGLenum<UniformBlockParameter>(GLenum from);
+GLenum ToGLenum(UniformBlockParameter from);
+std::ostream &operator<<(std::ostream &os, UniformBlockParameter value);
 
 enum class VertexArrayType : uint8_t
 {

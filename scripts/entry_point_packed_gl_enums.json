@@ -534,11 +534,13 @@
     },
     "glGetActiveUniformBlockiv": {
         "program": "ShaderProgramID",
-        "uniformBlockIndex": "UniformBlockIndex"
+        "uniformBlockIndex": "UniformBlockIndex",
+        "pname": "UniformBlockParameter"
     },
     "glGetActiveUniformBlockivRobust": {
         "program": "ShaderProgramID",
-        "uniformBlockIndex": "UniformBlockIndex"
+        "uniformBlockIndex": "UniformBlockIndex",
+        "pname": "UniformBlockParameter"
     },
     "glGetActiveUniformBlockName": {
         "program": "ShaderProgramID",
@@ -810,10 +812,12 @@
         "shader": "ShaderProgramID"
     },
     "glGetShaderiv": {
-        "shader": "ShaderProgramID"
+        "shader": "ShaderProgramID",
+        "pname": "ShaderParameter"
     },
     "glGetShaderivRobust": {
-        "shader": "ShaderProgramID"
+        "shader": "ShaderProgramID",
+        "pname": "ShaderParameter"
     },
     "glGetShaderPrecisionFormat": {
         "shader": "ShaderProgramID"
