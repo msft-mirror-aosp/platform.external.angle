@@ -130,9 +130,10 @@
     /* GL_EXT_discard_framebuffer */                                                               \
     void discardFramebuffer(GLenum target, GLsizei numAttachments, const GLenum *attachments);     \
     /* GL_EXT_disjoint_timer_query */                                                              \
-    void getQueryObjecti64v(QueryID idPacked, GLenum pname, GLint64 *params);                      \
-    void getQueryObjectiv(QueryID idPacked, GLenum pname, GLint *params);                          \
-    void getQueryObjectui64v(QueryID idPacked, GLenum pname, GLuint64 *params);                    \
+    void getQueryObjecti64v(QueryID idPacked, QueryObjectParameter pnamePacked, GLint64 *params);  \
+    void getQueryObjectiv(QueryID idPacked, QueryObjectParameter pnamePacked, GLint *params);      \
+    void getQueryObjectui64v(QueryID idPacked, QueryObjectParameter pnamePacked,                   \
+                             GLuint64 *params);                                                    \
     void queryCounter(QueryID idPacked, QueryType targetPacked);                                   \
     /* GL_EXT_draw_buffers */                                                                      \
     /* GL_EXT_draw_buffers_indexed */                                                              \
@@ -494,8 +495,8 @@
                             GLsizei *length, GLint *params);                                       \
     void getRenderbufferParameterivRobust(GLenum target, GLenum pname, GLsizei paramCount,         \
                                           GLsizei *length, GLint *params);                         \
-    void getShaderivRobust(ShaderProgramID shaderPacked, GLenum pname, GLsizei paramCount,         \
-                           GLsizei *length, GLint *params);                                        \
+    void getShaderivRobust(ShaderProgramID shaderPacked, ShaderParameter pnamePacked,              \
+                           GLsizei paramCount, GLsizei *length, GLint *params);                    \
     void getTexParameterfvRobust(TextureType targetPacked, GLenum pname, GLsizei paramCount,       \
                                  GLsizei *length, GLfloat *params);                                \
     void getTexParameterivRobust(TextureType targetPacked, GLenum pname, GLsizei paramCount,       \
@@ -544,10 +545,10 @@
                                        GLint yoffset, GLint zoffset, GLsizei width,                \
                                        GLsizei height, GLsizei depth, GLenum format,               \
                                        GLsizei imageSize, GLsizei bufSize, const void *data);      \
-    void getQueryivRobust(QueryType targetPacked, GLenum pname, GLsizei paramCount,                \
+    void getQueryivRobust(QueryType targetPacked, QueryParameter pnamePacked, GLsizei paramCount,  \
                           GLsizei *length, GLint *params);                                         \
-    void getQueryObjectuivRobust(QueryID idPacked, GLenum pname, GLsizei paramCount,               \
-                                 GLsizei *length, GLuint *params);                                 \
+    void getQueryObjectuivRobust(QueryID idPacked, QueryObjectParameter pnamePacked,               \
+                                 GLsizei paramCount, GLsizei *length, GLuint *params);             \
     void getBufferPointervRobust(BufferBinding targetPacked, GLenum pname, GLsizei paramCount,     \
                                  GLsizei *length, void **params);                                  \
     void getIntegeri_vRobust(GLenum target, GLuint index, GLsizei paramCount, GLsizei *length,     \
@@ -560,9 +561,9 @@
                                    GLsizei *length, GLuint *params);                               \
     void getUniformuivRobust(ShaderProgramID programPacked, UniformLocation locationPacked,        \
                              GLsizei bufSize, GLsizei *length, GLuint *params);                    \
-    void getActiveUniformBlockivRobust(ShaderProgramID programPacked,                              \
-                                       UniformBlockIndex uniformBlockIndexPacked, GLenum pname,    \
-                                       GLsizei paramCount, GLsizei *length, GLint *params);        \
+    void getActiveUniformBlockivRobust(                                                            \
+        ShaderProgramID programPacked, UniformBlockIndex uniformBlockIndexPacked,                  \
+        UniformBlockParameter pnamePacked, GLsizei paramCount, GLsizei *length, GLint *params);    \
     void getInteger64vRobust(GLenum pname, GLsizei paramCount, GLsizei *length, GLint64 *data);    \
     void getInteger64i_vRobust(GLenum target, GLuint index, GLsizei paramCount, GLsizei *length,   \
                                GLint64 *data);                                                     \
@@ -582,12 +583,12 @@
                                       GLsizei paramCount, GLsizei *length, GLint *params);         \
     void getTexLevelParameterfvRobust(TextureTarget targetPacked, GLint level, GLenum pname,       \
                                       GLsizei paramCount, GLsizei *length, GLfloat *params);       \
-    void getQueryObjectivRobust(QueryID idPacked, GLenum pname, GLsizei paramCount,                \
-                                GLsizei *length, GLint *params);                                   \
-    void getQueryObjecti64vRobust(QueryID idPacked, GLenum pname, GLsizei paramCount,              \
-                                  GLsizei *length, GLint64 *params);                               \
-    void getQueryObjectui64vRobust(QueryID idPacked, GLenum pname, GLsizei paramCount,             \
-                                   GLsizei *length, GLuint64 *params);                             \
+    void getQueryObjectivRobust(QueryID idPacked, QueryObjectParameter pnamePacked,                \
+                                GLsizei paramCount, GLsizei *length, GLint *params);               \
+    void getQueryObjecti64vRobust(QueryID idPacked, QueryObjectParameter pnamePacked,              \
+                                  GLsizei paramCount, GLsizei *length, GLint64 *params);           \
+    void getQueryObjectui64vRobust(QueryID idPacked, QueryObjectParameter pnamePacked,             \
+                                   GLsizei paramCount, GLsizei *length, GLuint64 *params);         \
     void getFramebufferPixelLocalStorageParameterfvRobust(                                         \
         GLint plane, GLenum pname, GLsizei paramCount, GLsizei *length, GLfloat *params);          \
     void getFramebufferPixelLocalStorageParameterivRobust(                                         \

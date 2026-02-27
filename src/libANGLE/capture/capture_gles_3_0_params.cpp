@@ -215,14 +215,14 @@ void CaptureGetActiveUniformBlockName_uniformBlockName(const State &glState,
 }
 
 void CaptureGetActiveUniformBlockiv_params(const State &glState,
-                                           ShaderProgramID program,
-                                           UniformBlockIndex uniformBlockIndex,
-                                           GLenum pname,
+                                           ShaderProgramID programPacked,
+                                           UniformBlockIndex uniformBlockIndexPacked,
+                                           UniformBlockParameter pnamePacked,
                                            GLint *params,
                                            ParamCapture *paramCapture)
 {
-    CaptureGetActiveUniformBlockivParameters(glState, program, uniformBlockIndex, pname,
-                                             paramCapture);
+    CaptureGetActiveUniformBlockivParameters(glState, programPacked, uniformBlockIndexPacked,
+                                             pnamePacked, paramCapture);
 }
 
 void CaptureGetActiveUniformsiv_uniformIndices(const State &glState,
@@ -388,8 +388,8 @@ void CaptureGetProgramBinary_binary(const State &glState,
 }
 
 void CaptureGetQueryObjectuiv_params(const State &glState,
-                                     QueryID id,
-                                     GLenum pname,
+                                     QueryID idPacked,
+                                     QueryObjectParameter pnamePacked,
                                      GLuint *params,
                                      ParamCapture *paramCapture)
 {
@@ -399,7 +399,7 @@ void CaptureGetQueryObjectuiv_params(const State &glState,
 
 void CaptureGetQueryiv_params(const State &glState,
                               QueryType targetPacked,
-                              GLenum pname,
+                              QueryParameter pnamePacked,
                               GLint *params,
                               ParamCapture *paramCapture)
 {

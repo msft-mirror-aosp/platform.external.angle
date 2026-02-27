@@ -179,6 +179,8 @@ enum class ParamType
     TQueryID,
     TQueryIDConstPointer,
     TQueryIDPointer,
+    TQueryObjectParameter,
+    TQueryParameter,
     TQueryType,
     TRenderbufferID,
     TRenderbufferIDConstPointer,
@@ -191,6 +193,7 @@ enum class ParamType
     TSemaphoreID,
     TSemaphoreIDConstPointer,
     TSemaphoreIDPointer,
+    TShaderParameter,
     TShaderProgramID,
     TShaderProgramIDConstPointer,
     TShaderProgramIDPointer,
@@ -211,6 +214,7 @@ enum class ParamType
     TTransformFeedbackIDConstPointer,
     TTransformFeedbackIDPointer,
     TUniformBlockIndex,
+    TUniformBlockParameter,
     TUniformLocation,
     TVertexArrayID,
     TVertexArrayIDConstPointer,
@@ -275,7 +279,7 @@ enum class ParamType
     TvoidPointerPointer,
 };
 
-constexpr uint32_t kParamTypeCount = 238;
+constexpr uint32_t kParamTypeCount = 242;
 
 union ParamValue
 {
@@ -401,6 +405,8 @@ union ParamValue
     gl::QueryID QueryIDVal;
     const gl::QueryID *QueryIDConstPointerVal;
     gl::QueryID *QueryIDPointerVal;
+    gl::QueryObjectParameter QueryObjectParameterVal;
+    gl::QueryParameter QueryParameterVal;
     gl::QueryType QueryTypeVal;
     gl::RenderbufferID RenderbufferIDVal;
     const gl::RenderbufferID *RenderbufferIDConstPointerVal;
@@ -411,6 +417,7 @@ union ParamValue
     gl::SemaphoreID SemaphoreIDVal;
     const gl::SemaphoreID *SemaphoreIDConstPointerVal;
     gl::SemaphoreID *SemaphoreIDPointerVal;
+    gl::ShaderParameter ShaderParameterVal;
     gl::ShaderProgramID ShaderProgramIDVal;
     const gl::ShaderProgramID *ShaderProgramIDConstPointerVal;
     gl::ShaderProgramID *ShaderProgramIDPointerVal;
@@ -431,6 +438,7 @@ union ParamValue
     const gl::TransformFeedbackID *TransformFeedbackIDConstPointerVal;
     gl::TransformFeedbackID *TransformFeedbackIDPointerVal;
     gl::UniformBlockIndex UniformBlockIndexVal;
+    gl::UniformBlockParameter UniformBlockParameterVal;
     gl::UniformLocation UniformLocationVal;
     gl::VertexArrayID VertexArrayIDVal;
     const gl::VertexArrayID *VertexArrayIDConstPointerVal;
@@ -1309,6 +1317,20 @@ inline gl::QueryID *GetParamVal<ParamType::TQueryIDPointer, gl::QueryID *>(const
 }
 
 template <>
+inline gl::QueryObjectParameter
+GetParamVal<ParamType::TQueryObjectParameter, gl::QueryObjectParameter>(const ParamValue &value)
+{
+    return value.QueryObjectParameterVal;
+}
+
+template <>
+inline gl::QueryParameter GetParamVal<ParamType::TQueryParameter, gl::QueryParameter>(
+    const ParamValue &value)
+{
+    return value.QueryParameterVal;
+}
+
+template <>
 inline gl::QueryType GetParamVal<ParamType::TQueryType, gl::QueryType>(const ParamValue &value)
 {
     return value.QueryTypeVal;
@@ -1374,6 +1396,13 @@ inline gl::SemaphoreID *GetParamVal<ParamType::TSemaphoreIDPointer, gl::Semaphor
     const ParamValue &value)
 {
     return value.SemaphoreIDPointerVal;
+}
+
+template <>
+inline gl::ShaderParameter GetParamVal<ParamType::TShaderParameter, gl::ShaderParameter>(
+    const ParamValue &value)
+{
+    return value.ShaderParameterVal;
 }
 
 template <>
@@ -1510,6 +1539,13 @@ inline gl::UniformBlockIndex GetParamVal<ParamType::TUniformBlockIndex, gl::Unif
     const ParamValue &value)
 {
     return value.UniformBlockIndexVal;
+}
+
+template <>
+inline gl::UniformBlockParameter
+GetParamVal<ParamType::TUniformBlockParameter, gl::UniformBlockParameter>(const ParamValue &value)
+{
+    return value.UniformBlockParameterVal;
 }
 
 template <>
@@ -2405,6 +2441,10 @@ T AccessParamValue(ParamType paramType, const ParamValue &value)
             return GetParamVal<ParamType::TQueryIDConstPointer, T>(value);
         case ParamType::TQueryIDPointer:
             return GetParamVal<ParamType::TQueryIDPointer, T>(value);
+        case ParamType::TQueryObjectParameter:
+            return GetParamVal<ParamType::TQueryObjectParameter, T>(value);
+        case ParamType::TQueryParameter:
+            return GetParamVal<ParamType::TQueryParameter, T>(value);
         case ParamType::TQueryType:
             return GetParamVal<ParamType::TQueryType, T>(value);
         case ParamType::TRenderbufferID:
@@ -2429,6 +2469,8 @@ T AccessParamValue(ParamType paramType, const ParamValue &value)
             return GetParamVal<ParamType::TSemaphoreIDConstPointer, T>(value);
         case ParamType::TSemaphoreIDPointer:
             return GetParamVal<ParamType::TSemaphoreIDPointer, T>(value);
+        case ParamType::TShaderParameter:
+            return GetParamVal<ParamType::TShaderParameter, T>(value);
         case ParamType::TShaderProgramID:
             return GetParamVal<ParamType::TShaderProgramID, T>(value);
         case ParamType::TShaderProgramIDConstPointer:
@@ -2469,6 +2511,8 @@ T AccessParamValue(ParamType paramType, const ParamValue &value)
             return GetParamVal<ParamType::TTransformFeedbackIDPointer, T>(value);
         case ParamType::TUniformBlockIndex:
             return GetParamVal<ParamType::TUniformBlockIndex, T>(value);
+        case ParamType::TUniformBlockParameter:
+            return GetParamVal<ParamType::TUniformBlockParameter, T>(value);
         case ParamType::TUniformLocation:
             return GetParamVal<ParamType::TUniformLocation, T>(value);
         case ParamType::TVertexArrayID:
@@ -3364,6 +3408,20 @@ inline void SetParamVal<ParamType::TQueryIDPointer>(gl::QueryID *valueIn, ParamV
 }
 
 template <>
+inline void SetParamVal<ParamType::TQueryObjectParameter>(gl::QueryObjectParameter valueIn,
+                                                          ParamValue *valueOut)
+{
+    valueOut->QueryObjectParameterVal = valueIn;
+}
+
+template <>
+inline void SetParamVal<ParamType::TQueryParameter>(gl::QueryParameter valueIn,
+                                                    ParamValue *valueOut)
+{
+    valueOut->QueryParameterVal = valueIn;
+}
+
+template <>
 inline void SetParamVal<ParamType::TQueryType>(gl::QueryType valueIn, ParamValue *valueOut)
 {
     valueOut->QueryTypeVal = valueIn;
@@ -3427,6 +3485,13 @@ inline void SetParamVal<ParamType::TSemaphoreIDPointer>(gl::SemaphoreID *valueIn
                                                         ParamValue *valueOut)
 {
     valueOut->SemaphoreIDPointerVal = valueIn;
+}
+
+template <>
+inline void SetParamVal<ParamType::TShaderParameter>(gl::ShaderParameter valueIn,
+                                                     ParamValue *valueOut)
+{
+    valueOut->ShaderParameterVal = valueIn;
 }
 
 template <>
@@ -3558,6 +3623,13 @@ inline void SetParamVal<ParamType::TUniformBlockIndex>(gl::UniformBlockIndex val
                                                        ParamValue *valueOut)
 {
     valueOut->UniformBlockIndexVal = valueIn;
+}
+
+template <>
+inline void SetParamVal<ParamType::TUniformBlockParameter>(gl::UniformBlockParameter valueIn,
+                                                           ParamValue *valueOut)
+{
+    valueOut->UniformBlockParameterVal = valueIn;
 }
 
 template <>
@@ -4583,6 +4655,12 @@ void InitParamValue(ParamType paramType, T valueIn, ParamValue *valueOut)
         case ParamType::TQueryIDPointer:
             SetParamVal<ParamType::TQueryIDPointer>(valueIn, valueOut);
             break;
+        case ParamType::TQueryObjectParameter:
+            SetParamVal<ParamType::TQueryObjectParameter>(valueIn, valueOut);
+            break;
+        case ParamType::TQueryParameter:
+            SetParamVal<ParamType::TQueryParameter>(valueIn, valueOut);
+            break;
         case ParamType::TQueryType:
             SetParamVal<ParamType::TQueryType>(valueIn, valueOut);
             break;
@@ -4618,6 +4696,9 @@ void InitParamValue(ParamType paramType, T valueIn, ParamValue *valueOut)
             break;
         case ParamType::TSemaphoreIDPointer:
             SetParamVal<ParamType::TSemaphoreIDPointer>(valueIn, valueOut);
+            break;
+        case ParamType::TShaderParameter:
+            SetParamVal<ParamType::TShaderParameter>(valueIn, valueOut);
             break;
         case ParamType::TShaderProgramID:
             SetParamVal<ParamType::TShaderProgramID>(valueIn, valueOut);
@@ -4678,6 +4759,9 @@ void InitParamValue(ParamType paramType, T valueIn, ParamValue *valueOut)
             break;
         case ParamType::TUniformBlockIndex:
             SetParamVal<ParamType::TUniformBlockIndex>(valueIn, valueOut);
+            break;
+        case ParamType::TUniformBlockParameter:
+            SetParamVal<ParamType::TUniformBlockParameter>(valueIn, valueOut);
             break;
         case ParamType::TUniformLocation:
             SetParamVal<ParamType::TUniformLocation>(valueIn, valueOut);

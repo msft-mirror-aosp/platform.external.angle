@@ -25,6 +25,8 @@
           'gpu_pixel_10_stable',
         ],
         'test_suites': {
+          'gtest_tests': 'android_gtests',
+          'isolated_scripts': 'isolated_scripts_group_common',
         },
       },
       'android-arm64-exp-pixel6': {  # android-arm64-pixel6 below for android-arm64-test
@@ -111,14 +113,6 @@
         ],
         'test_suites': {
           'isolated_scripts': 'isolated_scripts_group_perf',
-        },
-      },
-      'linux-amd': {
-        'os_type': 'linux',
-        'mixins': [
-          'linux_amd_rx_5500_xt',
-        ],
-        'test_suites': {
         },
       },
       'linux-exp-intel': {

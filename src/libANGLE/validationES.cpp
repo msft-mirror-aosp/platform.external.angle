@@ -2524,46 +2524,50 @@ bool ValidateQueryCounterEXT(const Context *context,
 
 bool ValidateGetQueryivBase(const Context *context,
                             angle::EntryPoint entryPoint,
-                            QueryType target,
-                            GLenum pname,
-                            GLsizei *numParams)
+                            QueryType targetPacked,
+                            QueryParameter pnamePacked,
+                            GLsizei *outNumParams)
 {
-    if (numParams)
+    const bool isTargetSupported =
+        ValidQueryType(context, targetPacked) ||
+        (targetPacked == QueryType::Timestamp && context->getExtensions().disjointTimerQueryEXT);
+    if (ANGLE_UNLIKELY(!isTargetSupported))
     {
-        *numParams = 0;
-    }
-
-    if (!ValidQueryType(context, target) && target != QueryType::Timestamp)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidQueryType);
+        if (targetPacked == QueryType::InvalidEnum)
+        {
+            ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kTargetUnknown);
+        }
+        else
+        {
+            ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kTargetUnsupported, ToGLenum(targetPacked));
+        }
         return false;
     }
 
-    switch (pname)
+    bool isPnameSupported = false;
+    switch (pnamePacked)
     {
-        case GL_CURRENT_QUERY_EXT:
-            if (target == QueryType::Timestamp)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidQueryTarget);
-                return false;
-            }
+        case QueryParameter::CurrentQuery:
+            isPnameSupported = (targetPacked != QueryType::Timestamp);
             break;
-        case GL_QUERY_COUNTER_BITS_EXT:
-            if (!context->getExtensions().disjointTimerQueryEXT)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidPname);
-                return false;
-            }
+        case QueryParameter::QueryCounterBits:
+            isPnameSupported = context->getExtensions().disjointTimerQueryEXT;
             break;
         default:
-            ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidPname);
+            ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kParameterNameUnknown);
             return false;
     }
 
-    if (numParams)
+    if (ANGLE_UNLIKELY(!isPnameSupported))
+    {
+        ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kParameterNameUnsupported, ToGLenum(pnamePacked));
+        return false;
+    }
+
+    if (outNumParams != nullptr)
     {
         // All queries return only one value
-        *numParams = 1;
+        *outNumParams = 1;
     }
 
     return true;
@@ -2571,60 +2575,54 @@ bool ValidateGetQueryivBase(const Context *context,
 
 bool ValidateGetQueryivEXT(const Context *context,
                            angle::EntryPoint entryPoint,
-                           QueryType target,
-                           GLenum pname,
+                           QueryType targetPacked,
+                           QueryParameter pnamePacked,
                            const GLint *params)
 {
-    return ValidateGetQueryivBase(context, entryPoint, target, pname, nullptr);
+    return ValidateGetQueryivBase(context, entryPoint, targetPacked, pnamePacked, nullptr);
 }
 
 bool ValidateGetQueryivRobustANGLE(const Context *context,
                                    angle::EntryPoint entryPoint,
-                                   QueryType target,
-                                   GLenum pname,
-                                   GLsizei bufSize,
+                                   QueryType targetPacked,
+                                   QueryParameter pnamePacked,
+                                   GLsizei paramCount,
                                    const GLsizei *length,
                                    const GLint *params)
 {
-    if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
+    // Make sure ValidateGetQueryivBase sets numParams
+    GLsizei numParams = std::numeric_limits<GLsizei>::max();
+    if (!ValidateGetQueryivBase(context, entryPoint, targetPacked, pnamePacked, &numParams))
     {
         return false;
     }
+    ASSERT(numParams != std::numeric_limits<GLsizei>::max());
 
-    GLsizei numParams = 0;
-
-    if (!ValidateGetQueryivBase(context, entryPoint, target, pname, &numParams))
+    if (!ValidateRobustParamCount(context, entryPoint, paramCount, numParams))
     {
         return false;
     }
-
-    if (!ValidateRobustBufferSize(context, entryPoint, bufSize, numParams))
-    {
-        return false;
-    }
-
-    SetRobustLengthParam(length, numParams);
 
     return true;
 }
 
-bool ValidateGetQueryObjectValueBase(const Context *context,
-                                     angle::EntryPoint entryPoint,
-                                     QueryID id,
-                                     GLenum pname,
-                                     GLsizei *numParams)
+bool ValidateGetQueryObjectBase(const Context *context,
+                                angle::EntryPoint entryPoint,
+                                QueryID idPacked,
+                                QueryObjectParameter pnamePacked,
+                                GLsizei *outNumParams)
 {
-    if (numParams)
+    if (ANGLE_UNLIKELY(context->isContextLost()))
     {
-        *numParams = 1;
-    }
-
-    if (context->isContextLost())
-    {
-        if (pname == GL_QUERY_RESULT_AVAILABLE_EXT)
+        if (pnamePacked == QueryObjectParameter::QueryResultAvailable)
         {
             // The context needs to return a value in this case.
             // It will also generate a CONTEXT_LOST error.
+            if (outNumParams != nullptr)
+            {
+                *outNumParams = 1;
+            }
+
             return true;
         }
         else
@@ -2634,28 +2632,28 @@ bool ValidateGetQueryObjectValueBase(const Context *context,
         }
     }
 
-    Query *queryObject = context->getQuery(id);
-    if (queryObject == nullptr)
+    Query *queryObject = context->getQuery(idPacked);
+    if (ANGLE_UNLIKELY(queryObject == nullptr))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidQueryId);
         return false;
     }
 
-    if (context->getState().isQueryActive(queryObject))
+    if (ANGLE_UNLIKELY(context->getState().isQueryActive(queryObject)))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kQueryActive);
         return false;
     }
 
-    switch (pname)
+    if (ANGLE_UNLIKELY(pnamePacked == QueryObjectParameter::InvalidEnum))
     {
-        case GL_QUERY_RESULT_EXT:
-        case GL_QUERY_RESULT_AVAILABLE_EXT:
-            break;
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kParameterNameUnknown);
+        return false;
+    }
 
-        default:
-            ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
-            return false;
+    if (outNumParams != nullptr)
+    {
+        *outNumParams = 1;
     }
 
     return true;
@@ -2663,156 +2661,132 @@ bool ValidateGetQueryObjectValueBase(const Context *context,
 
 bool ValidateGetQueryObjectivEXT(const Context *context,
                                  angle::EntryPoint entryPoint,
-                                 QueryID id,
-                                 GLenum pname,
+                                 QueryID idPacked,
+                                 QueryObjectParameter pnamePacked,
                                  const GLint *params)
 {
-    return ValidateGetQueryObjectValueBase(context, entryPoint, id, pname, nullptr);
+    return ValidateGetQueryObjectBase(context, entryPoint, idPacked, pnamePacked, nullptr);
 }
 
 bool ValidateGetQueryObjectivRobustANGLE(const Context *context,
                                          angle::EntryPoint entryPoint,
-                                         QueryID id,
-                                         GLenum pname,
-                                         GLsizei bufSize,
+                                         QueryID idPacked,
+                                         QueryObjectParameter pnamePacked,
+                                         GLsizei paramCount,
                                          const GLsizei *length,
                                          const GLint *params)
 {
-    if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
+    // Make sure ValidateGetQueryObjectBase sets numParams
+    GLsizei numParams = std::numeric_limits<GLsizei>::max();
+    if (!ValidateGetQueryObjectBase(context, entryPoint, idPacked, pnamePacked, &numParams))
     {
         return false;
     }
+    ASSERT(numParams != std::numeric_limits<GLsizei>::max());
 
-    GLsizei numParams = 0;
-
-    if (!ValidateGetQueryObjectValueBase(context, entryPoint, id, pname, &numParams))
+    if (!ValidateRobustParamCount(context, entryPoint, paramCount, numParams))
     {
         return false;
     }
-
-    if (!ValidateRobustBufferSize(context, entryPoint, bufSize, numParams))
-    {
-        return false;
-    }
-
-    SetRobustLengthParam(length, numParams);
 
     return true;
 }
 
 bool ValidateGetQueryObjectuivEXT(const Context *context,
                                   angle::EntryPoint entryPoint,
-                                  QueryID id,
-                                  GLenum pname,
+                                  QueryID idPacked,
+                                  QueryObjectParameter pnamePacked,
                                   const GLuint *params)
 {
-    return ValidateGetQueryObjectValueBase(context, entryPoint, id, pname, nullptr);
+    return ValidateGetQueryObjectBase(context, entryPoint, idPacked, pnamePacked, nullptr);
 }
 
 bool ValidateGetQueryObjectuivRobustANGLE(const Context *context,
                                           angle::EntryPoint entryPoint,
-                                          QueryID id,
-                                          GLenum pname,
-                                          GLsizei bufSize,
+                                          QueryID idPacked,
+                                          QueryObjectParameter pnamePacked,
+                                          GLsizei paramCount,
                                           const GLsizei *length,
                                           const GLuint *params)
 {
-    if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
+    // Make sure ValidateGetQueryObjectBase sets numParams
+    GLsizei numParams = std::numeric_limits<GLsizei>::max();
+    if (!ValidateGetQueryObjectBase(context, entryPoint, idPacked, pnamePacked, &numParams))
     {
         return false;
     }
+    ASSERT(numParams != std::numeric_limits<GLsizei>::max());
 
-    GLsizei numParams = 0;
-
-    if (!ValidateGetQueryObjectValueBase(context, entryPoint, id, pname, &numParams))
+    if (!ValidateRobustParamCount(context, entryPoint, paramCount, numParams))
     {
         return false;
     }
-
-    if (!ValidateRobustBufferSize(context, entryPoint, bufSize, numParams))
-    {
-        return false;
-    }
-
-    SetRobustLengthParam(length, numParams);
 
     return true;
 }
 
 bool ValidateGetQueryObjecti64vEXT(const Context *context,
                                    angle::EntryPoint entryPoint,
-                                   QueryID id,
-                                   GLenum pname,
+                                   QueryID idPacked,
+                                   QueryObjectParameter pnamePacked,
                                    const GLint64 *params)
 {
-    return ValidateGetQueryObjectValueBase(context, entryPoint, id, pname, nullptr);
+    return ValidateGetQueryObjectBase(context, entryPoint, idPacked, pnamePacked, nullptr);
 }
 
 bool ValidateGetQueryObjecti64vRobustANGLE(const Context *context,
                                            angle::EntryPoint entryPoint,
-                                           QueryID id,
-                                           GLenum pname,
-                                           GLsizei bufSize,
+                                           QueryID idPacked,
+                                           QueryObjectParameter pnamePacked,
+                                           GLsizei paramCount,
                                            const GLsizei *length,
                                            const GLint64 *params)
 {
-    if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
+    // Make sure ValidateGetQueryObjectBase sets numParams
+    GLsizei numParams = std::numeric_limits<GLsizei>::max();
+    if (!ValidateGetQueryObjectBase(context, entryPoint, idPacked, pnamePacked, &numParams))
     {
         return false;
     }
+    ASSERT(numParams != std::numeric_limits<GLsizei>::max());
 
-    GLsizei numParams = 0;
-
-    if (!ValidateGetQueryObjectValueBase(context, entryPoint, id, pname, &numParams))
+    if (!ValidateRobustParamCount(context, entryPoint, paramCount, numParams))
     {
         return false;
     }
-
-    if (!ValidateRobustBufferSize(context, entryPoint, bufSize, numParams))
-    {
-        return false;
-    }
-
-    SetRobustLengthParam(length, numParams);
 
     return true;
 }
 
 bool ValidateGetQueryObjectui64vEXT(const Context *context,
                                     angle::EntryPoint entryPoint,
-                                    QueryID id,
-                                    GLenum pname,
+                                    QueryID idPacked,
+                                    QueryObjectParameter pnamePacked,
                                     const GLuint64 *params)
 {
-    return ValidateGetQueryObjectValueBase(context, entryPoint, id, pname, nullptr);
+    return ValidateGetQueryObjectBase(context, entryPoint, idPacked, pnamePacked, nullptr);
 }
 
 bool ValidateGetQueryObjectui64vRobustANGLE(const Context *context,
                                             angle::EntryPoint entryPoint,
-                                            QueryID id,
-                                            GLenum pname,
-                                            GLsizei bufSize,
+                                            QueryID idPacked,
+                                            QueryObjectParameter pnamePacked,
+                                            GLsizei paramCount,
                                             const GLsizei *length,
                                             const GLuint64 *params)
 {
-    if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
+    // Make sure ValidateGetQueryObjectBase sets numParams
+    GLsizei numParams = std::numeric_limits<GLsizei>::max();
+    if (!ValidateGetQueryObjectBase(context, entryPoint, idPacked, pnamePacked, &numParams))
     {
         return false;
     }
+    ASSERT(numParams != std::numeric_limits<GLsizei>::max());
 
-    GLsizei numParams = 0;
-
-    if (!ValidateGetQueryObjectValueBase(context, entryPoint, id, pname, &numParams))
+    if (!ValidateRobustParamCount(context, entryPoint, paramCount, numParams))
     {
         return false;
     }
-
-    if (!ValidateRobustBufferSize(context, entryPoint, bufSize, numParams))
-    {
-        return false;
-    }
-
-    SetRobustLengthParam(length, numParams);
 
     return true;
 }
@@ -5816,22 +5790,21 @@ bool ValidateGetBufferParameteri64vRobustANGLE(const Context *context,
 
 bool ValidateGetProgramivBase(const Context *context,
                               angle::EntryPoint entryPoint,
-                              ShaderProgramID program,
+                              ShaderProgramID programPacked,
                               GLenum pname,
-                              GLsizei *numParams)
+                              GLsizei *outNumParams)
 {
-    // Currently, all GetProgramiv queries return 1 parameter
-    if (numParams)
-    {
-        *numParams = 1;
-    }
-
-    if (context->isContextLost())
+    if (ANGLE_UNLIKELY(context->isContextLost()))
     {
         if (context->getExtensions().parallelShaderCompileKHR && pname == GL_COMPLETION_STATUS_KHR)
         {
             // The context needs to return a value in this case.
             // It will also generate a CONTEXT_LOST error.
+            if (outNumParams != nullptr)
+            {
+                *outNumParams = 1;
+            }
+
             return true;
         }
         else
@@ -5843,8 +5816,8 @@ bool ValidateGetProgramivBase(const Context *context,
 
     // Special case for GL_COMPLETION_STATUS_KHR: don't resolve the link. Otherwise resolve it now.
     Program *programObject = (pname == GL_COMPLETION_STATUS_KHR)
-                                 ? GetValidProgramNoResolve(context, entryPoint, program)
-                                 : GetValidProgram(context, entryPoint, program);
+                                 ? GetValidProgramNoResolve(context, entryPoint, programPacked)
+                                 : GetValidProgram(context, entryPoint, programPacked);
     if (programObject == nullptr)
     {
         // Error already generated.
@@ -6007,35 +5980,34 @@ bool ValidateGetProgramivBase(const Context *context,
             return false;
     }
 
+    if (outNumParams != nullptr)
+    {
+        *outNumParams = (pname == GL_COMPUTE_WORK_GROUP_SIZE) ? 3 : 1;
+    }
+
     return true;
 }
 
 bool ValidateGetProgramivRobustANGLE(const Context *context,
                                      angle::EntryPoint entryPoint,
-                                     ShaderProgramID program,
+                                     ShaderProgramID programPacked,
                                      GLenum pname,
-                                     GLsizei bufSize,
+                                     GLsizei paramCount,
                                      const GLsizei *length,
                                      const GLint *params)
 {
-    if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
+    // Make sure ValidateGetProgramivBase sets numParams
+    GLsizei numParams = std::numeric_limits<GLsizei>::max();
+    if (!ValidateGetProgramivBase(context, entryPoint, programPacked, pname, &numParams))
     {
         return false;
     }
+    ASSERT(numParams != std::numeric_limits<GLsizei>::max());
 
-    GLsizei numParams = 0;
-
-    if (!ValidateGetProgramivBase(context, entryPoint, program, pname, &numParams))
+    if (!ValidateRobustParamCount(context, entryPoint, paramCount, numParams))
     {
         return false;
     }
-
-    if (!ValidateRobustBufferSize(context, entryPoint, bufSize, numParams))
-    {
-        return false;
-    }
-
-    SetRobustLengthParam(length, numParams);
 
     return true;
 }
@@ -6066,30 +6038,25 @@ bool ValidateGetRenderbufferParameterivRobustANGLE(const Context *context,
 
 bool ValidateGetShaderivRobustANGLE(const Context *context,
                                     angle::EntryPoint entryPoint,
-                                    ShaderProgramID shader,
-                                    GLenum pname,
-                                    GLsizei bufSize,
+                                    ShaderProgramID shaderPacked,
+                                    ShaderParameter pnamePacked,
+                                    GLsizei paramCount,
                                     const GLsizei *length,
                                     const GLint *params)
 {
-    if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
+    // Make sure ValidateGetShaderivBase sets numParams
+    GLsizei numParams = std::numeric_limits<GLsizei>::max();
+    if (!ValidateGetShaderivBase(context, entryPoint, shaderPacked, pnamePacked, params,
+                                 &numParams))
     {
         return false;
     }
+    ASSERT(numParams != std::numeric_limits<GLsizei>::max());
 
-    GLsizei numParams = 0;
-
-    if (!ValidateGetShaderivBase(context, entryPoint, shader, pname, &numParams))
+    if (!ValidateRobustParamCount(context, entryPoint, paramCount, numParams))
     {
         return false;
     }
-
-    if (!ValidateRobustBufferSize(context, entryPoint, bufSize, numParams))
-    {
-        return false;
-    }
-
-    SetRobustLengthParam(length, numParams);
 
     return true;
 }
@@ -6392,32 +6359,26 @@ bool ValidateGetVertexAttribIuivRobustANGLE(const Context *context,
 
 bool ValidateGetActiveUniformBlockivRobustANGLE(const Context *context,
                                                 angle::EntryPoint entryPoint,
-                                                ShaderProgramID program,
-                                                UniformBlockIndex uniformBlockIndex,
-                                                GLenum pname,
-                                                GLsizei bufSize,
+                                                ShaderProgramID programPacked,
+                                                UniformBlockIndex uniformBlockIndexPacked,
+                                                UniformBlockParameter pnamePacked,
+                                                GLsizei paramCount,
                                                 const GLsizei *length,
                                                 const GLint *params)
 {
-    if (!ValidateRobustEntryPoint(context, entryPoint, bufSize))
+    // Make sure ValidateGetActiveUniformBlockivBase sets numParams
+    GLsizei numParams = std::numeric_limits<GLsizei>::max();
+    if (!ValidateGetActiveUniformBlockivBase(context, entryPoint, programPacked,
+                                             uniformBlockIndexPacked, pnamePacked, &numParams))
     {
         return false;
     }
+    ASSERT(numParams != std::numeric_limits<GLsizei>::max());
 
-    GLsizei writeLength = 0;
-
-    if (!ValidateGetActiveUniformBlockivBase(context, entryPoint, program, uniformBlockIndex, pname,
-                                             &writeLength))
+    if (!ValidateRobustParamCount(context, entryPoint, paramCount, numParams))
     {
         return false;
     }
-
-    if (!ValidateRobustBufferSize(context, entryPoint, bufSize, writeLength))
-    {
-        return false;
-    }
-
-    SetRobustLengthParam(length, writeLength);
 
     return true;
 }
@@ -6637,21 +6598,23 @@ bool ValidateGetRenderbufferParameterivBase(const Context *context,
 
 bool ValidateGetShaderivBase(const Context *context,
                              angle::EntryPoint entryPoint,
-                             ShaderProgramID shader,
-                             GLenum pname,
-                             GLsizei *length)
+                             ShaderProgramID shaderPacked,
+                             ShaderParameter pnamePacked,
+                             const GLint *params,
+                             GLsizei *outNumParams)
 {
-    if (length)
+    if (ANGLE_UNLIKELY(context->isContextLost()))
     {
-        *length = 0;
-    }
-
-    if (context->isContextLost())
-    {
-        if (context->getExtensions().parallelShaderCompileKHR && pname == GL_COMPLETION_STATUS_KHR)
+        if (pnamePacked == ShaderParameter::CompletionStatus &&
+            context->getExtensions().parallelShaderCompileKHR)
         {
             // The context needs to return a value in this case.
             // It will also generate a CONTEXT_LOST error.
+            if (outNumParams != nullptr)
+            {
+                *outNumParams = 1;
+            }
+
             return true;
         }
         else
@@ -6661,47 +6624,51 @@ bool ValidateGetShaderivBase(const Context *context,
         }
     }
 
-    Shader *shaderObject = GetValidShader(context, entryPoint, shader);
-    if (shaderObject == nullptr)
+    Shader *shaderObject = GetValidShader(context, entryPoint, shaderPacked);
+    if (ANGLE_UNLIKELY(shaderObject == nullptr))
     {
         // Error already generated.
         return false;
     }
 
-    switch (pname)
+    bool isPnameSupported = false;
+    switch (pnamePacked)
     {
-        case GL_SHADER_TYPE:
-        case GL_DELETE_STATUS:
-        case GL_COMPILE_STATUS:
-        case GL_INFO_LOG_LENGTH:
-        case GL_SHADER_SOURCE_LENGTH:
+        case ShaderParameter::ShaderType:
+        case ShaderParameter::DeleteStatus:
+        case ShaderParameter::CompileStatus:
+        case ShaderParameter::InfoLogLength:
+        case ShaderParameter::ShaderSourceLength:
+            isPnameSupported = true;
             break;
-
-        case GL_TRANSLATED_SHADER_SOURCE_LENGTH_ANGLE:
-            if (!context->getExtensions().translatedShaderSourceANGLE)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kExtensionNotEnabled);
-                return false;
-            }
+        case ShaderParameter::CompletionStatus:
+            isPnameSupported = context->getExtensions().parallelShaderCompileKHR;
             break;
-
-        case GL_COMPLETION_STATUS_KHR:
-            if (!context->getExtensions().parallelShaderCompileKHR)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExtensionNotEnabled);
-                return false;
-            }
+        case ShaderParameter::TranslatedShaderSourceLength:
+            isPnameSupported = context->getExtensions().translatedShaderSourceANGLE;
             break;
-
         default:
-            ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
+            ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kParameterNameUnknown);
             return false;
     }
 
-    if (length)
+    if (ANGLE_UNLIKELY(!isPnameSupported))
     {
-        *length = 1;
+        ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kParameterNameUnsupported, ToGLenum(pnamePacked));
+        return false;
     }
+
+    if (ANGLE_UNLIKELY(params == nullptr))
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kParamsNULL);
+        return false;
+    }
+
+    if (outNumParams != nullptr)
+    {
+        *outNumParams = 1;
+    }
+
     return true;
 }
 
@@ -7788,57 +7755,45 @@ template bool ValidateTexParameterBase(const Context *,
 
 bool ValidateGetActiveUniformBlockivBase(const Context *context,
                                          angle::EntryPoint entryPoint,
-                                         ShaderProgramID program,
-                                         UniformBlockIndex uniformBlockIndex,
-                                         GLenum pname,
-                                         GLsizei *length)
+                                         ShaderProgramID programPacked,
+                                         UniformBlockIndex uniformBlockIndexPacked,
+                                         UniformBlockParameter pnamePacked,
+                                         GLsizei *outNumParams)
 {
-    if (length)
-    {
-        *length = 0;
-    }
-
-    Program *programObject = GetValidProgram(context, entryPoint, program);
-    if (programObject == nullptr)
+    Program *programObject = GetValidProgram(context, entryPoint, programPacked);
+    if (ANGLE_UNLIKELY(programObject == nullptr))
     {
         // Error already generated.
         return false;
     }
 
     const ProgramExecutable &executable = programObject->getExecutable();
-    if (uniformBlockIndex.value >= executable.getUniformBlocks().size())
+    if (ANGLE_UNLIKELY(uniformBlockIndexPacked.value >= executable.getUniformBlocks().size()))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kIndexExceedsActiveUniformBlockCount);
         return false;
     }
 
-    switch (pname)
+    if (ANGLE_UNLIKELY(pnamePacked == UniformBlockParameter::InvalidEnum))
     {
-        case GL_UNIFORM_BLOCK_BINDING:
-        case GL_UNIFORM_BLOCK_DATA_SIZE:
-        case GL_UNIFORM_BLOCK_NAME_LENGTH:
-        case GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS:
-        case GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES:
-        case GL_UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER:
-        case GL_UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER:
-            break;
-
-        default:
-            ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
-            return false;
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kParameterNameUnknown);
+        return false;
     }
 
-    if (length)
+    if (outNumParams != nullptr)
     {
-        if (pname == GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES)
+        if (pnamePacked == UniformBlockParameter::ActiveUniformIndices)
         {
             const InterfaceBlock &uniformBlock =
-                executable.getUniformBlockByIndex(uniformBlockIndex.value);
-            *length = static_cast<GLsizei>(uniformBlock.memberIndexes.size());
+                executable.getUniformBlockByIndex(uniformBlockIndexPacked.value);
+
+            ASSERT(uniformBlock.memberIndexes.size() <=
+                   static_cast<size_t>(std::numeric_limits<GLsizei>::max()));
+            *outNumParams = static_cast<GLsizei>(uniformBlock.memberIndexes.size());
         }
         else
         {
-            *length = 1;
+            *outNumParams = 1;
         }
     }
 

@@ -47,7 +47,10 @@ void QueryRenderbufferiv(const Context *context,
                          const Renderbuffer *renderbuffer,
                          GLenum pname,
                          GLint *params);
-void QueryShaderiv(const Context *context, Shader *shader, GLenum pname, GLint *params);
+void QueryShaderiv(const Context *context,
+                   Shader *shader,
+                   ShaderParameter pnamePacked,
+                   GLint *params);
 void QueryTexLevelParameterfv(const Texture *texture,
                               TextureTarget target,
                               GLint level,
@@ -114,8 +117,9 @@ void QueryVertexAttribIuiv(const VertexAttribute &attrib,
                            GLuint *params);
 
 void QueryActiveUniformBlockiv(const Program *program,
-                               UniformBlockIndex uniformBlockIndex,
-                               GLenum pname,
+                               UniformBlockIndex uniformBlockIndexPacked,
+                               UniformBlockParameter pnamePacked,
+                               GLsizei *length,
                                GLint *params);
 
 void QueryInternalFormativ(const Context *context,

@@ -1785,6 +1785,7 @@ void GL_APIENTRY GL_GetActiveUniformBlockiv(GLuint program,
     {
         ShaderProgramID programPacked             = PackParam<ShaderProgramID>(program);
         UniformBlockIndex uniformBlockIndexPacked = PackParam<UniformBlockIndex>(uniformBlockIndex);
+        UniformBlockParameter pnamePacked         = PackParam<UniformBlockParameter>(pname);
         SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid = context->skipValidation();
         if (!isCallValid)
@@ -1796,7 +1797,7 @@ void GL_APIENTRY GL_GetActiveUniformBlockiv(GLuint program,
 #endif
                 isCallValid = ValidateGetActiveUniformBlockiv(
                     context, angle::EntryPoint::GLGetActiveUniformBlockiv, programPacked,
-                    uniformBlockIndexPacked, pname, params);
+                    uniformBlockIndexPacked, pnamePacked, params);
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(context->getPushedErrorCount() - errorCount == (isCallValid ? 0 : 1));
 #endif
@@ -1808,10 +1809,11 @@ void GL_APIENTRY GL_GetActiveUniformBlockiv(GLuint program,
         }
         if (ANGLE_LIKELY(isCallValid))
         {
-            context->getActiveUniformBlockiv(programPacked, uniformBlockIndexPacked, pname, params);
+            context->getActiveUniformBlockiv(programPacked, uniformBlockIndexPacked, pnamePacked,
+                                             params);
         }
         ANGLE_CAPTURE_GL(GetActiveUniformBlockiv, isCallValid, context, programPacked,
-                         uniformBlockIndexPacked, pname, params);
+                         uniformBlockIndexPacked, pnamePacked, params);
     }
     else
     {
@@ -2267,6 +2269,7 @@ void GL_APIENTRY GL_GetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
     if (ANGLE_LIKELY(context != nullptr))
     {
         QueryID idPacked = PackParam<QueryID>(id);
+        QueryObjectParameter pnamePacked = PackParam<QueryObjectParameter>(pname);
         SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid = context->skipValidation();
         if (!isCallValid)
@@ -2277,7 +2280,7 @@ void GL_APIENTRY GL_GetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
                 isCallValid = ValidateGetQueryObjectuiv(
-                    context, angle::EntryPoint::GLGetQueryObjectuiv, idPacked, pname, params);
+                    context, angle::EntryPoint::GLGetQueryObjectuiv, idPacked, pnamePacked, params);
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(context->getPushedErrorCount() - errorCount == (isCallValid ? 0 : 1));
 #endif
@@ -2289,9 +2292,9 @@ void GL_APIENTRY GL_GetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
         }
         if (ANGLE_LIKELY(isCallValid))
         {
-            context->getQueryObjectuiv(idPacked, pname, params);
+            context->getQueryObjectuiv(idPacked, pnamePacked, params);
         }
-        ANGLE_CAPTURE_GL(GetQueryObjectuiv, isCallValid, context, idPacked, pname, params);
+        ANGLE_CAPTURE_GL(GetQueryObjectuiv, isCallValid, context, idPacked, pnamePacked, params);
     }
     else
     {
@@ -2311,6 +2314,7 @@ void GL_APIENTRY GL_GetQueryiv(GLenum target, GLenum pname, GLint *params)
     if (ANGLE_LIKELY(context != nullptr))
     {
         QueryType targetPacked = PackParam<QueryType>(target);
+        QueryParameter pnamePacked = PackParam<QueryParameter>(pname);
         SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid = context->skipValidation();
         if (!isCallValid)
@@ -2321,7 +2325,7 @@ void GL_APIENTRY GL_GetQueryiv(GLenum target, GLenum pname, GLint *params)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
                 isCallValid = ValidateGetQueryiv(context, angle::EntryPoint::GLGetQueryiv,
-                                                 targetPacked, pname, params);
+                                                 targetPacked, pnamePacked, params);
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(context->getPushedErrorCount() - errorCount == (isCallValid ? 0 : 1));
 #endif
@@ -2333,9 +2337,9 @@ void GL_APIENTRY GL_GetQueryiv(GLenum target, GLenum pname, GLint *params)
         }
         if (ANGLE_LIKELY(isCallValid))
         {
-            context->getQueryiv(targetPacked, pname, params);
+            context->getQueryiv(targetPacked, pnamePacked, params);
         }
-        ANGLE_CAPTURE_GL(GetQueryiv, isCallValid, context, targetPacked, pname, params);
+        ANGLE_CAPTURE_GL(GetQueryiv, isCallValid, context, targetPacked, pnamePacked, params);
     }
     else
     {

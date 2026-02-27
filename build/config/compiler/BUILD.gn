@@ -616,7 +616,9 @@ config("compiler") {
     # The performance improvement does not seem worth the risk. See
     # https://crbug.com/484082200 for background and https://crrev.com/c/7593035
     # for discussion.
-    cflags += [ "-fno-lifetime-dse" ]
+    if (!is_wasm) {
+      cflags += [ "-fno-lifetime-dse" ]
+    }
 
     # TODO(hans): Remove this once Clang generates better optimized debug info
     # by default. https://crbug.com/765793
@@ -2308,7 +2310,21 @@ config("default_warnings") {
     ldflags += [ "-Wl,-no_warn_duplicate_libraries" ]
   }
 
-  rustflags = [ "-Dclippy::all" ]
+  configs = [ ":default_clippy_lints" ]
+}
+
+# default_clippy_lints --------------------------------------------------------
+
+config("default_clippy_lints") {
+  rustflags = [
+    # Treat all default Clippy lints as warnings.
+    # See also `config("treat_warnings_as_errors")`.
+    "-Wclippy::all",
+
+    # Lints disabled during the initial rollout period (when any objection
+    # coming from a Chromium engineer would get a lint disabled):
+    "-Aclippy::needless_return",
+  ]
 }
 
 # prevent_unsafe_narrowing ----------------------------------------------------

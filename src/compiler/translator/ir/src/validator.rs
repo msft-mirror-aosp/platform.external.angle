@@ -53,24 +53,11 @@
 //     block being merge and the other discard/return/break/continue, but no such code can be
 //     generated right now).
 
-#[macro_export]
-macro_rules! validate_in_debug_build_only {
-    ($arg:expr) => {
-        #[cfg(debug_assertions)]
-        $crate::validator::validate($arg);
-    };
-}
-
-#[cfg(debug_assertions)]
 use crate::debug;
-#[cfg(debug_assertions)]
 use crate::ir::*;
-#[cfg(debug_assertions)]
 use crate::traverser;
-#[cfg(debug_assertions)]
 use std::fmt;
 
-#[cfg(debug_assertions)]
 pub fn validate(ir: &IR) {
     let validator = Validator::new(ir);
     validator.validate();
@@ -78,7 +65,6 @@ pub fn validate(ir: &IR) {
 
 // Validator takes a reference of IR object, and its' lifetime is the same as the lifetime of IR
 // object
-#[cfg(debug_assertions)]
 struct Validator<'a> {
     ir: &'a IR,
     max_type_count: u32,
@@ -87,12 +73,11 @@ struct Validator<'a> {
     max_register_count: u32,
 }
 
-#[cfg(debug_assertions)]
 impl<'a> Validator<'a> {
     // Validator constructor
     fn new(ir: &'a IR) -> Validator<'a> {
         Validator {
-            ir: ir,
+            ir,
             max_type_count: ir.meta.all_types().len() as u32,
             max_variable_count: ir.meta.all_variables().len() as u32,
             max_constant_count: ir.meta.all_constants().len() as u32,
@@ -193,13 +178,13 @@ impl<'a> Validator<'a> {
             ));
         }
         // Check initializer
-        if let Some(valid_initializer) = variable.initializer {
-            if valid_initializer.id >= self.max_constant_count {
-                self.on_error(format_args!(
-                    "Variable id {variable_id} has invalid constant initializer {}",
-                    valid_initializer.id
-                ));
-            }
+        if let Some(valid_initializer) = variable.initializer
+            && valid_initializer.id >= self.max_constant_count
+        {
+            self.on_error(format_args!(
+                "Variable id {variable_id} has invalid constant initializer {}",
+                valid_initializer.id
+            ));
         }
     }
 
@@ -518,7 +503,7 @@ impl<'a> Validator<'a> {
     // Helper Function to print the invalid IR and then panic!
     fn on_error(&self, validation_error_msg: fmt::Arguments) {
         println!("Internal error: Invalid ANGLE IR! {}", validation_error_msg);
-        debug::dump(&self.ir);
+        debug::dump(self.ir);
         panic!();
     }
 }
