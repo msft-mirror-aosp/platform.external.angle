@@ -483,6 +483,10 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
             WriteParamValueReplay<ParamType::TSamplerIDPointer>(os, call,
                                                                 param.value.SamplerIDPointerVal);
             break;
+        case ParamType::TSamplerParameter:
+            WriteParamValueReplay<ParamType::TSamplerParameter>(os, call,
+                                                                param.value.SamplerParameterVal);
+            break;
         case ParamType::TSemaphoreID:
             WriteParamValueReplay<ParamType::TSemaphoreID>(os, call, param.value.SemaphoreIDVal);
             break;
@@ -543,6 +547,10 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
         case ParamType::TTextureIDPointer:
             WriteParamValueReplay<ParamType::TTextureIDPointer>(os, call,
                                                                 param.value.TextureIDPointerVal);
+            break;
+        case ParamType::TTextureImageParameter:
+            WriteParamValueReplay<ParamType::TTextureImageParameter>(
+                os, call, param.value.TextureImageParameterVal);
             break;
         case ParamType::TTextureTarget:
             WriteParamValueReplay<ParamType::TTextureTarget>(os, call,
@@ -1168,6 +1176,8 @@ const char *ParamTypeToString(ParamType paramType)
             return "const GLuint *";
         case ParamType::TSamplerIDPointer:
             return "GLuint *";
+        case ParamType::TSamplerParameter:
+            return "GLenum";
         case ParamType::TSemaphoreID:
             return "GLuint";
         case ParamType::TSemaphoreIDConstPointer:
@@ -1202,6 +1212,8 @@ const char *ParamTypeToString(ParamType paramType)
             return "const GLuint *";
         case ParamType::TTextureIDPointer:
             return "GLuint *";
+        case ParamType::TTextureImageParameter:
+            return "GLenum";
         case ParamType::TTextureTarget:
             return "GLenum";
         case ParamType::TTextureType:

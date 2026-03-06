@@ -1792,6 +1792,121 @@ std::ostream &operator<<(std::ostream &os, QueryType value)
 }
 
 template <>
+SamplerParameter FromGLenum<SamplerParameter>(GLenum from)
+{
+    switch (from)
+    {
+        case GL_TEXTURE_MAG_FILTER:
+            return SamplerParameter::MagFilter;
+        case GL_TEXTURE_MIN_FILTER:
+            return SamplerParameter::MinFilter;
+        case GL_TEXTURE_WRAP_S:
+            return SamplerParameter::WrapS;
+        case GL_TEXTURE_WRAP_T:
+            return SamplerParameter::WrapT;
+        case GL_TEXTURE_WRAP_R:
+            return SamplerParameter::WrapR;
+        case GL_TEXTURE_MIN_LOD:
+            return SamplerParameter::MinLod;
+        case GL_TEXTURE_MAX_LOD:
+            return SamplerParameter::MaxLod;
+        case GL_TEXTURE_COMPARE_MODE:
+            return SamplerParameter::CompareMode;
+        case GL_TEXTURE_COMPARE_FUNC:
+            return SamplerParameter::CompareFunc;
+        case GL_TEXTURE_BORDER_COLOR:
+            return SamplerParameter::BorderColor;
+        case GL_TEXTURE_MAX_ANISOTROPY_EXT:
+            return SamplerParameter::MaxAnisotropy;
+        case GL_TEXTURE_SRGB_DECODE_EXT:
+            return SamplerParameter::SrgbDecode;
+        default:
+            return SamplerParameter::InvalidEnum;
+    }
+}
+
+GLenum ToGLenum(SamplerParameter from)
+{
+    switch (from)
+    {
+        case SamplerParameter::MagFilter:
+            return GL_TEXTURE_MAG_FILTER;
+        case SamplerParameter::MinFilter:
+            return GL_TEXTURE_MIN_FILTER;
+        case SamplerParameter::WrapS:
+            return GL_TEXTURE_WRAP_S;
+        case SamplerParameter::WrapT:
+            return GL_TEXTURE_WRAP_T;
+        case SamplerParameter::WrapR:
+            return GL_TEXTURE_WRAP_R;
+        case SamplerParameter::MinLod:
+            return GL_TEXTURE_MIN_LOD;
+        case SamplerParameter::MaxLod:
+            return GL_TEXTURE_MAX_LOD;
+        case SamplerParameter::CompareMode:
+            return GL_TEXTURE_COMPARE_MODE;
+        case SamplerParameter::CompareFunc:
+            return GL_TEXTURE_COMPARE_FUNC;
+        case SamplerParameter::BorderColor:
+            return GL_TEXTURE_BORDER_COLOR;
+        case SamplerParameter::MaxAnisotropy:
+            return GL_TEXTURE_MAX_ANISOTROPY_EXT;
+        case SamplerParameter::SrgbDecode:
+            return GL_TEXTURE_SRGB_DECODE_EXT;
+        default:
+            UNREACHABLE();
+            return 0;
+    }
+}
+
+std::ostream &operator<<(std::ostream &os, SamplerParameter value)
+{
+    switch (value)
+    {
+        case SamplerParameter::MagFilter:
+            os << "GL_TEXTURE_MAG_FILTER";
+            break;
+        case SamplerParameter::MinFilter:
+            os << "GL_TEXTURE_MIN_FILTER";
+            break;
+        case SamplerParameter::WrapS:
+            os << "GL_TEXTURE_WRAP_S";
+            break;
+        case SamplerParameter::WrapT:
+            os << "GL_TEXTURE_WRAP_T";
+            break;
+        case SamplerParameter::WrapR:
+            os << "GL_TEXTURE_WRAP_R";
+            break;
+        case SamplerParameter::MinLod:
+            os << "GL_TEXTURE_MIN_LOD";
+            break;
+        case SamplerParameter::MaxLod:
+            os << "GL_TEXTURE_MAX_LOD";
+            break;
+        case SamplerParameter::CompareMode:
+            os << "GL_TEXTURE_COMPARE_MODE";
+            break;
+        case SamplerParameter::CompareFunc:
+            os << "GL_TEXTURE_COMPARE_FUNC";
+            break;
+        case SamplerParameter::BorderColor:
+            os << "GL_TEXTURE_BORDER_COLOR";
+            break;
+        case SamplerParameter::MaxAnisotropy:
+            os << "GL_TEXTURE_MAX_ANISOTROPY_EXT";
+            break;
+        case SamplerParameter::SrgbDecode:
+            os << "GL_TEXTURE_SRGB_DECODE_EXT";
+            break;
+        default:
+            os << "GL_INVALID_ENUM";
+            break;
+    }
+    return os;
+}
+
+template <>
 ShaderParameter FromGLenum<ShaderParameter>(GLenum from)
 {
     switch (from)
@@ -2451,6 +2566,205 @@ std::ostream &operator<<(std::ostream &os, TextureEnvTarget value)
             break;
         case TextureEnvTarget::PointSprite:
             os << "GL_POINT_SPRITE_OES";
+            break;
+        default:
+            os << "GL_INVALID_ENUM";
+            break;
+    }
+    return os;
+}
+
+template <>
+TextureImageParameter FromGLenum<TextureImageParameter>(GLenum from)
+{
+    switch (from)
+    {
+        case GL_TEXTURE_WIDTH:
+            return TextureImageParameter::Width;
+        case GL_TEXTURE_HEIGHT:
+            return TextureImageParameter::Height;
+        case GL_TEXTURE_DEPTH:
+            return TextureImageParameter::Depth;
+        case GL_TEXTURE_INTERNAL_FORMAT:
+            return TextureImageParameter::InternalFormat;
+        case GL_TEXTURE_RED_SIZE:
+            return TextureImageParameter::RedSize;
+        case GL_TEXTURE_GREEN_SIZE:
+            return TextureImageParameter::GreenSize;
+        case GL_TEXTURE_BLUE_SIZE:
+            return TextureImageParameter::BlueSize;
+        case GL_TEXTURE_ALPHA_SIZE:
+            return TextureImageParameter::AlphaSize;
+        case GL_TEXTURE_DEPTH_SIZE:
+            return TextureImageParameter::DepthSize;
+        case GL_TEXTURE_STENCIL_SIZE:
+            return TextureImageParameter::StencilSize;
+        case GL_TEXTURE_SHARED_SIZE:
+            return TextureImageParameter::SharedSize;
+        case GL_TEXTURE_RED_TYPE:
+            return TextureImageParameter::RedType;
+        case GL_TEXTURE_GREEN_TYPE:
+            return TextureImageParameter::GreenType;
+        case GL_TEXTURE_BLUE_TYPE:
+            return TextureImageParameter::BlueType;
+        case GL_TEXTURE_ALPHA_TYPE:
+            return TextureImageParameter::AlphaType;
+        case GL_TEXTURE_DEPTH_TYPE:
+            return TextureImageParameter::DepthType;
+        case GL_TEXTURE_COMPRESSED:
+            return TextureImageParameter::Compressed;
+        case GL_TEXTURE_SAMPLES:
+            return TextureImageParameter::Samples;
+        case GL_TEXTURE_FIXED_SAMPLE_LOCATIONS:
+            return TextureImageParameter::FixedSampleLocations;
+        case GL_TEXTURE_BUFFER_DATA_STORE_BINDING:
+            return TextureImageParameter::BufferDataStoreBinding;
+        case GL_TEXTURE_BUFFER_OFFSET:
+            return TextureImageParameter::BufferOffset;
+        case GL_TEXTURE_BUFFER_SIZE:
+            return TextureImageParameter::BufferSize;
+        case GL_MEMORY_SIZE_ANGLE:
+            return TextureImageParameter::MemorySize;
+        case GL_RESOURCE_INITIALIZED_ANGLE:
+            return TextureImageParameter::ResourceInitialized;
+        default:
+            return TextureImageParameter::InvalidEnum;
+    }
+}
+
+GLenum ToGLenum(TextureImageParameter from)
+{
+    switch (from)
+    {
+        case TextureImageParameter::Width:
+            return GL_TEXTURE_WIDTH;
+        case TextureImageParameter::Height:
+            return GL_TEXTURE_HEIGHT;
+        case TextureImageParameter::Depth:
+            return GL_TEXTURE_DEPTH;
+        case TextureImageParameter::InternalFormat:
+            return GL_TEXTURE_INTERNAL_FORMAT;
+        case TextureImageParameter::RedSize:
+            return GL_TEXTURE_RED_SIZE;
+        case TextureImageParameter::GreenSize:
+            return GL_TEXTURE_GREEN_SIZE;
+        case TextureImageParameter::BlueSize:
+            return GL_TEXTURE_BLUE_SIZE;
+        case TextureImageParameter::AlphaSize:
+            return GL_TEXTURE_ALPHA_SIZE;
+        case TextureImageParameter::DepthSize:
+            return GL_TEXTURE_DEPTH_SIZE;
+        case TextureImageParameter::StencilSize:
+            return GL_TEXTURE_STENCIL_SIZE;
+        case TextureImageParameter::SharedSize:
+            return GL_TEXTURE_SHARED_SIZE;
+        case TextureImageParameter::RedType:
+            return GL_TEXTURE_RED_TYPE;
+        case TextureImageParameter::GreenType:
+            return GL_TEXTURE_GREEN_TYPE;
+        case TextureImageParameter::BlueType:
+            return GL_TEXTURE_BLUE_TYPE;
+        case TextureImageParameter::AlphaType:
+            return GL_TEXTURE_ALPHA_TYPE;
+        case TextureImageParameter::DepthType:
+            return GL_TEXTURE_DEPTH_TYPE;
+        case TextureImageParameter::Compressed:
+            return GL_TEXTURE_COMPRESSED;
+        case TextureImageParameter::Samples:
+            return GL_TEXTURE_SAMPLES;
+        case TextureImageParameter::FixedSampleLocations:
+            return GL_TEXTURE_FIXED_SAMPLE_LOCATIONS;
+        case TextureImageParameter::BufferDataStoreBinding:
+            return GL_TEXTURE_BUFFER_DATA_STORE_BINDING;
+        case TextureImageParameter::BufferOffset:
+            return GL_TEXTURE_BUFFER_OFFSET;
+        case TextureImageParameter::BufferSize:
+            return GL_TEXTURE_BUFFER_SIZE;
+        case TextureImageParameter::MemorySize:
+            return GL_MEMORY_SIZE_ANGLE;
+        case TextureImageParameter::ResourceInitialized:
+            return GL_RESOURCE_INITIALIZED_ANGLE;
+        default:
+            UNREACHABLE();
+            return 0;
+    }
+}
+
+std::ostream &operator<<(std::ostream &os, TextureImageParameter value)
+{
+    switch (value)
+    {
+        case TextureImageParameter::Width:
+            os << "GL_TEXTURE_WIDTH";
+            break;
+        case TextureImageParameter::Height:
+            os << "GL_TEXTURE_HEIGHT";
+            break;
+        case TextureImageParameter::Depth:
+            os << "GL_TEXTURE_DEPTH";
+            break;
+        case TextureImageParameter::InternalFormat:
+            os << "GL_TEXTURE_INTERNAL_FORMAT";
+            break;
+        case TextureImageParameter::RedSize:
+            os << "GL_TEXTURE_RED_SIZE";
+            break;
+        case TextureImageParameter::GreenSize:
+            os << "GL_TEXTURE_GREEN_SIZE";
+            break;
+        case TextureImageParameter::BlueSize:
+            os << "GL_TEXTURE_BLUE_SIZE";
+            break;
+        case TextureImageParameter::AlphaSize:
+            os << "GL_TEXTURE_ALPHA_SIZE";
+            break;
+        case TextureImageParameter::DepthSize:
+            os << "GL_TEXTURE_DEPTH_SIZE";
+            break;
+        case TextureImageParameter::StencilSize:
+            os << "GL_TEXTURE_STENCIL_SIZE";
+            break;
+        case TextureImageParameter::SharedSize:
+            os << "GL_TEXTURE_SHARED_SIZE";
+            break;
+        case TextureImageParameter::RedType:
+            os << "GL_TEXTURE_RED_TYPE";
+            break;
+        case TextureImageParameter::GreenType:
+            os << "GL_TEXTURE_GREEN_TYPE";
+            break;
+        case TextureImageParameter::BlueType:
+            os << "GL_TEXTURE_BLUE_TYPE";
+            break;
+        case TextureImageParameter::AlphaType:
+            os << "GL_TEXTURE_ALPHA_TYPE";
+            break;
+        case TextureImageParameter::DepthType:
+            os << "GL_TEXTURE_DEPTH_TYPE";
+            break;
+        case TextureImageParameter::Compressed:
+            os << "GL_TEXTURE_COMPRESSED";
+            break;
+        case TextureImageParameter::Samples:
+            os << "GL_TEXTURE_SAMPLES";
+            break;
+        case TextureImageParameter::FixedSampleLocations:
+            os << "GL_TEXTURE_FIXED_SAMPLE_LOCATIONS";
+            break;
+        case TextureImageParameter::BufferDataStoreBinding:
+            os << "GL_TEXTURE_BUFFER_DATA_STORE_BINDING";
+            break;
+        case TextureImageParameter::BufferOffset:
+            os << "GL_TEXTURE_BUFFER_OFFSET";
+            break;
+        case TextureImageParameter::BufferSize:
+            os << "GL_TEXTURE_BUFFER_SIZE";
+            break;
+        case TextureImageParameter::MemorySize:
+            os << "GL_MEMORY_SIZE_ANGLE";
+            break;
+        case TextureImageParameter::ResourceInitialized:
+            os << "GL_RESOURCE_INITIALIZED_ANGLE";
             break;
         default:
             os << "GL_INVALID_ENUM";

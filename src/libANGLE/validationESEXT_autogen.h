@@ -220,13 +220,13 @@ bool ValidateGetTexLevelParameterivANGLE(const Context *context,
                                          angle::EntryPoint entryPoint,
                                          TextureTarget targetPacked,
                                          GLint level,
-                                         GLenum pname,
+                                         TextureImageParameter pnamePacked,
                                          const GLint *params);
 bool ValidateGetTexLevelParameterfvANGLE(const Context *context,
                                          angle::EntryPoint entryPoint,
                                          TextureTarget targetPacked,
                                          GLint level,
-                                         GLenum pname,
+                                         TextureImageParameter pnamePacked,
                                          const GLfloat *params);
 
 // GL_ANGLE_instanced_arrays
@@ -701,26 +701,26 @@ bool ValidateGetBufferParameteri64vRobustANGLE(const Context *context,
 bool ValidateSamplerParameterivRobustANGLE(const Context *context,
                                            angle::EntryPoint entryPoint,
                                            SamplerID samplerPacked,
-                                           GLuint pname,
+                                           SamplerParameter pnamePacked,
                                            GLsizei paramCount,
                                            const GLint *param);
 bool ValidateSamplerParameterfvRobustANGLE(const Context *context,
                                            angle::EntryPoint entryPoint,
                                            SamplerID samplerPacked,
-                                           GLenum pname,
+                                           SamplerParameter pnamePacked,
                                            GLsizei paramCount,
                                            const GLfloat *param);
 bool ValidateGetSamplerParameterivRobustANGLE(const Context *context,
                                               angle::EntryPoint entryPoint,
                                               SamplerID samplerPacked,
-                                              GLenum pname,
+                                              SamplerParameter pnamePacked,
                                               GLsizei paramCount,
                                               const GLsizei *length,
                                               const GLint *params);
 bool ValidateGetSamplerParameterfvRobustANGLE(const Context *context,
                                               angle::EntryPoint entryPoint,
                                               SamplerID samplerPacked,
-                                              GLenum pname,
+                                              SamplerParameter pnamePacked,
                                               GLsizei paramCount,
                                               const GLsizei *length,
                                               const GLfloat *params);
@@ -735,7 +735,7 @@ bool ValidateGetTexLevelParameterivRobustANGLE(const Context *context,
                                                angle::EntryPoint entryPoint,
                                                TextureTarget targetPacked,
                                                GLint level,
-                                               GLenum pname,
+                                               TextureImageParameter pnamePacked,
                                                GLsizei paramCount,
                                                const GLsizei *length,
                                                const GLint *params);
@@ -743,7 +743,7 @@ bool ValidateGetTexLevelParameterfvRobustANGLE(const Context *context,
                                                angle::EntryPoint entryPoint,
                                                TextureTarget targetPacked,
                                                GLint level,
-                                               GLenum pname,
+                                               TextureImageParameter pnamePacked,
                                                GLsizei paramCount,
                                                const GLsizei *length,
                                                const GLfloat *params);
@@ -782,6 +782,13 @@ bool ValidateGetFramebufferPixelLocalStorageParameterivRobustANGLE(const Context
                                                                    GLsizei paramCount,
                                                                    const GLsizei *length,
                                                                    const GLint *params);
+bool ValidateGetFramebufferPixelLocalStorageParameteruivRobustANGLE(const Context *context,
+                                                                    angle::EntryPoint entryPoint,
+                                                                    GLint plane,
+                                                                    GLenum pname,
+                                                                    GLsizei paramCount,
+                                                                    const GLsizei *length,
+                                                                    const GLuint *params);
 
 // GL_ANGLE_robust_fragment_shader_output
 
@@ -829,6 +836,8 @@ bool ValidateEndPixelLocalStorageANGLE(const Context *context,
                                        angle::EntryPoint entryPoint,
                                        GLsizei n,
                                        const GLenum *storeops);
+bool ValidateEndPixelLocalStorageImplicitANGLE(const Context *context,
+                                               angle::EntryPoint entryPoint);
 bool ValidatePixelLocalStorageBarrierANGLE(const Context *context, angle::EntryPoint entryPoint);
 bool ValidateFramebufferPixelLocalStorageInterruptANGLE(const Context *context,
                                                         angle::EntryPoint entryPoint);
@@ -844,6 +853,11 @@ bool ValidateGetFramebufferPixelLocalStorageParameterivANGLE(const Context *cont
                                                              GLint plane,
                                                              GLenum pname,
                                                              const GLint *params);
+bool ValidateGetFramebufferPixelLocalStorageParameteruivANGLE(const Context *context,
+                                                              angle::EntryPoint entryPoint,
+                                                              GLint plane,
+                                                              GLenum pname,
+                                                              const GLuint *params);
 
 // GL_ANGLE_stencil_texturing
 
@@ -1891,12 +1905,12 @@ bool ValidatePatchParameteriEXT(const PrivateState &state,
 bool ValidateGetSamplerParameterIivEXT(const Context *context,
                                        angle::EntryPoint entryPoint,
                                        SamplerID samplerPacked,
-                                       GLenum pname,
+                                       SamplerParameter pnamePacked,
                                        const GLint *params);
 bool ValidateGetSamplerParameterIuivEXT(const Context *context,
                                         angle::EntryPoint entryPoint,
                                         SamplerID samplerPacked,
-                                        GLenum pname,
+                                        SamplerParameter pnamePacked,
                                         const GLuint *params);
 bool ValidateGetTexParameterIivEXT(const Context *context,
                                    angle::EntryPoint entryPoint,
@@ -1911,12 +1925,12 @@ bool ValidateGetTexParameterIuivEXT(const Context *context,
 bool ValidateSamplerParameterIivEXT(const Context *context,
                                     angle::EntryPoint entryPoint,
                                     SamplerID samplerPacked,
-                                    GLenum pname,
+                                    SamplerParameter pnamePacked,
                                     const GLint *param);
 bool ValidateSamplerParameterIuivEXT(const Context *context,
                                      angle::EntryPoint entryPoint,
                                      SamplerID samplerPacked,
-                                     GLenum pname,
+                                     SamplerParameter pnamePacked,
                                      const GLuint *param);
 bool ValidateTexParameterIivEXT(const Context *context,
                                 angle::EntryPoint entryPoint,
@@ -2646,12 +2660,12 @@ bool ValidateTexSubImage3DOES(const Context *context,
 bool ValidateGetSamplerParameterIivOES(const Context *context,
                                        angle::EntryPoint entryPoint,
                                        SamplerID samplerPacked,
-                                       GLenum pname,
+                                       SamplerParameter pnamePacked,
                                        const GLint *params);
 bool ValidateGetSamplerParameterIuivOES(const Context *context,
                                         angle::EntryPoint entryPoint,
                                         SamplerID samplerPacked,
-                                        GLenum pname,
+                                        SamplerParameter pnamePacked,
                                         const GLuint *params);
 bool ValidateGetTexParameterIivOES(const Context *context,
                                    angle::EntryPoint entryPoint,
@@ -2666,12 +2680,12 @@ bool ValidateGetTexParameterIuivOES(const Context *context,
 bool ValidateSamplerParameterIivOES(const Context *context,
                                     angle::EntryPoint entryPoint,
                                     SamplerID samplerPacked,
-                                    GLenum pname,
+                                    SamplerParameter pnamePacked,
                                     const GLint *param);
 bool ValidateSamplerParameterIuivOES(const Context *context,
                                      angle::EntryPoint entryPoint,
                                      SamplerID samplerPacked,
-                                     GLenum pname,
+                                     SamplerParameter pnamePacked,
                                      const GLuint *param);
 bool ValidateTexParameterIivOES(const Context *context,
                                 angle::EntryPoint entryPoint,

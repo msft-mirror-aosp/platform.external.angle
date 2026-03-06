@@ -95,7 +95,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r28_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-23-init-3706-gfc648683-1,android\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-23-init-5669-g8a0be0bc-1,android\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -922,6 +922,7 @@ cc_library_shared {
         "src/tests/capture_tests/CapturedTest.cpp",
         "src/tests/egl_tests/EGLAndroidFrameBufferTargetTest.cpp",
         "src/tests/egl_tests/EGLBackwardsCompatibleContextTest.cpp",
+        "src/tests/egl_tests/EGLBindTexImageTest.cpp",
         "src/tests/egl_tests/EGLBlobCacheTest.cpp",
         "src/tests/egl_tests/EGLBufferAgeTest.cpp",
         "src/tests/egl_tests/EGLChooseConfigTest.cpp",
@@ -5987,45 +5988,6 @@ cc_defaults {
 }
 
 cc_defaults {
-    name: "third_party_abseil_cpp_absl_debugging_borrowed_fixup_buffer",
-    srcs: [
-        "third_party/abseil-cpp/absl/debugging/internal/borrowed_fixup_buffer.cc",
-    ],
-    defaults: [
-        "angle_common_auto_cflags",
-        "angle_common_library_cflags",
-        "buildtools_third_party_libc++_all_modules",
-        "buildtools_third_party_libc++_custom_headers",
-        "buildtools_third_party_libc++_libcxx_headers",
-        "third_party_abseil_cpp_absl_base_config",
-        "third_party_abseil_cpp_absl_base_core_headers",
-        "third_party_abseil_cpp_absl_base_malloc_internal",
-        "third_party_abseil_cpp_absl_hash_hash",
-    ],
-    local_include_dirs: [
-        "",
-        "third_party/abseil-cpp/",
-    ],
-    cflags: [
-        "-DABSL_ALLOCATOR_NOTHROW=1",
-        "-Wno-c++11-narrowing",
-        "-Wno-exit-time-destructors",
-        "-Wno-unsafe-buffer-usage-in-static-sized-array",
-        "-Wno-unused-but-set-variable",
-        "-Wno-unused-variable",
-    ],
-    sdk_version: "current",
-    stl: "libc++_static",
-    arch: {
-        arm64: {
-            cflags: [
-                "-D__ARM_NEON__=1",
-            ],
-        },
-    },
-}
-
-cc_defaults {
     name: "third_party_abseil_cpp_absl_base_malloc_internal",
     srcs: [
         "third_party/abseil-cpp/absl/base/internal/low_level_alloc.cc",
@@ -6082,7 +6044,6 @@ cc_defaults {
         "third_party_abseil_cpp_absl_base_dynamic_annotations",
         "third_party_abseil_cpp_absl_base_malloc_internal",
         "third_party_abseil_cpp_absl_base_raw_logging_internal",
-        "third_party_abseil_cpp_absl_debugging_borrowed_fixup_buffer",
         "third_party_abseil_cpp_absl_debugging_debugging_internal",
     ],
     local_include_dirs: [
@@ -6749,7 +6710,6 @@ cc_defaults {
         "buildtools_third_party_libc++_libcxx_headers",
         "third_party_abseil_cpp_absl_base_base",
         "third_party_abseil_cpp_absl_base_config",
-        "third_party_abseil_cpp_absl_types_optional",
     ],
     local_include_dirs: [
         "",

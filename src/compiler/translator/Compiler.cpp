@@ -416,7 +416,6 @@ TCompiler::TCompiler(sh::GLenum type, ShShaderSpec spec, ShShaderOutput output)
     : mShaderType(type),
       mShaderSpec(spec),
       mOutputType(output),
-      mBuiltInFunctionEmulator(),
       mDiagnostics(mInfoSink.info),
       mSourcePath(nullptr),
       mVariablesCollected(false),
@@ -1020,19 +1019,16 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         {
             return false;
         }
-    }
 
-    // Needs to run before SimplifyLoopConditions to be able to detect |for| loops correctly.
-    if (compileOptions.ensureLoopForwardProgress)
-    {
-        if (!EnsureLoopForwardProgress(this, root))
+        // Needs to run before SimplifyLoopConditions to be able to detect |for| loops correctly.
+        if (compileOptions.ensureLoopForwardProgress)
         {
-            return false;
+            if (!EnsureLoopForwardProgress(this, root))
+            {
+                return false;
+            }
         }
-    }
 
-    if (!useIR)
-    {
         if (compileOptions.simplifyLoopConditions)
         {
             if (!SimplifyLoopConditions(this, root, &getSymbolTable()))
@@ -1095,11 +1091,6 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
             return false;
         }
     }
-
-    GetGlobalPoolAllocator()->lock();
-    initBuiltInFunctionEmulator(&mBuiltInFunctionEmulator, compileOptions);
-    GetGlobalPoolAllocator()->unlock();
-    mBuiltInFunctionEmulator.markBuiltInFunctionsForEmulation(root);
 
     collectVariables(root);
 
@@ -1236,18 +1227,15 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
                 return false;
             }
         }
-    }
 
-    if (getShaderType() == GL_FRAGMENT_SHADER && compileOptions.clampFragDepth)
-    {
-        if (!ClampFragDepth(this, root, &getSymbolTable()))
+        if (compileOptions.clampFragDepth)
         {
-            return false;
+            if (!ClampFragDepth(this, root, &getSymbolTable()))
+            {
+                return false;
+            }
         }
-    }
 
-    if (!useIR)
-    {
         if (compileOptions.rewriteRepeatedAssignToSwizzled)
         {
             if (!sh::RewriteRepeatedAssignToSwizzled(this, root))
@@ -1293,6 +1281,10 @@ ShCompileOptions TCompiler::adjustOptions(const ShCompileOptions &compileOptions
         // Note: technically clamping gl_PointSize should be done in the last pre-rasterization
         // stage, but is currently only done in the vertex shader.
         compileOptions.clampPointSize = false;
+    }
+    if (mShaderType != GL_FRAGMENT_SHADER)
+    {
+        compileOptions.clampFragDepth = false;
     }
 
     // gl_Position should always be written in GLSL compatibility output mode.
@@ -1605,8 +1597,6 @@ void TCompiler::clearResults()
     mTessEvaluationShaderInputOrderingType      = EtetUndefined;
     mTessEvaluationShaderInputPointType         = EtetUndefined;
 
-    mBuiltInFunctionEmulator.cleanup();
-
     mNameMap.clear();
 
     mSourcePath = nullptr;
@@ -1874,11 +1864,6 @@ const char *TCompiler::getSourcePath() const
 const ShBuiltInResources &TCompiler::getResources() const
 {
     return mResources;
-}
-
-const BuiltInFunctionEmulator &TCompiler::getBuiltInFunctionEmulator() const
-{
-    return mBuiltInFunctionEmulator;
 }
 
 bool TCompiler::isVaryingDefined(const char *varyingName)

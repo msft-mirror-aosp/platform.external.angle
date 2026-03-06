@@ -1037,6 +1037,12 @@ impl Block {
     pub fn set_loop_body_block(&mut self, block: Block) {
         self.set_sub_block1(block);
     }
+    pub fn get_loop_body_block(&self) -> &Block {
+        self.block1.as_ref().unwrap()
+    }
+    pub fn get_loop_body_block_mut(&mut self) -> &mut Block {
+        self.block1.as_mut().unwrap()
+    }
 
     pub fn set_loop_continue_block(&mut self, block: Block) {
         self.set_sub_block2(block);
@@ -1559,7 +1565,6 @@ pub enum BuiltIn {
     TessLevelInner,
     TessCoord,
     BoundingBoxOES,
-    PixelLocalEXT,
 }
 
 // Whether a function parameter is `in`, `out` or `inout`.
@@ -1740,8 +1745,6 @@ pub enum Decoration {
     PushConstant,
     NonCoherent,
     Yuv,
-    // TODO(http://anglebug.com/349994211): handle __pixel_localEXT, likely in combination with
-    // Input/Output/InputOutput
     // Indicates that a variable (excluding built-ins) is an input to the shader
     Input,
     // Indicates that a variable (excluding built-ins) is an output of the shader

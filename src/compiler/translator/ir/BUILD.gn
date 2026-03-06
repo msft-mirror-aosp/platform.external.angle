@@ -21,6 +21,7 @@ angle_translator_ir_sources = [
   "src/transform.rs",
   "src/transform/astify.rs",
   "src/transform/broadcast_fragcolor.rs",
+  "src/transform/clamp_frag_depth.rs",
   "src/transform/clamp_point_size.rs",
   "src/transform/dealias.rs",
   "src/transform/emulate_instanced_multiview.rs",
@@ -50,7 +51,10 @@ if (angle_enable_hlsl) {
   angle_translator_ir_sources += [ "src/output/hlsl.rs" ]
 }
 if (angle_enable_msl) {
-  angle_translator_ir_sources += [ "src/output/msl.rs" ]
+  angle_translator_ir_sources += [
+    "src/output/msl.rs",
+    "src/transform/msl/ensure_loop_forward_progress.rs",
+  ]
 }
 if (angle_enable_vulkan) {
   angle_translator_ir_sources += [ "src/output/spirv.rs" ]

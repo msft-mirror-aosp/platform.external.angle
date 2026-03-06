@@ -4596,56 +4596,58 @@ bool ValidateGetBufferParameteri64v(const Context *context,
 
 bool ValidateGetSamplerParameterfv(const Context *context,
                                    angle::EntryPoint entryPoint,
-                                   SamplerID sampler,
-                                   GLenum pname,
+                                   SamplerID samplerPacked,
+                                   SamplerParameter pnamePacked,
                                    const GLfloat *params)
 {
-    return ValidateGetSamplerParameterBase(context, entryPoint, sampler, pname, nullptr, params);
+    return ValidateGetSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, params,
+                                           nullptr);
 }
 
 bool ValidateGetSamplerParameteriv(const Context *context,
                                    angle::EntryPoint entryPoint,
-                                   SamplerID sampler,
-                                   GLenum pname,
+                                   SamplerID samplerPacked,
+                                   SamplerParameter pnamePacked,
                                    const GLint *params)
 {
-    return ValidateGetSamplerParameterBase(context, entryPoint, sampler, pname, nullptr, params);
+    return ValidateGetSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, params,
+                                           nullptr);
 }
 
 bool ValidateSamplerParameterf(const Context *context,
                                angle::EntryPoint entryPoint,
-                               SamplerID sampler,
-                               GLenum pname,
+                               SamplerID samplerPacked,
+                               SamplerParameter pnamePacked,
                                GLfloat param)
 {
-    return ValidateSamplerParameterBase(context, entryPoint, sampler, pname, -1, false, &param);
+    return ValidateSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, &param);
 }
 
 bool ValidateSamplerParameterfv(const Context *context,
                                 angle::EntryPoint entryPoint,
-                                SamplerID sampler,
-                                GLenum pname,
+                                SamplerID samplerPacked,
+                                SamplerParameter pnamePacked,
                                 const GLfloat *params)
 {
-    return ValidateSamplerParameterBase(context, entryPoint, sampler, pname, -1, true, params);
+    return ValidateSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, params);
 }
 
 bool ValidateSamplerParameteri(const Context *context,
                                angle::EntryPoint entryPoint,
-                               SamplerID sampler,
-                               GLenum pname,
+                               SamplerID samplerPacked,
+                               SamplerParameter pnamePacked,
                                GLint param)
 {
-    return ValidateSamplerParameterBase(context, entryPoint, sampler, pname, -1, false, &param);
+    return ValidateSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, &param);
 }
 
 bool ValidateSamplerParameteriv(const Context *context,
                                 angle::EntryPoint entryPoint,
-                                SamplerID sampler,
-                                GLenum pname,
+                                SamplerID samplerPacked,
+                                SamplerParameter pnamePacked,
                                 const GLint *params)
 {
-    return ValidateSamplerParameterBase(context, entryPoint, sampler, pname, -1, true, params);
+    return ValidateSamplerParameterBase(context, entryPoint, samplerPacked, pnamePacked, params);
 }
 
 bool ValidateGetVertexAttribIiv(const Context *context,
@@ -4778,22 +4780,24 @@ bool ValidateTexStorage2DMultisampleANGLE(const Context *context,
 
 bool ValidateGetTexLevelParameterfvANGLE(const Context *context,
                                          angle::EntryPoint entryPoint,
-                                         TextureTarget target,
+                                         TextureTarget targetPacked,
                                          GLint level,
-                                         GLenum pname,
+                                         TextureImageParameter pnamePacked,
                                          const GLfloat *params)
 {
-    return ValidateGetTexLevelParameterBase(context, entryPoint, target, level, pname, nullptr);
+    return ValidateGetTexLevelParameterBase(context, entryPoint, targetPacked, level, pnamePacked,
+                                            nullptr);
 }
 
 bool ValidateGetTexLevelParameterivANGLE(const Context *context,
                                          angle::EntryPoint entryPoint,
-                                         TextureTarget target,
+                                         TextureTarget targetPacked,
                                          GLint level,
-                                         GLenum pname,
+                                         TextureImageParameter pnamePacked,
                                          const GLint *params)
 {
-    return ValidateGetTexLevelParameterBase(context, entryPoint, target, level, pname, nullptr);
+    return ValidateGetTexLevelParameterBase(context, entryPoint, targetPacked, level, pnamePacked,
+                                            nullptr);
 }
 
 bool ValidateGetMultisamplefvANGLE(const Context *context,

@@ -2785,140 +2785,163 @@ void Context::texBufferRange(TextureType target,
     ANGLE_CONTEXT_TRY(texture->setBufferRange(this, bufferObj, internalformat, offset, size));
 }
 
-void Context::getTexParameterfv(TextureType target, GLenum pname, GLfloat *params)
+void Context::getTexParameterfv(TextureType targetPacked, GLenum pname, GLfloat *params)
 {
-    const Texture *const texture = getTextureByType(target);
+    const Texture *const texture = getTextureByType(targetPacked);
     QueryTexParameterfv(this, texture, pname, params);
 }
 
-void Context::getTexParameterfvRobust(TextureType target,
+void Context::getTexParameterfvRobust(TextureType targetPacked,
                                       GLenum pname,
                                       GLsizei paramCount,
                                       GLsizei *length,
                                       GLfloat *params)
 {
-    getTexParameterfv(target, pname, params);
+    getTexParameterfv(targetPacked, pname, params);
+
+    if (length != nullptr)
+    {
+        *length = (pname == GL_TEXTURE_BORDER_COLOR) ? 4 : 1;
+    }
 }
 
-void Context::getTexParameteriv(TextureType target, GLenum pname, GLint *params)
+void Context::getTexParameteriv(TextureType targetPacked, GLenum pname, GLint *params)
 {
-    const Texture *const texture = getTextureByType(target);
+    const Texture *const texture = getTextureByType(targetPacked);
     QueryTexParameteriv(this, texture, pname, params);
 }
 
-void Context::getTexParameterIiv(TextureType target, GLenum pname, GLint *params)
+void Context::getTexParameterIiv(TextureType targetPacked, GLenum pname, GLint *params)
 {
-    const Texture *const texture = getTextureByType(target);
+    const Texture *const texture = getTextureByType(targetPacked);
     QueryTexParameterIiv(this, texture, pname, params);
 }
 
-void Context::getTexParameterIuiv(TextureType target, GLenum pname, GLuint *params)
+void Context::getTexParameterIuiv(TextureType targetPacked, GLenum pname, GLuint *params)
 {
-    const Texture *const texture = getTextureByType(target);
+    const Texture *const texture = getTextureByType(targetPacked);
     QueryTexParameterIuiv(this, texture, pname, params);
 }
 
-void Context::getTexParameterivRobust(TextureType target,
+void Context::getTexParameterivRobust(TextureType targetPacked,
                                       GLenum pname,
                                       GLsizei paramCount,
                                       GLsizei *length,
                                       GLint *params)
 {
-    getTexParameteriv(target, pname, params);
+    getTexParameteriv(targetPacked, pname, params);
+
+    if (length != nullptr)
+    {
+        *length = (pname == GL_TEXTURE_BORDER_COLOR) ? 4 : 1;
+    }
 }
 
-void Context::getTexLevelParameteriv(TextureTarget target, GLint level, GLenum pname, GLint *params)
+void Context::getTexLevelParameteriv(TextureTarget targetPacked,
+                                     GLint level,
+                                     TextureImageParameter pnamePacked,
+                                     GLint *params)
 {
-    Texture *texture = getTextureByTarget(target);
-    QueryTexLevelParameteriv(texture, target, level, pname, params);
+    Texture *texture = getTextureByTarget(targetPacked);
+    QueryTexLevelParameteriv(texture, targetPacked, level, pnamePacked, params);
 }
 
-void Context::getTexLevelParameterivRobust(TextureTarget target,
+void Context::getTexLevelParameterivRobust(TextureTarget targetPacked,
                                            GLint level,
-                                           GLenum pname,
+                                           TextureImageParameter pnamePacked,
                                            GLsizei paramCount,
                                            GLsizei *length,
                                            GLint *params)
 {
-    UNIMPLEMENTED();
+    getTexLevelParameteriv(targetPacked, level, pnamePacked, params);
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
-void Context::getTexLevelParameterfv(TextureTarget target,
+void Context::getTexLevelParameterfv(TextureTarget targetPacked,
                                      GLint level,
-                                     GLenum pname,
+                                     TextureImageParameter pnamePacked,
                                      GLfloat *params)
 {
-    Texture *texture = getTextureByTarget(target);
-    QueryTexLevelParameterfv(texture, target, level, pname, params);
+    Texture *texture = getTextureByTarget(targetPacked);
+    QueryTexLevelParameterfv(texture, targetPacked, level, pnamePacked, params);
 }
 
-void Context::getTexLevelParameterfvRobust(TextureTarget target,
+void Context::getTexLevelParameterfvRobust(TextureTarget targetPacked,
                                            GLint level,
-                                           GLenum pname,
+                                           TextureImageParameter pnamePacked,
                                            GLsizei paramCount,
                                            GLsizei *length,
                                            GLfloat *params)
 {
-    UNIMPLEMENTED();
+    getTexLevelParameterfv(targetPacked, level, pnamePacked, params);
+
+    if (length != nullptr)
+    {
+        *length = 1;
+    }
 }
 
-void Context::texParameterf(TextureType target, GLenum pname, GLfloat param)
+void Context::texParameterf(TextureType targetPacked, GLenum pname, GLfloat param)
 {
-    Texture *const texture = getTextureByType(target);
+    Texture *const texture = getTextureByType(targetPacked);
     SetTexParameterf(this, texture, pname, param);
 }
 
-void Context::texParameterfv(TextureType target, GLenum pname, const GLfloat *params)
+void Context::texParameterfv(TextureType targetPacked, GLenum pname, const GLfloat *params)
 {
-    Texture *const texture = getTextureByType(target);
+    Texture *const texture = getTextureByType(targetPacked);
     SetTexParameterfv(this, texture, pname, params);
 }
 
-void Context::texParameterfvRobust(TextureType target,
+void Context::texParameterfvRobust(TextureType targetPacked,
                                    GLenum pname,
                                    GLsizei paramCount,
                                    const GLfloat *params)
 {
-    texParameterfv(target, pname, params);
+    texParameterfv(targetPacked, pname, params);
 }
 
-void Context::texParameteri(TextureType target, GLenum pname, GLint param)
+void Context::texParameteri(TextureType targetPacked, GLenum pname, GLint param)
 {
     // Some apps enable KHR_create_context_no_error but pass in an invalid texture type.
     // Workaround this by silently returning in such situations.
-    if (target == TextureType::InvalidEnum)
+    if (targetPacked == TextureType::InvalidEnum)
     {
         return;
     }
 
-    Texture *const texture = getTextureByType(target);
+    Texture *const texture = getTextureByType(targetPacked);
     SetTexParameteri(this, texture, pname, param);
 }
 
-void Context::texParameteriv(TextureType target, GLenum pname, const GLint *params)
+void Context::texParameteriv(TextureType targetPacked, GLenum pname, const GLint *params)
 {
-    Texture *const texture = getTextureByType(target);
+    Texture *const texture = getTextureByType(targetPacked);
     SetTexParameteriv(this, texture, pname, params);
 }
 
-void Context::texParameterIiv(TextureType target, GLenum pname, const GLint *params)
+void Context::texParameterIiv(TextureType targetPacked, GLenum pname, const GLint *params)
 {
-    Texture *const texture = getTextureByType(target);
+    Texture *const texture = getTextureByType(targetPacked);
     SetTexParameterIiv(this, texture, pname, params);
 }
 
-void Context::texParameterIuiv(TextureType target, GLenum pname, const GLuint *params)
+void Context::texParameterIuiv(TextureType targetPacked, GLenum pname, const GLuint *params)
 {
-    Texture *const texture = getTextureByType(target);
+    Texture *const texture = getTextureByType(targetPacked);
     SetTexParameterIuiv(this, texture, pname, params);
 }
 
-void Context::texParameterivRobust(TextureType target,
+void Context::texParameterivRobust(TextureType targetPacked,
                                    GLenum pname,
                                    GLsizei paramCount,
                                    const GLint *params)
 {
-    texParameteriv(target, pname, params);
+    texParameteriv(targetPacked, pname, params);
 }
 
 void Context::drawArraysInstanced(PrimitiveMode mode,
@@ -3373,108 +3396,136 @@ void Context::detachProgramPipeline(ProgramPipelineID pipeline)
     mState.detachProgramPipeline(this, pipeline);
 }
 
-void Context::samplerParameteri(SamplerID sampler, GLenum pname, GLint param)
+void Context::samplerParameteri(SamplerID samplerPacked, SamplerParameter pnamePacked, GLint param)
 {
     Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    SetSamplerParameteri(this, samplerObject, pname, param);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    SetSamplerParameteriv(this, samplerObject, pnamePacked, &param);
 }
 
-void Context::samplerParameteriv(SamplerID sampler, GLenum pname, const GLint *param)
+void Context::samplerParameteriv(SamplerID samplerPacked,
+                                 SamplerParameter pnamePacked,
+                                 const GLint *param)
 {
     Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    SetSamplerParameteriv(this, samplerObject, pname, param);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    SetSamplerParameteriv(this, samplerObject, pnamePacked, param);
 }
 
-void Context::samplerParameterIiv(SamplerID sampler, GLenum pname, const GLint *param)
+void Context::samplerParameterIiv(SamplerID samplerPacked,
+                                  SamplerParameter pnamePacked,
+                                  const GLint *param)
 {
     Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    SetSamplerParameterIiv(this, samplerObject, pname, param);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    SetSamplerParameterIiv(this, samplerObject, pnamePacked, param);
 }
 
-void Context::samplerParameterIuiv(SamplerID sampler, GLenum pname, const GLuint *param)
+void Context::samplerParameterIuiv(SamplerID samplerPacked,
+                                   SamplerParameter pnamePacked,
+                                   const GLuint *param)
 {
     Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    SetSamplerParameterIuiv(this, samplerObject, pname, param);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    SetSamplerParameterIuiv(this, samplerObject, pnamePacked, param);
 }
 
-void Context::samplerParameterivRobust(SamplerID sampler,
-                                       GLenum pname,
+void Context::samplerParameterivRobust(SamplerID samplerPacked,
+                                       SamplerParameter pnamePacked,
                                        GLsizei paramCount,
                                        const GLint *param)
 {
-    samplerParameteriv(sampler, pname, param);
+    samplerParameteriv(samplerPacked, pnamePacked, param);
 }
 
-void Context::samplerParameterf(SamplerID sampler, GLenum pname, GLfloat param)
+void Context::samplerParameterf(SamplerID samplerPacked,
+                                SamplerParameter pnamePacked,
+                                GLfloat param)
 {
     Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    SetSamplerParameterf(this, samplerObject, pname, param);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    SetSamplerParameterfv(this, samplerObject, pnamePacked, &param);
 }
 
-void Context::samplerParameterfv(SamplerID sampler, GLenum pname, const GLfloat *param)
+void Context::samplerParameterfv(SamplerID samplerPacked,
+                                 SamplerParameter pnamePacked,
+                                 const GLfloat *param)
 {
     Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    SetSamplerParameterfv(this, samplerObject, pname, param);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    SetSamplerParameterfv(this, samplerObject, pnamePacked, param);
 }
 
-void Context::samplerParameterfvRobust(SamplerID sampler,
-                                       GLenum pname,
+void Context::samplerParameterfvRobust(SamplerID samplerPacked,
+                                       SamplerParameter pnamePacked,
                                        GLsizei paramCount,
                                        const GLfloat *param)
 {
-    samplerParameterfv(sampler, pname, param);
+    samplerParameterfv(samplerPacked, pnamePacked, param);
 }
 
-void Context::getSamplerParameteriv(SamplerID sampler, GLenum pname, GLint *params)
+void Context::getSamplerParameteriv(SamplerID samplerPacked,
+                                    SamplerParameter pnamePacked,
+                                    GLint *params)
 {
     const Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    QuerySamplerParameteriv(samplerObject, pname, params);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    QuerySamplerParameteriv(samplerObject, pnamePacked, params);
 }
 
-void Context::getSamplerParameterIiv(SamplerID sampler, GLenum pname, GLint *params)
+void Context::getSamplerParameterIiv(SamplerID samplerPacked,
+                                     SamplerParameter pnamePacked,
+                                     GLint *params)
 {
     const Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    QuerySamplerParameterIiv(samplerObject, pname, params);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    QuerySamplerParameterIiv(samplerObject, pnamePacked, params);
 }
 
-void Context::getSamplerParameterIuiv(SamplerID sampler, GLenum pname, GLuint *params)
+void Context::getSamplerParameterIuiv(SamplerID samplerPacked,
+                                      SamplerParameter pnamePacked,
+                                      GLuint *params)
 {
     const Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    QuerySamplerParameterIuiv(samplerObject, pname, params);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    QuerySamplerParameterIuiv(samplerObject, pnamePacked, params);
 }
 
-void Context::getSamplerParameterivRobust(SamplerID sampler,
-                                          GLenum pname,
+void Context::getSamplerParameterivRobust(SamplerID samplerPacked,
+                                          SamplerParameter pnamePacked,
                                           GLsizei paramCount,
                                           GLsizei *length,
                                           GLint *params)
 {
-    getSamplerParameteriv(sampler, pname, params);
+    getSamplerParameteriv(samplerPacked, pnamePacked, params);
+
+    if (length != nullptr)
+    {
+        *length = (pnamePacked == SamplerParameter::BorderColor) ? 4 : 1;
+    }
 }
 
-void Context::getSamplerParameterfv(SamplerID sampler, GLenum pname, GLfloat *params)
+void Context::getSamplerParameterfv(SamplerID samplerPacked,
+                                    SamplerParameter pnamePacked,
+                                    GLfloat *params)
 {
     const Sampler *const samplerObject =
-        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), sampler);
-    QuerySamplerParameterfv(samplerObject, pname, params);
+        mState.mSamplerManager->checkSamplerAllocation(mImplementation.get(), samplerPacked);
+    QuerySamplerParameterfv(samplerObject, pnamePacked, params);
 }
 
-void Context::getSamplerParameterfvRobust(SamplerID sampler,
-                                          GLenum pname,
+void Context::getSamplerParameterfvRobust(SamplerID samplerPacked,
+                                          SamplerParameter pnamePacked,
                                           GLsizei paramCount,
                                           GLsizei *length,
                                           GLfloat *params)
 {
-    getSamplerParameterfv(sampler, pname, params);
+    getSamplerParameterfv(samplerPacked, pnamePacked, params);
+
+    if (length != nullptr)
+    {
+        *length = (pnamePacked == SamplerParameter::BorderColor) ? 4 : 1;
+    }
 }
 
 void Context::programParameteri(ShaderProgramID program, GLenum pname, GLint value)
@@ -9086,8 +9137,13 @@ void Context::endPixelLocalStorage(GLsizei n, const GLenum storeops[])
 
 void Context::endPixelLocalStorageImplicit()
 {
+    // Ends the currently active pixel local storage session with GL_STORE_OP_STORE on all planes.
     GLsizei n = mState.getPixelLocalStorageActivePlanes();
-    ASSERT(n != 0);
+    if (n == 0)
+    {
+        // This command may be called when PLS is not active.
+        return;
+    }
     angle::FixedVector<GLenum, IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES> storeops(
         n, GL_STORE_OP_STORE_ANGLE);
     endPixelLocalStorage(n, storeops.data());
@@ -9139,6 +9195,11 @@ void Context::getFramebufferPixelLocalStorageParameteriv(GLint plane, GLenum pna
     QueryFramebufferPixelLocalStorageParameteriv(this, plane, pname, nullptr, params);
 }
 
+void Context::getFramebufferPixelLocalStorageParameteruiv(GLint plane, GLenum pname, GLuint *params)
+{
+    QueryFramebufferPixelLocalStorageParameteruiv(this, plane, pname, nullptr, params);
+}
+
 void Context::getFramebufferPixelLocalStorageParameterfvRobust(GLint plane,
                                                                GLenum pname,
                                                                GLsizei paramCount,
@@ -9155,6 +9216,15 @@ void Context::getFramebufferPixelLocalStorageParameterivRobust(GLint plane,
                                                                GLint *params)
 {
     QueryFramebufferPixelLocalStorageParameteriv(this, plane, pname, length, params);
+}
+
+void Context::getFramebufferPixelLocalStorageParameteruivRobust(GLint plane,
+                                                                GLenum pname,
+                                                                GLsizei paramCount,
+                                                                GLsizei *length,
+                                                                GLuint *params)
+{
+    QueryFramebufferPixelLocalStorageParameteruiv(this, plane, pname, length, params);
 }
 
 void Context::eGLImageTargetTexStorage(GLenum target, egl::ImageID image, const GLint *attrib_list)
