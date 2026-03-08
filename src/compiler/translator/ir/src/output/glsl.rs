@@ -329,7 +329,6 @@ impl Generator {
             BuiltIn::TessLevelInner => "gl_TessLevelInner",
             BuiltIn::TessCoord => "gl_TessCoord",
             BuiltIn::BoundingBoxOES => "gl_BoundingBoxOES",
-            BuiltIn::PixelLocalEXT => "gl_PixelLocalEXT",
         })
         .to_string()
     }
@@ -339,12 +338,7 @@ impl Generator {
             "{}{}{}",
             match name.source {
                 // Make sure unnamed interface blocks remain unnamed.
-                NameSource::ShaderInterface =>
-                    if !name.name.is_empty() {
-                        USER_SYMBOL_PREFIX
-                    } else {
-                        ""
-                    },
+                NameSource::ShaderInterface if !name.name.is_empty() => USER_SYMBOL_PREFIX,
                 NameSource::Temporary => temp_prefix,
                 _ => "",
             },
@@ -533,10 +527,11 @@ impl Generator {
         glsl_variables: &HashMap<VariableId, GlslVariable>,
         block: &mut String,
         variables: &[VariableId],
+        for_loop_variable: Option<VariableId>,
     ) {
         variables.iter().for_each(|id| {
             let glsl_variable = &glsl_variables[id];
-            if !glsl_variable.skip_declaration {
+            if !glsl_variable.skip_declaration && for_loop_variable != Some(*id) {
                 writeln!(block, "{};", glsl_variable.declaration_text).unwrap();
             }
         });
@@ -813,12 +808,10 @@ impl ast::Target for Generator {
 
     fn global_scope(&mut self, ir_meta: &IRMeta) {
         match ir_meta.get_shader_type() {
-            ShaderType::Vertex => {
-                if ir_meta.get_num_views() > 0 {
-                    // Note: not to be done if emulate_instanced_multiview is set
-                    writeln!(self.preamble, "layout(num_views = {}) in;", ir_meta.get_num_views())
-                        .unwrap();
-                }
+            ShaderType::Vertex if ir_meta.get_num_views() > 0 => {
+                // Note: not to be done if emulate_instanced_multiview is set
+                writeln!(self.preamble, "layout(num_views = {}) in;", ir_meta.get_num_views())
+                    .unwrap();
             }
             ShaderType::Fragment => {
                 if ir_meta.get_early_fragment_tests() {
@@ -856,6 +849,7 @@ impl ast::Target for Generator {
             &self.variables,
             &mut self.global_variables,
             ir_meta.all_global_variables(),
+            None,
         );
 
         println!("{}", self.preamble);
@@ -863,9 +857,14 @@ impl ast::Target for Generator {
         println!("{}", self.global_variables);
     }
 
-    fn begin_block(&mut self, _ir_meta: &IRMeta, variables: &[VariableId]) -> String {
+    fn begin_block(
+        &mut self,
+        _ir_meta: &IRMeta,
+        variables: &[VariableId],
+        for_loop_variable: Option<VariableId>,
+    ) -> String {
         let mut block = String::new();
-        Self::declare_variables(&self.variables, &mut block, variables);
+        Self::declare_variables(&self.variables, &mut block, variables, for_loop_variable);
         block
     }
 
@@ -1465,6 +1464,56 @@ impl ast::Target for Generator {
         // DoLoop and Loop is effectively that the condition block is evaluated after the body
         // instead of before.
         writeln!(block, "for (;;) {{\n{}}}", Self::indent_block(body_block.unwrap(), 1)).unwrap();
+    }
+    fn branch_for_loop(
+        &mut self,
+        block: &mut String,
+        info: &util::TrivialLoopInfo,
+        body_block: Option<String>,
+    ) {
+        // The condition, continue and body blocks should always be present.  Condition and
+        // continue blocks are not usable because they are not generated in a form that is
+        // compatible with a `for` loop.  Instead, the loop info is used to reconstruct the `for`
+        // loop.
+        let continue_expr = if let Some(increment_step) = info.increment_step {
+            let increment_step = self.get_constant_expression(increment_step);
+            format!(
+                "{} {}= {}",
+                self.variables[&info.loop_variable].name,
+                if info.ascending { '+' } else { '-' },
+                increment_step
+            )
+        } else {
+            format!(
+                "{}{}",
+                self.variables[&info.loop_variable].name,
+                if info.ascending { "++" } else { "--" }
+            )
+        };
+        let condition_op = match info.condition_op {
+            BinaryOpCode::Equal => "==",
+            BinaryOpCode::NotEqual => "!=",
+            BinaryOpCode::LessThan => "<",
+            BinaryOpCode::GreaterThan => ">",
+            BinaryOpCode::LessThanEqual => "<=",
+            BinaryOpCode::GreaterThanEqual => ">=",
+            _ => panic!("Internal error: Invalid for loop condition operator"),
+        };
+        let condition_comparator = self.get_constant_expression(info.condition_comparator);
+        let condition = format!(
+            "{} {} {}",
+            self.variables[&info.loop_variable].name, condition_op, condition_comparator
+        );
+
+        writeln!(
+            block,
+            "for ({}; {}; {}) {{\n{}}}",
+            self.variables[&info.loop_variable].declaration_text,
+            condition,
+            continue_expr,
+            Self::indent_block(body_block.unwrap(), 1)
+        )
+        .unwrap();
     }
     fn branch_loop_if(&mut self, block: &mut String, condition: TypedId) {
         // The condition block of a loop ends in `if (!condition) break;`

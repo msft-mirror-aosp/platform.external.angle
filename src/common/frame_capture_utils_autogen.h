@@ -190,6 +190,7 @@ enum class ParamType
     TSamplerIDConstPointer,
     TSamplerIDPointer,
     TSamplerInfo,
+    TSamplerParameter,
     TSemaphoreID,
     TSemaphoreIDConstPointer,
     TSemaphoreIDPointer,
@@ -207,6 +208,7 @@ enum class ParamType
     TTextureID,
     TTextureIDConstPointer,
     TTextureIDPointer,
+    TTextureImageParameter,
     TTextureTarget,
     TTextureType,
     TTimestamp,
@@ -279,7 +281,7 @@ enum class ParamType
     TvoidPointerPointer,
 };
 
-constexpr uint32_t kParamTypeCount = 242;
+constexpr uint32_t kParamTypeCount = 244;
 
 union ParamValue
 {
@@ -414,6 +416,7 @@ union ParamValue
     gl::SamplerID SamplerIDVal;
     const gl::SamplerID *SamplerIDConstPointerVal;
     gl::SamplerID *SamplerIDPointerVal;
+    gl::SamplerParameter SamplerParameterVal;
     gl::SemaphoreID SemaphoreIDVal;
     const gl::SemaphoreID *SemaphoreIDConstPointerVal;
     gl::SemaphoreID *SemaphoreIDPointerVal;
@@ -431,6 +434,7 @@ union ParamValue
     gl::TextureID TextureIDVal;
     const gl::TextureID *TextureIDConstPointerVal;
     gl::TextureID *TextureIDPointerVal;
+    gl::TextureImageParameter TextureImageParameterVal;
     gl::TextureTarget TextureTargetVal;
     gl::TextureType TextureTypeVal;
     egl::Timestamp TimestampVal;
@@ -1378,6 +1382,13 @@ inline gl::SamplerID *GetParamVal<ParamType::TSamplerIDPointer, gl::SamplerID *>
 }
 
 template <>
+inline gl::SamplerParameter GetParamVal<ParamType::TSamplerParameter, gl::SamplerParameter>(
+    const ParamValue &value)
+{
+    return value.SamplerParameterVal;
+}
+
+template <>
 inline gl::SemaphoreID GetParamVal<ParamType::TSemaphoreID, gl::SemaphoreID>(
     const ParamValue &value)
 {
@@ -1490,6 +1501,13 @@ inline gl::TextureID *GetParamVal<ParamType::TTextureIDPointer, gl::TextureID *>
     const ParamValue &value)
 {
     return value.TextureIDPointerVal;
+}
+
+template <>
+inline gl::TextureImageParameter
+GetParamVal<ParamType::TTextureImageParameter, gl::TextureImageParameter>(const ParamValue &value)
+{
+    return value.TextureImageParameterVal;
 }
 
 template <>
@@ -2463,6 +2481,8 @@ T AccessParamValue(ParamType paramType, const ParamValue &value)
             return GetParamVal<ParamType::TSamplerIDPointer, T>(value);
         case ParamType::TSamplerInfo:
             return GetParamVal<ParamType::TSamplerInfo, T>(value);
+        case ParamType::TSamplerParameter:
+            return GetParamVal<ParamType::TSamplerParameter, T>(value);
         case ParamType::TSemaphoreID:
             return GetParamVal<ParamType::TSemaphoreID, T>(value);
         case ParamType::TSemaphoreIDConstPointer:
@@ -2497,6 +2517,8 @@ T AccessParamValue(ParamType paramType, const ParamValue &value)
             return GetParamVal<ParamType::TTextureIDConstPointer, T>(value);
         case ParamType::TTextureIDPointer:
             return GetParamVal<ParamType::TTextureIDPointer, T>(value);
+        case ParamType::TTextureImageParameter:
+            return GetParamVal<ParamType::TTextureImageParameter, T>(value);
         case ParamType::TTextureTarget:
             return GetParamVal<ParamType::TTextureTarget, T>(value);
         case ParamType::TTextureType:
@@ -3468,6 +3490,13 @@ inline void SetParamVal<ParamType::TSamplerIDPointer>(gl::SamplerID *valueIn, Pa
 }
 
 template <>
+inline void SetParamVal<ParamType::TSamplerParameter>(gl::SamplerParameter valueIn,
+                                                      ParamValue *valueOut)
+{
+    valueOut->SamplerParameterVal = valueIn;
+}
+
+template <>
 inline void SetParamVal<ParamType::TSemaphoreID>(gl::SemaphoreID valueIn, ParamValue *valueOut)
 {
     valueOut->SemaphoreIDVal = valueIn;
@@ -3576,6 +3605,13 @@ template <>
 inline void SetParamVal<ParamType::TTextureIDPointer>(gl::TextureID *valueIn, ParamValue *valueOut)
 {
     valueOut->TextureIDPointerVal = valueIn;
+}
+
+template <>
+inline void SetParamVal<ParamType::TTextureImageParameter>(gl::TextureImageParameter valueIn,
+                                                           ParamValue *valueOut)
+{
+    valueOut->TextureImageParameterVal = valueIn;
 }
 
 template <>
@@ -4688,6 +4724,9 @@ void InitParamValue(ParamType paramType, T valueIn, ParamValue *valueOut)
         case ParamType::TSamplerInfo:
             SetParamVal<ParamType::TSamplerInfo>(valueIn, valueOut);
             break;
+        case ParamType::TSamplerParameter:
+            SetParamVal<ParamType::TSamplerParameter>(valueIn, valueOut);
+            break;
         case ParamType::TSemaphoreID:
             SetParamVal<ParamType::TSemaphoreID>(valueIn, valueOut);
             break;
@@ -4738,6 +4777,9 @@ void InitParamValue(ParamType paramType, T valueIn, ParamValue *valueOut)
             break;
         case ParamType::TTextureIDPointer:
             SetParamVal<ParamType::TTextureIDPointer>(valueIn, valueOut);
+            break;
+        case ParamType::TTextureImageParameter:
+            SetParamVal<ParamType::TTextureImageParameter>(valueIn, valueOut);
             break;
         case ParamType::TTextureTarget:
             SetParamVal<ParamType::TTextureTarget>(valueIn, valueOut);

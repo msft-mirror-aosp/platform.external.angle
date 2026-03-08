@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 pub mod astify;
 pub mod broadcast_fragcolor;
+pub mod clamp_frag_depth;
 pub mod clamp_point_size;
 pub mod dealias;
 pub mod emulate_instanced_multiview;
@@ -25,7 +26,9 @@ pub mod glsl_common {}
 #[cfg(angle_enable_hlsl)]
 pub mod hlsl {}
 #[cfg(angle_enable_msl)]
-pub mod msl {}
+pub mod msl {
+    pub mod ensure_loop_forward_progress;
+}
 #[cfg(angle_enable_spirv)]
 pub mod spirv {}
 #[cfg(angle_enable_wgsl)]
@@ -33,7 +36,7 @@ pub mod wgsl {}
 
 // Helper macro to run a transformation and automatically validate the IR afterwards
 macro_rules! run {
-    ($func:ident $(::$path:ident)*, $ir:expr $(, $params:expr)*) => {
+    ($func:ident $(::$path:ident)*, $ir:expr $(, $params:expr)*$(,)*) => {
         {
             let result = $crate::transform::$func$(::$path)*::run($ir $(, $params)*);
             $crate::ir::validate!($ir);

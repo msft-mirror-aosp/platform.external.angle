@@ -204,10 +204,8 @@ def __step_config(ctx, step_config):
     ] + rust_toolchain
     rust_indirect_inputs = {
         "includes": [
-            "*.h",
             "*.o",
             "*.rlib",
-            "*.rs",
             "*.so",
         ],
     }
@@ -285,6 +283,17 @@ def __step_config(ctx, step_config):
             ],
             "remote": remote and config.get(ctx, "cog"),
             "timeout": "2m",
+        },
+        {
+            "name": "rust/clippy",
+            "command_prefix": "python3 ../../build/rust/gni_impl/clippy_wrapper.py",
+            "inputs": rust_inputs + [
+                "third_party/rust-toolchain/bin/clippy-driver",
+                "build/rust/gni_impl/clippy_wrapper.py",
+            ],
+            "indirect_inputs": rust_indirect_inputs,
+            # TODO: Enable remote execution after enablling clippy by default.
+            "remote": False,
         },
         {
             # rust/bindgen fails remotely when *.d does not exist.

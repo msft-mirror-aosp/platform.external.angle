@@ -145,6 +145,7 @@ void SetOptions(TCompiler *compiler, const ShCompileOptions &options, ffi::Compi
     opt->emulate_base_vertex_instance                = options.emulateGLBaseVertexBaseInstance;
     opt->add_base_vertex_to_vertex_id                = options.addBaseVertexToVertexID;
     opt->clamp_point_size                            = options.clampPointSize;
+    opt->clamp_frag_depth                            = options.clampFragDepth;
 
     opt->rewrite_pixel_local_storage = compiler->hasPixelLocalStorageUniforms();
     opt->pls_options.implementation  = static_cast<ffi::PixelLocalStorageImpl>(options.pls.type);
@@ -153,6 +154,9 @@ void SetOptions(TCompiler *compiler, const ShCompileOptions &options, ffi::Compi
     opt->pls_options.supports_noncoherent = options.pls.supportsNoncoherent;
     opt->pls_options.supports_native_rgba8_image_formats =
         options.pls.supportsNativeRGBA8ImageFormats;
+
+    // MSL-specific flags
+    opt->ensure_loop_forward_progress = options.ensureLoopForwardProgress;
 }
 }  // namespace
 

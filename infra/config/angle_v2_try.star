@@ -58,8 +58,26 @@ def apply_linux_cq_builder_defaults(kwargs):
     kwargs.setdefault("ssd", None)
     return kwargs
 
+def apply_mac_cq_builder_defaults(kwargs):
+    """Applies default builder settings for a Mac CQ builder.
+
+    Args:
+        kwargs: The args being used for the builder as a dict.
+
+    Returns:
+        |kwargs| with default vaules set for a Mac CQ builder.
+    """
+    kwargs = apply_cq_builder_defaults(kwargs)
+    kwargs.setdefault("cpu", "arm64")
+    kwargs.setdefault("os", os.MAC_DEFAULT)
+    return kwargs
+
 def angle_linux_functional_cq_tester(**kwargs):
     kwargs = apply_linux_cq_builder_defaults(kwargs)
+    try_.builder(**kwargs)
+
+def angle_mac_functional_cq_tester(**kwargs):
+    kwargs = apply_mac_cq_builder_defaults(kwargs)
     try_.builder(**kwargs)
 
 ## Functional testers
@@ -74,6 +92,28 @@ angle_linux_functional_cq_tester(
         "ci/angle-linux-x64-sws-rel",
     ],
     gn_args = "ci/angle-linux-x64-builder-rel",
+)
+
+angle_mac_functional_cq_tester(
+    name = "angle-cq-mac-arm64-rel",
+    description_html = "Tests release ANGLE on Mac/arm64 on multiple hardware configs. Blocks CL submission.",
+    mirrors = [
+        "ci/angle-mac-arm64-apple-m2-rel",
+        "ci/angle-mac-arm64-builder-rel",
+    ],
+    gn_args = "ci/angle-mac-arm64-builder-rel",
+)
+
+angle_mac_functional_cq_tester(
+    name = "angle-cq-mac-x64-rel",
+    description_html = "Tests release ANGLE on Mac/x64 on multiple hardware configs. Blocks CL submission.",
+    mirrors = [
+        "ci/angle-mac-x64-amd-5300m-rel",
+        "ci/angle-mac-x64-amd-555x-rel",
+        "ci/angle-mac-x64-builder-rel",
+        "ci/angle-mac-x64-intel-uhd630-rel",
+    ],
+    gn_args = "ci/angle-mac-x64-builder-rel",
 )
 
 ################################################################################
@@ -133,6 +173,15 @@ def angle_linux_manual_builder(*, name, **kwargs):
         **kwargs
     )
 
+def angle_mac_manual_builder(*, name, **kwargs):
+    return try_.builder(
+        name = name,
+        max_concurrent_builds = 1,
+        cpu = "arm64",
+        os = os.MAC_DEFAULT,
+        **kwargs
+    )
+
 ## Functional testers
 
 angle_linux_manual_builder(
@@ -146,11 +195,31 @@ angle_linux_manual_builder(
 )
 
 angle_linux_manual_builder(
+    name = "angle-try-linux-x64-intel-uhd630-exp-rel",
+    description_html = "Tests release ANGLE on Linux/x64 on experimental Intel UhD 630 configs. Manual only.",
+    mirrors = [
+        "ci/angle-linux-x64-builder-rel",
+        "ci/angle-linux-x64-intel-uhd630-exp-rel",
+    ],
+    gn_args = "ci/angle-linux-x64-builder-rel",
+)
+
+angle_linux_manual_builder(
     name = "angle-try-linux-x64-intel-uhd630-rel",
     description_html = "Tests release ANGLE on Linux/x64 on Intel UHD 630 GPUs. Manual only.",
     mirrors = [
         "ci/angle-linux-x64-builder-rel",
         "ci/angle-linux-x64-intel-uhd630-rel",
+    ],
+    gn_args = "ci/angle-linux-x64-builder-rel",
+)
+
+angle_linux_manual_builder(
+    name = "angle-try-linux-x64-nvidia-gtx1660-exp-rel",
+    description_html = "Tests release ANGLE on Linux/x64 on experimental NVIDIA GTX 1660 configs. Manual only.",
+    mirrors = [
+        "ci/angle-linux-x64-builder-rel",
+        "ci/angle-linux-x64-nvidia-gtx1660-exp-rel",
     ],
     gn_args = "ci/angle-linux-x64-builder-rel",
 )
@@ -173,4 +242,64 @@ angle_linux_manual_builder(
         "ci/angle-linux-x64-sws-rel",
     ],
     gn_args = "ci/angle-linux-x64-builder-rel",
+)
+
+angle_mac_manual_builder(
+    name = "angle-try-mac-arm64-m2-rel",
+    description_html = "Tests release ANGLE on Mac/arm64 on Apple M2 SoCs. Manual only.",
+    mirrors = [
+        "ci/angle-mac-arm64-apple-m2-rel",
+        "ci/angle-mac-arm64-builder-rel",
+    ],
+    gn_args = "ci/angle-mac-arm64-builder-rel",
+)
+
+angle_mac_manual_builder(
+    name = "angle-try-mac-x64-amd-5300m-exp-rel",
+    description_html = "Tests release ANGLE on Mac/x64 on experimental configs of 16\" 2019 Macbook Pros w/ 5300M GPUs. Manual only.",
+    mirrors = [
+        "ci/angle-mac-x64-amd-5300m-exp-rel",
+        "ci/angle-mac-x64-builder-rel",
+    ],
+    gn_args = "ci/angle-mac-x64-builder-rel",
+)
+
+angle_mac_manual_builder(
+    name = "angle-try-mac-x64-amd-5300m-rel",
+    description_html = "Tests release ANGLE on Mac/x64 on 16\" 2019 Macbook Pros w/ 5300M GPUs. Manual only.",
+    mirrors = [
+        "ci/angle-mac-x64-amd-5300m-rel",
+        "ci/angle-mac-x64-builder-rel",
+    ],
+    gn_args = "ci/angle-mac-x64-builder-rel",
+)
+
+angle_mac_manual_builder(
+    name = "angle-try-mac-x64-amd-555x-rel",
+    description_html = "Tests release ANGLE on Mac/x64 on 15\" 2019 Macbook Pros w/ Radeon Pro 555X GPUs. Manual only.",
+    mirrors = [
+        "ci/angle-mac-x64-amd-555x-rel",
+        "ci/angle-mac-x64-builder-rel",
+    ],
+    gn_args = "ci/angle-mac-x64-builder-rel",
+)
+
+angle_mac_manual_builder(
+    name = "angle-try-mac-x64-intel-uhd630-exp-rel",
+    description_html = "Tests release ANGLE on Mac/x64 on experimental configs of 2018 Mac Minis w/ Intel UHD 630 GPUs. Manual only.",
+    mirrors = [
+        "ci/angle-mac-x64-builder-rel",
+        "ci/angle-mac-x64-intel-uhd630-exp-rel",
+    ],
+    gn_args = "ci/angle-mac-x64-builder-rel",
+)
+
+angle_mac_manual_builder(
+    name = "angle-try-mac-x64-intel-uhd630-rel",
+    description_html = "Tests release ANGLE on Mac/x64 on 2018 Mac Minis w/ Intel UHD 630 GPUs. Manual only.",
+    mirrors = [
+        "ci/angle-mac-x64-builder-rel",
+        "ci/angle-mac-x64-intel-uhd630-rel",
+    ],
+    gn_args = "ci/angle-mac-x64-builder-rel",
 )

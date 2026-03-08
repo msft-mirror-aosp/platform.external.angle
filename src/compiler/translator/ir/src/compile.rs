@@ -197,12 +197,16 @@ mod ffi {
         // If the flag is enabled, gl_PointSize is clamped to the maximum point size specified in
         // ShBuiltInResources in vertex shaders.
         clamp_point_size: bool,
+        // Clamp gl_FragDepth to the range [0.0, 1.0].
+        clamp_frag_depth: bool,
 
         // Whether the ANGLE_pixel_local_storage extension has been used and there are PLS uniforms
         // to rewrite.
         rewrite_pixel_local_storage: bool,
         pls_options: PixelLocalStorageOptions,
-        // TODO(http://anglebug.com/349994211): equivalent to ShCompileOptions flags
+
+        // MSL: Ensure all loops execute side-effects or terminate.
+        ensure_loop_forward_progress: bool,
     }
 
     // TODO(http://anglebug.com/349994211): Equivalent to sh::ShaderVariable, to be done after
@@ -442,8 +446,12 @@ fn common_post_variable_collection_transforms(ir: &mut IR, options: &Options) {
             clamp_point_size,
             ir,
             options.limits.min_point_size,
-            options.limits.max_point_size
+            options.limits.max_point_size,
         );
+    }
+
+    if options.clamp_frag_depth {
+        transform::run!(clamp_frag_depth, ir);
     }
 }
 
