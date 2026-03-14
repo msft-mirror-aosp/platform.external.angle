@@ -93,6 +93,14 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
     @Option(name = "skip-api-level-check", description = "Skip API level check. Default is false.")
     private boolean mSkipApiLevelCheck = false;
 
+    @Option(
+            name = "override-expectations-file",
+            description =
+                    "An absolute path on the device to an expectation file to override the default"
+                            + " expectations. Example: --override-expectations-file"
+                            + " /sdcard/my_override.txt. If empty, no override is performed.")
+    private String mOverrideExpectationsFile = "";
+
     private boolean mCollectTestsOnly = false;
     private HashSet<String> mIncludeFilters = new HashSet<>();
     private HashSet<String> mExcludeFilters = new HashSet<>();
@@ -459,6 +467,24 @@ public class AngleEnd2EndHostTest extends BaseHostJUnit4Test
         // Note we are only deleting the results file. Leave stdout for `AngleEnd2EndTestsHelper`.
         Path testResultsPath = getDeviceFilePath(RESULTS_FILE_NAME);
         mDevice.deleteFile(testResultsPath.toString());
+
+        if (!mOverrideExpectationsFile.isEmpty()) {
+            // Note: This hardcoded path must match the destination path configured
+            // by the FilePusher target_preparer in external/angle/android/cts/AndroidTest.xml.
+            // The default expectation file will be restored on each invocation of the test.
+            final String defaultExpectationsPath =
+                    "/sdcard/chromium_tests_root/src/tests/angle_end2end_tests_expectations.txt";
+            if (!mDevice.doesFileExist(mOverrideExpectationsFile)) {
+                throw new IllegalArgumentException(
+                        "Override expectations file not found on device: "
+                                + mOverrideExpectationsFile);
+            }
+            CLog.i("Overriding ANGLE test expectations with: " + mOverrideExpectationsFile);
+            // This overwritten file is ephemeral. It will be replaced by the default expectations
+            // and cleaned up natively by AndroidTest.xml on each test invocation.
+            mDevice.executeShellCommand(
+                    "cp " + mOverrideExpectationsFile + " " + defaultExpectationsPath);
+        }
 
         try {
             // We don't have feedback for individual test progress, so set all the timeouts to the

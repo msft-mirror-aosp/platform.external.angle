@@ -279,6 +279,8 @@
 435228814 NVIDIA GLES : RobustBufferAccessBehaviorTest.DynamicBufferCrash/* = SKIP
 435228814 NVIDIA OPENGL : RobustBufferAccessBehaviorTest.DynamicBufferCrash/* = SKIP
 464010023 NVIDIA GLES : BlitFramebufferANGLETest.* = SKIP
+// Demote-to-helper for discard incorrect derivatives
+491363839 NVIDIA VULKAN : GLSLTest_ES31.HelperInvocationsAfterDiscard/* = SKIP
 
 // Nvidia Vulkan
 42265709 NVIDIA VULKAN : GLSLTest_ES31.TessellationControlShaderMatrixCopyBug/* = SKIP
@@ -887,6 +889,7 @@
 
 465140993 PIXEL6 VULKAN : GLSLTest_ES3_PackUnpackEmulation.PackHalf2x16/* = SKIP
 465140993 PIXEL6 VULKAN : GLSLTest_ES3_PackUnpackEmulation.PackSnorm2x16/* = SKIP
+491488984 PIXEL6 VULKAN : GLSLTest_ES31.HelperInvocationsAfterDiscard/* = SKIP
 
 // Pixel 10 expectations.
 480069042 PIXEL10 GLES : AtomicCounterBufferTest31.DependentAtomicCounterBufferChange/* = SKIP
@@ -1281,6 +1284,7 @@
 480069042 PIXEL10 VULKAN : VulkanPerformanceCounterTest_DepthStencilLoadStoreOps.MultisampleDepthStencilResolveSeparately/* = SKIP
 480069042 PIXEL10 VULKAN : VulkanPerformanceCounterTest_DepthStencilLoadStoreOps.RenderToTextureDepthStencilRenderbufferShouldNotLoad/* = SKIP
 480069042 PIXEL10 VULKAN : VulkanPerformanceCounterTest_DepthStencilLoadStoreOps.RenderToTextureUninitializedAndUnusedDepthStencil/* = SKIP
+491488985 PIXEL10 VULKAN : GLSLTest_ES31.HelperInvocationsAfterDiscard/* = SKIP
 
 // Some Metal tests fail on iOS Intel simulator
 40096874 IOS METAL : CubeMapTextureTest.SampleCoordinateTransformGrad/* = SKIP
@@ -1442,9 +1446,6 @@
 
 // Metal internal compiler error
 42265076 MAC AMD METAL : ProgramBinaryES3Test.SaveAndLoadDetachedShaders/* = SKIP
-
-// Issue with the ANGLE workaround for a driver bug.
-402810076 MAC AMD METAL : PixelLocalStorageTest.ColorAttachment0Workaround/* = SKIP
 
 // GLES1 failures introduced during ubershader optimization
 42265148 MAC INTEL OPENGL : BootAnimationTest.DefaultBootAnimation/* = SKIP
@@ -2530,6 +2531,7 @@
 362486580 LINUX NVIDIA OPENGL : LineLoopIndirectTest.UseAsUBOThenUpdateThenUByteIndexIndirectBuffer/* = SKIP
 362486580 LINUX NVIDIA OPENGL : MultiDrawIndirectTest.MultiDrawArraysIndirect/* = SKIP
 362486580 LINUX NVIDIA OPENGL : MultiDrawIndirectTest.MultiDrawElementsIndirect/* = SKIP
+362486580 LINUX NVIDIA OPENGL : SampleMultisampleInterpolationTest31.SampleShadingThenSimpleDraw/* = SKIP
 362486580 LINUX NVIDIA OPENGL : UniformBufferTest31.UniformBufferBindings/* = SKIP
 
 362486580 LINUX NVIDIA VULKAN : ClearTextureEXTTestES31Renderable.Clear/*__GL_RGB5_A1_GL_RGBA_GL_UNSIGNED_INT_2_10_10_10_REV_* = SKIP
