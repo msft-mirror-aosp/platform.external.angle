@@ -272,10 +272,6 @@ INSTANTIATE_TEST_SUITE_P(
         GOOD_KERNEL_10("%v = OpSpecConstantOp %uint ConvertFToU %float_0"),
         GOOD_KERNEL_10("%v = OpSpecConstantOp %float ConvertUToF %uint_0"),
         GOOD_KERNEL_10("%v = OpSpecConstantOp %uint UConvert %uint64_0"),
-        GOOD_KERNEL_10(
-            "%v = OpSpecConstantOp %_ptr_uint GenericCastToPtr %null"),
-        GOOD_KERNEL_10(
-            "%v = OpSpecConstantOp %_ptr_uint PtrCastToGeneric %null"),
         GOOD_KERNEL_10("%v = OpSpecConstantOp %uint Bitcast %uint_0"),
         GOOD_KERNEL_10("%v = OpSpecConstantOp %float FNegate %float_0"),
         GOOD_KERNEL_10("%v = OpSpecConstantOp %float FAdd %float_0 %float_0"),
@@ -503,6 +499,230 @@ TEST_F(ValidateConstant, VectorMismatchedConstituents) {
           "does not match Result Type <id> '4[%v2uint]'s vector element type"));
 }
 
+TEST_F(ValidateConstant, ConstantCompositeReplicateVectorGood) {
+  std::string spirv =
+      std::string(
+          "OpCapability Shader\nOpCapability Linkage\nOpCapability "
+          "Int64\nOpCapability Float64\nOpCapability "
+          "VariablePointers\nOpCapability ReplicatedCompositesEXT\nOpExtension "
+          "\"SPV_KHR_variable_pointers\"\nOpExtension "
+          "\"SPV_EXT_replicated_composites\"\nOpMemoryModel Logical Simple\n") +
+      kBasicTypes + R"(
+%int = OpTypeInt 32 1
+%v4int = OpTypeVector %int 4
+%int_0 = OpConstant %int 0
+%const_vector = OpConstantCompositeReplicateEXT %v4int %int_0
+)";
+  CompileSuccessfully(spirv);
+  EXPECT_EQ(SPV_SUCCESS, ValidateInstructions());
+}
+
+TEST_F(ValidateConstant, SpecConstantCompositeReplicateVectorGood) {
+  std::string spirv =
+      std::string(
+          "OpCapability Shader\nOpCapability Linkage\nOpCapability "
+          "Int64\nOpCapability Float64\nOpCapability "
+          "VariablePointers\nOpCapability ReplicatedCompositesEXT\nOpExtension "
+          "\"SPV_KHR_variable_pointers\"\nOpExtension "
+          "\"SPV_EXT_replicated_composites\"\nOpMemoryModel Logical Simple\n") +
+      kBasicTypes + R"(
+%int = OpTypeInt 32 1
+%v4int = OpTypeVector %int 4
+%int_0 = OpSpecConstant %int 0
+%const_vector = OpSpecConstantCompositeReplicateEXT %v4int %int_0
+)";
+  CompileSuccessfully(spirv);
+  EXPECT_EQ(SPV_SUCCESS, ValidateInstructions());
+}
+
+TEST_F(ValidateConstant, ConstantCompositeReplicateMatrixGood) {
+  std::string spirv =
+      std::string(
+          "OpCapability Shader\nOpCapability Linkage\nOpCapability "
+          "Int64\nOpCapability Float64\nOpCapability "
+          "VariablePointers\nOpCapability ReplicatedCompositesEXT\nOpExtension "
+          "\"SPV_KHR_variable_pointers\"\nOpExtension "
+          "\"SPV_EXT_replicated_composites\"\nOpMemoryModel Logical Simple\n") +
+      kBasicTypes + R"(
+%v2float = OpTypeVector %float 2
+%mat2x2 = OpTypeMatrix %v2float 2
+%v_0 = OpConstantNull %v2float
+%const_matrix = OpConstantCompositeReplicateEXT %mat2x2 %v_0
+)";
+  CompileSuccessfully(spirv);
+  EXPECT_EQ(SPV_SUCCESS, ValidateInstructions());
+}
+
+TEST_F(ValidateConstant, ConstantCompositeReplicateArrayGood) {
+  std::string spirv =
+      std::string(
+          "OpCapability Shader\nOpCapability Linkage\nOpCapability "
+          "Int64\nOpCapability Float64\nOpCapability "
+          "VariablePointers\nOpCapability ReplicatedCompositesEXT\nOpExtension "
+          "\"SPV_KHR_variable_pointers\"\nOpExtension "
+          "\"SPV_EXT_replicated_composites\"\nOpMemoryModel Logical Simple\n") +
+      kBasicTypes + R"(
+%int = OpTypeInt 32 1
+%int_4 = OpConstant %int 4
+%arr = OpTypeArray %int %int_4
+%int_0 = OpConstantNull %int
+%const_arr = OpConstantCompositeReplicateEXT %arr %int_0
+)";
+  CompileSuccessfully(spirv);
+  EXPECT_EQ(SPV_SUCCESS, ValidateInstructions());
+}
+
+TEST_F(ValidateConstant, ConstantCompositeReplicateStructGood) {
+  std::string spirv =
+      std::string(
+          "OpCapability Shader\nOpCapability Linkage\nOpCapability "
+          "Int64\nOpCapability Float64\nOpCapability "
+          "VariablePointers\nOpCapability ReplicatedCompositesEXT\nOpExtension "
+          "\"SPV_KHR_variable_pointers\"\nOpExtension "
+          "\"SPV_EXT_replicated_composites\"\nOpMemoryModel Logical Simple\n") +
+      kBasicTypes + R"(
+%int = OpTypeInt 32 1
+%struct = OpTypeStruct %int %int %int
+%int_0 = OpConstantNull %int
+%const_struct = OpConstantCompositeReplicateEXT %struct %int_0
+)";
+  CompileSuccessfully(spirv);
+  EXPECT_EQ(SPV_SUCCESS, ValidateInstructions());
+}
+
+TEST_F(ValidateConstant, ConstantCompositeReplicateWrongOperandType) {
+  std::string spirv =
+      std::string(
+          "OpCapability Shader\nOpCapability Linkage\nOpCapability "
+          "Int64\nOpCapability Float64\nOpCapability "
+          "VariablePointers\nOpCapability ReplicatedCompositesEXT\nOpExtension "
+          "\"SPV_KHR_variable_pointers\"\nOpExtension "
+          "\"SPV_EXT_replicated_composites\"\nOpMemoryModel Logical Simple\n") +
+      kBasicTypes + R"(
+%int = OpTypeInt 32 1
+%v4int = OpTypeVector %int 4
+%const_vector = OpConstantCompositeReplicateEXT %v4int %float_0
+)";
+  CompileSuccessfully(spirv);
+  EXPECT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
+  EXPECT_THAT(
+      getDiagnosticString(),
+      HasSubstr(
+          "OpConstantCompositeReplicateEXT Constituent <id> '11[%11]'s type "
+          "does not match Result Type <id> '17[%v4int]'s element type"));
+}
+
+TEST_F(ValidateConstant, ConstantCompositeReplicateSpecOperand) {
+  std::string spirv =
+      std::string(
+          "OpCapability Shader\nOpCapability Linkage\nOpCapability "
+          "Int64\nOpCapability Float64\nOpCapability "
+          "VariablePointers\nOpCapability ReplicatedCompositesEXT\nOpExtension "
+          "\"SPV_KHR_variable_pointers\"\nOpExtension "
+          "\"SPV_EXT_replicated_composites\"\nOpMemoryModel Logical Simple\n") +
+      kBasicTypes + R"(
+%int = OpTypeInt 32 1
+%int_4 = OpConstant %int 4
+%arr = OpTypeArray %int %int_4
+%int_0 = OpSpecConstant %int 0
+%const_arr = OpConstantCompositeReplicateEXT %arr %int_0
+)";
+  CompileSuccessfully(spirv);
+  EXPECT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
+  EXPECT_THAT(getDiagnosticString(),
+              HasSubstr("OpConstantCompositeReplicateEXT must not have spec "
+                        "constant operands: <id>"));
+}
+
+TEST_F(ValidateConstant, ConstantCompositeReplicateNotConstant) {
+  std::string spirv =
+      std::string(
+          "OpCapability Kernel\nOpCapability Linkage\nOpCapability "
+          "Int64\nOpCapability Float64\nOpCapability "
+          "VariablePointers\nOpCapability Addresses\nOpCapability "
+          "ReplicatedCompositesEXT\nOpExtension "
+          "\"SPV_KHR_variable_pointers\"\nOpExtension "
+          "\"SPV_EXT_replicated_composites\"\nOpMemoryModel Physical64 "
+          "OpenCL\n") +
+      kBasicTypes + R"(
+%uint_4 = OpConstant %uint 4
+%ptr = OpTypePointer Private %uint
+%var = OpVariable %ptr Private
+%arr = OpTypeArray %ptr %uint_4
+%const_arr = OpConstantCompositeReplicateEXT %arr %var
+)";
+  CompileSuccessfully(spirv);
+  EXPECT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
+  EXPECT_THAT(getDiagnosticString(),
+              HasSubstr("OpConstantCompositeReplicateEXT must only have "
+                        "constant or undef operands: <id>"));
+}
+
+TEST_F(ValidateConstant, ConstantCompositeSpecOperand) {
+  std::string spirv =
+      std::string(
+          "OpCapability Shader\nOpCapability Linkage\nOpCapability "
+          "Int64\nOpCapability Float64\nOpCapability "
+          "VariablePointers\nOpCapability ReplicatedCompositesEXT\nOpExtension "
+          "\"SPV_KHR_variable_pointers\"\nOpExtension "
+          "\"SPV_EXT_replicated_composites\"\nOpMemoryModel Logical Simple\n") +
+      kBasicTypes + R"(
+%int = OpTypeInt 32 1
+%int_4 = OpConstant %int 4
+%arr = OpTypeArray %int %int_4
+%int_0 = OpSpecConstant %int 0
+%const_arr = OpConstantComposite %arr %int_0 %int_0 %int_0 %int_0
+)";
+  CompileSuccessfully(spirv);
+  EXPECT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
+  EXPECT_THAT(
+      getDiagnosticString(),
+      HasSubstr(
+          "OpConstantComposite must not have spec constant operands: <id>"));
+}
+
+TEST_F(ValidateConstant, ConstantCompositeNotConstant) {
+  std::string spirv =
+      std::string(
+          "OpCapability Kernel\nOpCapability Linkage\nOpCapability "
+          "Int64\nOpCapability Float64\nOpCapability "
+          "VariablePointers\nOpCapability Addresses\nOpExtension "
+          "\"SPV_KHR_variable_pointers\"\nOpMemoryModel Physical64 OpenCL\n") +
+      kBasicTypes + R"(
+%uint_4 = OpConstant %uint 4
+%ptr = OpTypePointer Private %uint
+%var = OpVariable %ptr Private
+%arr = OpTypeArray %ptr %uint_4
+%const_arr = OpConstantComposite %arr %var %var %var %var
+)";
+  CompileSuccessfully(spirv);
+  EXPECT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
+  EXPECT_THAT(getDiagnosticString(),
+              HasSubstr("OpConstantComposite must only have constant or undef "
+                        "operands: <id>"));
+}
+
+TEST_F(ValidateConstant, ConstantCompositeReplicateNotComposite) {
+  std::string spirv =
+      std::string(
+          "OpCapability Shader\nOpCapability Linkage\nOpCapability "
+          "Int64\nOpCapability Float64\nOpCapability "
+          "VariablePointers\nOpCapability ReplicatedCompositesEXT\nOpExtension "
+          "\"SPV_KHR_variable_pointers\"\nOpExtension "
+          "\"SPV_EXT_replicated_composites\"\nOpMemoryModel Logical Simple\n") +
+      kBasicTypes + R"(
+%int = OpTypeInt 32 1
+%int_0 = OpConstantNull %int
+%const_vector = OpConstantCompositeReplicateEXT %float %int_0
+)";
+  CompileSuccessfully(spirv);
+  EXPECT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
+  EXPECT_THAT(
+      getDiagnosticString(),
+      HasSubstr("OpConstantCompositeReplicateEXT Result Type <id> '5[%float]' "
+                "is not a composite type"));
+}
+
 TEST_F(ValidateConstant, BadShaderOperandsQuantizeToF16) {
   std::string spirv = R"(
 OpCapability Shader
@@ -524,11 +744,43 @@ OpMemoryModel Logical GLSL450
       HasSubstr("Expected 32-bit float scalar or vector type as Result Type"));
 }
 
+TEST_F(ValidateConstant, BadCooperativeMatrixLength) {
+  std::string spirv = R"(
+OpCapability Shader
+OpCapability Linkage
+OpCapability CooperativeMatrixKHR
+OpCapability VulkanMemoryModelKHR
+OpExtension "SPV_KHR_cooperative_matrix"
+OpExtension "SPV_KHR_vulkan_memory_model"
+OpMemoryModel Logical VulkanKHR
+%uint = OpTypeInt 32 0
+%float = OpTypeFloat 32
+%uint_1 = OpConstant %uint 1
+%uint_8 = OpConstant %uint 8
+%float_1 = OpConstant %float 1
+%subgroup = OpConstant %uint 3
+%use_A = OpConstant %uint 0
+%f16mat = OpTypeCooperativeMatrixKHR %float %subgroup %uint_8 %uint_8 %use_A
+
+%good = OpSpecConstantOp %uint CooperativeMatrixLengthKHR %f16mat
+%bad1 = OpSpecConstantOp %uint CooperativeMatrixLengthKHR %float_1
+)";
+
+  CompileSuccessfully(spirv, SPV_ENV_UNIVERSAL_1_4);
+  ASSERT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions(SPV_ENV_UNIVERSAL_1_4));
+  EXPECT_THAT(getDiagnosticString(),
+              HasSubstr("must be OpTypeCooperativeMatrixKHR"));
+}
+
+// Some check use SPV_ERROR_INVALID_DATA vs SPV_ERROR_INVALID_ID
 #define BAD_KERNEL_OPERANDS(STR, ERR)                                   \
   {                                                                     \
     SPV_ENV_UNIVERSAL_1_0, kKernelPreamble kBasicTypes STR, false, ERR, \
         SPV_ERROR_INVALID_DATA                                          \
   }
+
+#define BAD_KERNEL_OPERANDS_ID(STR, ERR) \
+  { SPV_ENV_UNIVERSAL_1_0, kKernelPreamble kBasicTypes STR, false, ERR, }
 
 // 2 of each, first has bad return type, second has bad operand
 INSTANTIATE_TEST_SUITE_P(
@@ -720,6 +972,167 @@ INSTANTIATE_TEST_SUITE_P(
             "Expected int scalar or vector type as Result Type"),
         BAD_KERNEL_OPERANDS("%v = OpSpecConstantOp %uint Not %float_0",
                             "Expected int scalar or vector as operand"),
+
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float LogicalOr %true %false",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %bool LogicalOr %true %uint_0",
+            "Expected both operands to be of Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float LogicalAnd %true %false",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %bool LogicalAnd %true %uint_0",
+            "Expected both operands to be of Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float LogicalEqual %true %false",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %bool LogicalEqual %true %uint_0",
+            "Expected both operands to be of Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float LogicalNotEqual %true %false",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %bool LogicalNotEqual %uint_0 %false",
+            "Expected both operands to be of Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float LogicalNot %true",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS("%v = OpSpecConstantOp %bool LogicalNot %uint_0",
+                            "Expected operand to be of Result Type"),
+
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float Select %true %uint_0 %uint_0",
+            "Expected both objects to be of Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %uint Select %uint_0 %uint_0 %uint_0",
+            "Expected bool scalar or vector type as condition"),
+
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float IEqual %uint_0 %uint_0",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %bool IEqual %uint_0 %float_0",
+            "Expected operands to be scalar or vector int"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float INotEqual %uint_0 %uint_0",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %bool INotEqual %uint_0 %float_0",
+            "Expected operands to be scalar or vector int"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float ULessThan %uint_0 %uint_0",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %bool ULessThan %uint_0 %float_0",
+            "Expected operands to be scalar or vector int"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float SLessThan %uint_0 %uint_0",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %bool SLessThan %uint_0 %float_0",
+            "Expected operands to be scalar or vector int"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float ULessThanEqual %uint_0 %uint_0",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %bool ULessThanEqual %uint_0 %float_0",
+            "Expected operands to be scalar or vector int"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float SLessThanEqual %uint_0 %uint_0",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %bool SLessThanEqual %uint_0 %float_0",
+            "Expected operands to be scalar or vector int"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float UGreaterThan %uint_0 %uint_0",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %bool UGreaterThan %uint_0 %float_0",
+            "Expected operands to be scalar or vector int"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float UGreaterThanEqual %uint_0 %uint_0",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %bool UGreaterThanEqual %uint_0 %float_0",
+            "Expected operands to be scalar or vector int"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float SGreaterThan %uint_0 %uint_0",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %bool SGreaterThan %uint_0 %float_0",
+            "Expected operands to be scalar or vector int"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float SGreaterThanEqual %uint_0 %uint_0",
+            "Expected bool scalar or vector type as Result Type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %bool SGreaterThanEqual %uint_0 %float_0",
+            "Expected operands to be scalar or vector int"),
+
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float GenericCastToPtr %null",
+            "Expected Result Type to be a pointer"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float PtrCastToGeneric %null",
+            "Expected Result Type to be a pointer"),
+
+        BAD_KERNEL_OPERANDS("%v = OpSpecConstantOp %bool Bitcast %uint_0",
+                            "Expected Result Type to be a pointer or int or "
+                            "float vector or scalar type"),
+        BAD_KERNEL_OPERANDS("%v = OpSpecConstantOp %uint Bitcast %true",
+                            "Expected input to be a pointer or int or float "
+                            "vector or scalar"),
+
+        BAD_KERNEL_OPERANDS_ID(
+            "%v = OpSpecConstantOp %float VectorShuffle %uint2_0 %uint2_0 1 3",
+            "The Result Type of OpVectorShuffle must be a vector type"),
+        BAD_KERNEL_OPERANDS_ID(
+            "%v = OpSpecConstantOp %uint2 VectorShuffle %uint2_0 %uint_0 1 3",
+            "The type of Vector 2 must be a vector type"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float CompositeExtract %uint2_0 1",
+            "Result type (OpTypeFloat) does not match the type that results "
+            "from indexing into the composite (OpTypeInt)"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %uint CompositeExtract %uint_0 1",
+            "Reached non-composite type while indexes still remain to be "
+            "traversed"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %float CompositeInsert %uint_0 %uint2_0 1",
+            "The Result Type must be the same as Composite type in "
+            "OpSpecConstantOp yielding Result Id 5"),
+        BAD_KERNEL_OPERANDS(
+            "%v = OpSpecConstantOp %uint2 CompositeInsert %uint_0 %uint_0 1",
+            "The Result Type must be the same as Composite type in "
+            "OpSpecConstantOp yielding Result Id 4"),
+
+        // TODO - Still need to add access chains
+        //
+        // BAD_KERNEL_OPERANDS("%v = OpSpecConstantOp %uint AccessChain %null",
+        //                     "AccessChain"),
+        // BAD_KERNEL_OPERANDS("%v = OpSpecConstantOp %_ptr_uint AccessChain
+        // %null %float_0",
+        //     "AccessChain"),
+        // BAD_KERNEL_OPERANDS("%v = OpSpecConstantOp %uint InBoundsAccessChain
+        // %null",
+        //     "InBoundsAccessChain"),
+        // BAD_KERNEL_OPERANDS("%v = OpSpecConstantOp %_ptr_uint
+        // InBoundsAccessChain %null %float_0",
+        //                     "InBoundsAccessChain"),
+        // BAD_KERNEL_OPERANDS("%v = OpSpecConstantOp %uint PtrAccessChain %null
+        // %uint_0",
+        //     "PtrAccessChain"),
+        // BAD_KERNEL_OPERANDS("%v = OpSpecConstantOp %_ptr_uint PtrAccessChain
+        // %float_0 %float_0",
+        //     "PtrAccessChain"),
+        // BAD_KERNEL_OPERANDS("%v = OpSpecConstantOp %uint
+        // InBoundsPtrAccessChain %null %uint_0",
+        //     "InBoundsPtrAccessChain"),
+        // BAD_KERNEL_OPERANDS("%v = OpSpecConstantOp %_ptr_uint
+        // InBoundsPtrAccessChain %float_0 %float_0",
+        //                     "InBoundsPtrAccessChain"),
     }));
 
 }  // namespace
