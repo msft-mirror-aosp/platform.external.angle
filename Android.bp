@@ -178,6 +178,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -268,6 +275,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -332,6 +346,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -397,6 +418,13 @@ cc_library_static {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -445,6 +473,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -501,6 +536,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -566,6 +608,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -651,6 +700,13 @@ cc_library_shared {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -740,6 +796,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -780,6 +843,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -844,6 +914,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -906,6 +983,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -1249,6 +1333,13 @@ cc_library_shared {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -1304,6 +1395,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -1403,6 +1501,13 @@ cc_library_shared {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     afdo: true,
     arch: {
         arm64: {
@@ -1487,6 +1592,13 @@ cc_library_shared {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     afdo: true,
     arch: {
         arm64: {
@@ -1545,6 +1657,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -1614,6 +1733,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -1630,6 +1756,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
 }
 
 cc_defaults {
@@ -1689,6 +1822,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -1706,6 +1846,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
 }
 
 cc_defaults {
@@ -1764,6 +1911,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -1911,6 +2065,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -2086,6 +2247,13 @@ cc_library_static {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -2196,6 +2364,13 @@ cc_library_static {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -2261,6 +2436,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -2300,6 +2482,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -2339,6 +2528,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -2397,6 +2593,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -2463,6 +2666,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -2536,6 +2746,13 @@ cc_library_static {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -2730,6 +2947,13 @@ cc_library_static {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -3908,6 +4132,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -3963,6 +4194,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4021,6 +4259,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4090,6 +4335,13 @@ cc_library_static {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4131,6 +4383,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4177,6 +4436,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4229,6 +4495,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4298,6 +4571,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4359,6 +4639,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4432,6 +4719,13 @@ cc_library_static {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4455,6 +4749,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
 }
 
 cc_library_static {
@@ -4509,6 +4810,13 @@ cc_library_static {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4685,6 +4993,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4732,6 +5047,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4782,6 +5104,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4821,6 +5150,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4854,6 +5190,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4890,6 +5233,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4938,6 +5288,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -4971,6 +5328,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5007,6 +5371,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5042,6 +5413,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5102,6 +5480,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5135,6 +5520,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5174,6 +5566,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5211,6 +5610,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5244,6 +5650,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5278,6 +5691,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5323,6 +5743,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5359,6 +5786,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5408,6 +5842,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5448,6 +5889,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5489,6 +5937,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5525,6 +5980,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5559,6 +6021,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5598,6 +6067,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5636,6 +6112,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5677,6 +6160,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5722,6 +6212,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5759,6 +6256,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5821,6 +6325,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5860,6 +6371,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5897,6 +6415,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5936,6 +6461,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -5978,6 +6510,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6019,6 +6558,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6060,6 +6606,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6110,6 +6663,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6163,6 +6723,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6197,6 +6764,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6236,6 +6810,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6270,6 +6851,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6306,6 +6894,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6371,6 +6966,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6407,6 +7009,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6450,6 +7059,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6483,6 +7099,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6538,6 +7161,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6576,6 +7206,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6609,6 +7246,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6644,6 +7288,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6688,6 +7339,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6725,6 +7383,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6772,6 +7437,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6811,6 +7483,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6850,6 +7529,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6890,6 +7576,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6950,6 +7643,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -6984,6 +7684,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7023,6 +7730,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7057,6 +7771,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7091,6 +7812,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7125,6 +7853,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7160,6 +7895,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7195,6 +7937,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7234,6 +7983,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7269,6 +8025,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7308,6 +8071,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7345,6 +8115,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7382,6 +8159,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7416,6 +8200,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7449,6 +8240,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7484,6 +8282,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7517,6 +8322,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7554,6 +8366,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7588,6 +8407,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7622,6 +8448,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7663,6 +8496,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7697,6 +8537,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7735,6 +8582,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7772,6 +8626,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7805,6 +8666,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7845,6 +8713,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7878,6 +8753,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7912,6 +8794,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7946,6 +8835,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -7980,6 +8876,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8029,6 +8932,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8065,6 +8975,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8115,6 +9032,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8152,6 +9076,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8186,6 +9117,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8219,6 +9157,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8251,6 +9196,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8284,6 +9236,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8320,6 +9279,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8358,6 +9324,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8376,6 +9349,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
 }
 
 cc_library_static {
@@ -8455,6 +9435,13 @@ cc_library_static {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8515,6 +9502,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8580,6 +9574,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8669,6 +9670,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8685,6 +9693,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
 }
 
 cc_defaults {
@@ -8694,6 +9709,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
 }
 
 cc_defaults {
@@ -8703,6 +9725,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
 }
 
 cc_defaults {
@@ -8742,6 +9771,13 @@ cc_defaults {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     arch: {
         arm64: {
             cflags: [
@@ -8856,6 +9892,13 @@ cc_library_shared {
     ],
     sdk_version: "current",
     stl: "libc++_static",
+    sanitize: {
+        cfi: false,
+    },
+    whole_program_vtables: true,
+    ldflags: [
+        "-Wl,-plugin-opt,O2",
+    ],
     afdo: true,
     arch: {
         arm64: {
