@@ -1039,6 +1039,7 @@ cc_library_shared {
         "src/tests/gl_tests/AtomicCounterBufferTest.cpp",
         "src/tests/gl_tests/AttributeLayoutTest.cpp",
         "src/tests/gl_tests/BPTCCompressedTextureTest.cpp",
+        "src/tests/gl_tests/BaseInstanceOverflowTest.cpp",
         "src/tests/gl_tests/BindGeneratesResourceTest.cpp",
         "src/tests/gl_tests/BindUniformLocationTest.cpp",
         "src/tests/gl_tests/BlendFuncExtendedTest.cpp",
