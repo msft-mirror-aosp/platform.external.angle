@@ -5598,12 +5598,20 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         vkGetPhysicalDeviceExternalSemaphoreProperties(mPhysicalDevice, &externalSemaphoreInfo,
                                                        &externalSemaphoreProperties);
 
+        // There's a spec gap in eglDupNativeFenceFDANDROID and Vulkan SYNC_FD
+        // fence/semaphore export, where the former treats -1 as an error while
+        // the latter considers -1 as a valid return for signaled payload. ANGLE
+        // relies on the implementation defined behavior that most hw Vulkan
+        // drivers would return a valid sync file there, which isn't possible
+        // for Lavapipe sw implementation especially since sw sync has been an
+        // obsolete option both on Android and upstream Linux. So workaround to
+        // disable EGL_ANDROID_native_fence_sync for Lavapipe.
         ANGLE_FEATURE_CONDITION(
             &mFeatures, supportsAndroidNativeFenceSync,
             (mFeatures.supportsExternalFenceFd.enabled &&
              FencePropertiesCompatibleWithAndroid(externalFenceProperties) &&
              mFeatures.supportsExternalSemaphoreFd.enabled &&
-             SemaphorePropertiesCompatibleWithAndroid(externalSemaphoreProperties)));
+             SemaphorePropertiesCompatibleWithAndroid(externalSemaphoreProperties) && !isLavapipe));
     }
     else
     {
@@ -5684,12 +5692,15 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     //
     // Qualcomm driver 512.821 is known to have rendering bugs with this extension.
     // http://crbug.com/413427770
+    //
+    // Lavapipe currently crashes in SysUI on Android 16 when ANGLE uses MSRTSS.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsMultisampledRenderToSingleSampled,
         mMultisampledRenderToSingleSampledFeatures.multisampledRenderToSingleSampled == VK_TRUE &&
             mFeatures.supportsRenderpass2.enabled &&
             mFeatures.supportsDepthStencilResolve.enabled && CanSupportMSRTSSForRGBA8(this) &&
-            !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 822, 0)));
+            !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 822, 0)) &&
+            !isLavapipe);
 
     // Preferring the MSRTSS flag is for texture initialization. If the MSRTSS is not used at first,
     // it will be used (if available) when recreating the image if it is bound to an MSRTT
