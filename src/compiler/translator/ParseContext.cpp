@@ -1246,7 +1246,7 @@ bool TParseContext::checkConstructorArguments(const TSourceLoc &line,
         markStaticUseIfSymbol(arg);
         const TIntermTyped *argTyped = arg->getAsTyped();
         ASSERT(argTyped != nullptr);
-        if (type.getBasicType() != EbtStruct && IsOpaqueType(argTyped->getBasicType()))
+        if (IsOpaqueType(argTyped->getBasicType()))
         {
             std::string reason("cannot convert a variable with type ");
             reason += getBasicString(argTyped->getBasicType());
@@ -1261,6 +1261,11 @@ bool TParseContext::checkConstructorArguments(const TSourceLoc &line,
         if (argTyped->getBasicType() == EbtVoid)
         {
             error(line, "cannot convert a void", "constructor");
+            return false;
+        }
+        else if (argTyped->getBasicType() == EbtYuvCscStandardEXT)
+        {
+            error(line, "cannot convert a yuvCscStandardEXT", "constructor");
             return false;
         }
     }

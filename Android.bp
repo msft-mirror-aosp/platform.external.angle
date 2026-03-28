@@ -1014,6 +1014,7 @@ cc_library_shared {
         "src/tests/egl_tests/EGLContextCompatibilityTest.cpp",
         "src/tests/egl_tests/EGLContextPassthroughShadersTest.cpp",
         "src/tests/egl_tests/EGLContextSharingTest.cpp",
+        "src/tests/egl_tests/EGLContextStateTest.cpp",
         "src/tests/egl_tests/EGLCreateContextAttribsTest.cpp",
         "src/tests/egl_tests/EGLDebugTest.cpp",
         "src/tests/egl_tests/EGLDisplaySelectionTest.cpp",
